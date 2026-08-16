@@ -62,6 +62,9 @@
         </div>
 
         <div class="pub-nav-actions">
+          <button type="button" class="pub-nav-hamburger" id="pub-nav-hamburger" aria-label="Abrir menú" aria-expanded="false">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
           {% if request.endpoint == 'public.home' %}
             <a class="btn btn-outline-dark btn-sm pub-nav-btn" href="{{ url_for('auth.admin_login') }}">Iniciar sesión</a>
             <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('onboarding.register') }}">Crear mi negocio →</a>
@@ -87,6 +90,20 @@
           {% endif %}
         </div>
 
+      </div>
+
+      <div class="pub-nav-mobile-menu" id="pub-nav-mobile-menu">
+        {% if current_company %}
+          <a href="{{ url_for('public.company_page', slug=current_company.slug) }}#servicios">Servicios</a>
+          <a href="{{ url_for('public.company_page', slug=current_company.slug) }}#equipo">Profesionales</a>
+          <a href="{{ url_for('public.company_page', slug=current_company.slug) }}#nosotros">Nosotros</a>
+          <a href="{{ url_for('public.company_page', slug=current_company.slug) }}#contacto">Contacto</a>
+        {% else %}
+          <a href="{{ url_for('public.home') }}#demo">Demo</a>
+          <a href="{{ url_for('public.home') }}#planes">Planes</a>
+          <a href="{{ url_for('public.directory') }}">Directorio de negocios</a>
+          <a href="{{ url_for('public.faq') }}">Preguntas frecuentes</a>
+        {% endif %}
       </div>
     </div>
   </nav>
@@ -117,6 +134,24 @@
       };
       toggle();
       window.addEventListener('scroll', toggle, { passive: true });
+    })();
+
+    (function () {
+      var btn = document.getElementById('pub-nav-hamburger');
+      var menu = document.getElementById('pub-nav-mobile-menu');
+      if (!btn || !menu) return;
+      btn.addEventListener('click', function () {
+        var isOpen = menu.classList.toggle('is-open');
+        btn.classList.toggle('is-open', isOpen);
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+      menu.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          menu.classList.remove('is-open');
+          btn.classList.remove('is-open');
+          btn.setAttribute('aria-expanded', 'false');
+        });
+      });
     })();
   </script>
   {% block scripts %}{% endblock %}

@@ -41,7 +41,8 @@
 .admin-topbar-name { font-weight: 700; font-size: .95rem; color: #18181b; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .admin-topbar-sub { font-size: .76rem; color: #71717a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .admin-topbar-actions { display: flex; align-items: center; gap: .6rem; flex: 0 0 auto; }
-.admin-topbar-bell { position: relative; width: 38px; height: 38px; border-radius: 8px; border: 1px solid #e4e7ec; background: #fff; display: flex; align-items: center; justify-content: center; color: #52525b; }
+.admin-topbar-bell { position: relative; width: 38px; height: 38px; border-radius: 8px; border: 1px solid #e4e7ec; background: #fff; display: flex; align-items: center; justify-content: center; color: #52525b; text-decoration: none; cursor: pointer; }
+.admin-topbar-bell:hover { border-color: #c7d7fe; color: #3654f0; }
 .admin-topbar-bell-badge { position: absolute; top: -5px; right: -5px; background: #3654f0; color: #fff; font-size: .64rem; font-weight: 700; width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 .admin-topbar-user { display: flex; align-items: center; gap: .55rem; padding-left: .5rem; border-left: 1px solid #e4e7ec; }
 .admin-topbar-avatar { width: 32px; height: 32px; border-radius: 50%; background: #3654f0; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .76rem; flex: 0 0 32px; }
@@ -263,8 +264,13 @@
   .admin-nav-item { padding: .38rem .62rem; font-size: .8rem; }
   .admin-nav-footer { flex-direction: row; border-top: 0; padding: .4rem; margin-top: 0; }
   .admin-main { padding: 1rem; }
+  .agenda-grid-card { display: none; }
+  .agenda-day-list { margin-top: 0; }
+  .agenda-mobile-note { display: flex !important; }
 }
 @media (max-width: 600px) { .admin-stats-grid { grid-template-columns: 1fr 1fr; } }
+
+.agenda-mobile-note { display: none; align-items: center; gap: .5rem; background: #f0f4ff; color: #3654f0; font-size: .78rem; font-weight: 600; padding: .65rem .9rem; border-radius: 8px 8px 0 0; margin: -1px -1px 0; }
 
 /* Íconos del nav — ahora SVG reales */
 

@@ -104,7 +104,7 @@
           {% if company.logo_url %}<img src="{{ company.logo_url }}" alt="{{ company.name }}">{% else %}T{% endif %}
         </div>
         <div style="min-width:0;">
-          <div class="admin-topbar-name">{{ company.name }}</div>
+          <div class="admin-topbar-name">{{ sections.get(active_section, company.name) }}</div>
           {% if company.address %}<div class="admin-topbar-sub">{{ company.address }}</div>{% endif %}
         </div>
       </div>
@@ -115,10 +115,10 @@
         <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}" class="btn btn-primary btn-sm">
           {{ ic.icon('plus', 15) }} Nuevo turno
         </a>
-        <button type="button" class="admin-topbar-bell" title="Actividad reciente">
+        <a href="{{ url_for('admin.dashboard', slug=company.slug, section='overview') }}#actividad-reciente" class="admin-topbar-bell" title="Ver actividad reciente">
           {{ ic.icon('bell', 18) }}
           {% if recent_activity %}<span class="admin-topbar-bell-badge">{{ recent_activity|length }}</span>{% endif %}
-        </button>
+        </a>
         <div class="admin-topbar-user">
           <div class="admin-topbar-avatar">{{ (current_user.name[0] if current_user.name else 'A')|upper }}</div>
           <div>
@@ -338,7 +338,7 @@
         </div>
 
         <div class="col-lg-4">
-          <div class="admin-card h-100">
+          <div class="admin-card h-100" id="actividad-reciente">
             <div class="admin-card-header"><h2 class="admin-card-title">Actividad reciente</h2></div>
             <div class="admin-card-body--compact">
               {% for item in recent_activity %}
@@ -594,7 +594,8 @@
 
           <!-- ── Detalle / acciones por turno (se abre al tocar una card) ── -->
           {% if appointments %}
-          <div class="admin-card mt-3">
+          <div class="admin-card mt-3 agenda-day-list">
+            <div class="agenda-mobile-note">{{ ic.icon('sliders', 14) }} Vista de lista — la grilla completa está disponible en pantallas más anchas.</div>
             <div class="admin-card-header"><h2 class="admin-card-title">Turnos del día <span class="badge text-bg-primary ms-1">{{ appointments|length }}</span></h2></div>
             <div class="admin-card-body--compact">
               {% for ap in appointments %}

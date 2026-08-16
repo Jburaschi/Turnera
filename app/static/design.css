@@ -378,7 +378,18 @@ hr { border: 0; border-top: 1px solid var(--c-border); margin: 1rem 0; }
   .col-md-3,.col-md-4,.col-md-6,.col-md-7,.col-md-8,.col-md-9,
   .col-lg-4,.col-lg-5,.col-lg-6,.col-lg-7,.col-lg-8,.col-lg-9,
   .col-xl-8,.col-lg-10 { flex: 0 0 100%; max-width: 100%; }
-  .pub-nav-actions .d-none-mobile { display: none; }
   .pub-nav-links { display: none; }
+  .pub-nav-hamburger { display: flex !important; }
 }
 @media (max-width: 500px) { .container { padding: 0 1rem; } }
+
+/* ── Menú hamburguesa mobile ─────────────────────────────────────── */
+.pub-nav-hamburger { display: none; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--c-border); background: #fff; color: var(--c-ink-2); cursor: pointer; order: 99; }
+.pub-nav--dark .pub-nav-hamburger { border-color: rgba(255,255,255,.25); color: rgba(255,255,255,.85); background: transparent; }
+.pub-nav-hamburger:hover { border-color: var(--c-blue); color: var(--c-blue); }
+.pub-nav-mobile-menu { display: none; flex-direction: column; gap: .2rem; padding: .5rem 0 1rem; }
+.pub-nav-mobile-menu.is-open { display: flex; }
+.pub-nav-mobile-menu a { padding: .7rem .5rem; color: var(--c-ink-2); font-weight: 600; font-size: .95rem; text-decoration: none; border-radius: 8px; }
+.pub-nav-mobile-menu a:hover { background: #f7f8fa; color: var(--c-blue); }
+.pub-nav--dark .pub-nav-mobile-menu a { color: rgba(255,255,255,.8); }
+.pub-nav--dark .pub-nav-mobile-menu a:hover { background: rgba(255,255,255,.08); color: #fff; }
