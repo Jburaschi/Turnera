@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Acceso empresa · Turnex{% endblock %}
+{% block topnav %}{% endblock %}
+{% block content %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--c-bg);padding:2rem;">
+  <div style="width:100%;max-width:440px;">
+    <div class="text-center mb-3">
+      <div class="admin-login-mark">Tx</div>
+      <div style="font-size:1.3rem;font-weight:800;color:var(--c-ink);letter-spacing:-.02em;">Turnex</div>
+      <div class="text-muted text-sm mt-1">Panel de empresa</div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ 'danger' if cat == 'danger' else 'success' if cat == 'success' else 'info' }} mb-3">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="admin-card">
+      <div class="admin-card-body">
+        <div class="alert alert-info text-sm mb-3">
+          Demo: slug <strong>pepito</strong> · <strong>admin@pepito.com</strong> · <strong>admin123</strong>
+        </div>
+        <form method="post" class="flex flex-col gap-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field">
+            <label class="form-label">Slug empresa</label>
+            <input class="form-control" name="slug" value="pepito" required autocomplete="organization">
+          </div>
+          <div class="field">
+            <label class="form-label">Email</label>
+            <input class="form-control" type="email" name="email" value="admin@pepito.com" required autocomplete="email">
+          </div>
+          <div class="field">
+            <label class="form-label">Contraseña</label>
+            <input class="form-control" type="password" name="password" value="admin123" required autocomplete="current-password">
+          </div>
+          <button class="btn btn-dark w-100 mt-2" style="padding:.75rem;">Ingresar</button>
+        </form>
+        <hr class="divider mt-3 mb-3">
+        <div class="flex gap-2">
+          <a href="{{ url_for('auth.admin_forgot_password') }}" class="btn btn-outline-secondary btn-sm w-100">Olvidé mi contraseña</a>
+          <a href="{{ url_for('auth.platform_login') }}" class="btn btn-outline-secondary btn-sm w-100">Login plataforma</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

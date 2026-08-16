@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="cp-page" style="--brand: #3654f0;">
+
+  <!-- ═══════════════════════════════════
+       HERO
+  ═══════════════════════════════════ -->
+  <section class="cp-hero {% if company.cover_photo_url %}cp-hero--photo{% endif %}" {% if company.cover_photo_url %}style="background-image:linear-gradient(155deg, rgba(11,18,32,.94) 0%, rgba(16,26,46,.88) 60%, rgba(20,37,68,.8) 100%), url('{{ company.cover_photo_url }}');"{% endif %}>
+    <div class="container">
+      <div class="cp-hero-inner">
+
+        <!-- Left: texto + CTA -->
+        <div class="cp-hero-left">
+          <span class="cp-eyebrow">{{ company.category or 'Turnos online' }}</span>
+          <h1 class="cp-title">{{ company.name }}</h1>
+          {% if company.description %}
+          <p class="cp-desc">{{ company.description }}</p>
+          {% else %}
+          <p class="cp-desc">Reservá tu turno en pocos pasos. Elegí servicio, fecha y horario sin llamar.</p>
+          {% endif %}
+
+          <div class="cp-hero-actions">
+            <a href="{{ url_for('public.booking_page', slug=company.slug) }}" class="cp-btn-primary">
+              Reservar turno →
+            </a>
+            <a href="#servicios" class="cp-btn-ghost">Ver servicios</a>
+          </div>
+
+          <!-- Fila de confianza -->
+          <div class="cp-trust-row">
+            <span>{{ ic.icon('shield', 15) }} Reserva segura</span>
+            <span class="cp-trust-sep">·</span>
+            <span>{{ ic.icon('check', 15) }} Confirmación inmediata</span>
+            <span class="cp-trust-sep">·</span>
+            <span>{{ ic.icon('calendar', 15) }} Sin filas ni esperas</span>
+          </div>
+        </div>
+
+        <!-- Right: mini card de pasos -->
+        <div class="cp-hero-right">
+          <div class="cp-steps-card">
+            <div class="cp-steps-header">
+              <span class="cp-steps-label">Cómo funciona</span>
+              <h2 class="cp-steps-title">3 pasos y listo</h2>
+            </div>
+            <div class="cp-steps-list">
+              <div class="cp-step">
+                <div class="cp-step-num">{{ ic.icon('briefcase', 16) }}</div>
+                <div>
+                  <strong>1. Elegí el servicio</strong>
+                  <p>Seleccioná qué querés reservar.</p>
+                </div>
+              </div>
+              <div class="cp-step">
+                <div class="cp-step-num">{{ ic.icon('calendar', 16) }}</div>
+                <div>
+                  <strong>2. Elegí fecha y hora</strong>
+                  <p>Por disponibilidad o por profesional.</p>
+                </div>
+              </div>
+              <div class="cp-step">
+                <div class="cp-step-num">{{ ic.icon('check', 16) }}</div>
+                <div>
+                  <strong>3. Confirmá</strong>
+                  <p>Completás tus datos y listo.</p>
+                </div>
+              </div>
+            </div>
+            <a href="{{ url_for('public.booking_page', slug=company.slug) }}" class="cp-steps-cta">
+              Empezar ahora →
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       CONTACTO
+  ═══════════════════════════════════ -->
+  <section class="cp-contact" id="contacto">
+    <div class="container">
+      <div class="cp-contact-card">
+
+        <div class="cp-contact-groups">
+          <div class="cp-contact-group">
+            <span class="cp-contact-group-icon">{{ ic.icon('pin', 17) }}</span>
+            <div>
+              <span class="cp-contact-group-label">VISITANOS</span>
+              <strong class="cp-contact-group-value">{{ company.name }}</strong>
+              {% if company.address %}
+              <span class="cp-contact-group-sub">{{ company.address }}</span>
+              {% else %}
+              <span class="cp-contact-group-sub cp-contact-group-sub--empty">Sin dirección cargada</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="cp-contact-group">
+            <span class="cp-contact-group-icon">{{ ic.icon('clock', 17) }}</span>
+            <div>
+              <span class="cp-contact-group-label">HORARIOS</span>
+              {% if hours_summary %}
+              <strong class="cp-contact-group-value cp-contact-group-value--sm">{{ hours_summary }}</strong>
+              {% else %}
+              <strong class="cp-contact-group-value cp-contact-group-value--sm cp-contact-group-value--empty">Sin horario cargado</strong>
+              {% endif %}
+            </div>
+          </div>
+          <div class="cp-contact-group">
+            <span class="cp-contact-group-icon">{{ ic.icon('phone-off', 17) }}</span>
+            <div>
+              <span class="cp-contact-group-label">TELÉFONO</span>
+              {% if company.phone %}
+              <strong class="cp-contact-group-value">{{ company.phone }}</strong>
+              {% else %}
+              <strong class="cp-contact-group-value cp-contact-group-value--empty">Sin teléfono cargado</strong>
+              {% endif %}
+            </div>
+          </div>
+          <div class="cp-contact-group">
+            <span class="cp-contact-group-icon">{{ ic.icon('mail', 17) }}</span>
+            <div>
+              <span class="cp-contact-group-label">EMAIL</span>
+              {% if company.email %}
+              <strong class="cp-contact-group-value">{{ company.email }}</strong>
+              {% else %}
+              <strong class="cp-contact-group-value cp-contact-group-value--empty">Sin email cargado</strong>
+              {% endif %}
+            </div>
+          </div>
+          {% if company.instagram_url or company.facebook_url %}
+          <div class="cp-social-row cp-social-row--contact">
+            {% if company.instagram_url %}<a href="{{ company.instagram_url }}" target="_blank" rel="noopener" class="cp-social-btn" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>{% endif %}
+            {% if company.facebook_url %}<a href="{{ company.facebook_url }}" target="_blank" rel="noopener" class="cp-social-btn" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 4h-2a4 4 0 00-4 4v3H7v4h2v7h4v-7h3l1-4h-4V8a1 1 0 011-1h3V4z"/></svg></a>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if company.address or company.phone %}
+        <div class="cp-contact-col cp-contact-actions">
+          {% if company.phone %}
+          <a href="https://wa.me/{{ company.phone|replace(' ','')|replace('-','')|replace('(','')|replace(')','')|replace('+','') }}" target="_blank" rel="noopener" class="cp-btn-whatsapp">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15L2 22l5.2-1.4A10 10 0 1012 2zm5.7 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.9 2.1c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.6-.7c.2-.3.4-.2.6-.1l1.9.9c.2.1.4.2.4.4.1.2.1.9-.1 1.6z"/></svg>
+            WhatsApp
+          </a>
+          {% endif %}
+          {% if company.address %}
+          <a href="https://www.google.com/maps/search/?api=1&query={{ company.address|urlencode }}" target="_blank" rel="noopener" class="cp-btn-outline">
+            {{ ic.icon('pin', 15) }} Cómo llegar
+          </a>
+          {% endif %}
+          {% if company.phone %}
+          <a href="tel:{{ company.phone }}" class="cp-btn-outline">{{ ic.icon('phone-off', 15) }} Llamar</a>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       SERVICIOS
+  ═══════════════════════════════════ -->
+  <section id="servicios" class="cp-section">
+    <div class="container">
+
+      <div class="cp-section-head">
+        <div>
+          <span class="cp-eyebrow cp-eyebrow--dark">Servicios</span>
+          <h2 class="cp-section-title">¿Qué necesitás reservar?</h2>
+          <p class="cp-section-sub">Elegí el servicio que querés y reservá en pocos pasos.</p>
+        </div>
+        <a href="{{ url_for('public.booking_page', slug=company.slug) }}" class="cp-link-more d-none d-md-inline-flex">
+          Ver todos los servicios →
+        </a>
+      </div>
+
+      <div class="cp-services-grid">
+        {% for service in company.services if service.active %}
+        <a href="{{ url_for('public.booking_page', slug=company.slug) }}?service_id={{ service.id }}" class="cp-service-card">
+          {% if service.photo_url %}
+          <div class="cp-service-photo" style="background-image:url('{{ service.photo_url }}');">
+            <span class="cp-service-icon" style="background:#fff; color:var(--brand);">{{ ic.icon('briefcase', 17) }}</span>
+          </div>
+          {% else %}
+          <div class="cp-service-photo cp-service-photo--empty">
+            <span class="cp-service-icon" style="background:#fff; color:var(--brand);">{{ ic.icon('briefcase', 17) }}</span>
+          </div>
+          {% endif %}
+          <div class="cp-service-body">
+            <h3 class="cp-service-name">{{ service.name }}</h3>
+            <div class="cp-service-meta">{{ ic.icon('clock', 13) }} {{ service.duration_min }} min</div>
+            <div class="cp-service-price">${{ '{:,.0f}'.format(service.price or 0).replace(',', '.') }}</div>
+            <span class="cp-service-action cp-service-action--block">Reservar</span>
+          </div>
+        </a>
+        {% else %}
+        <div class="cp-empty">Esta empresa todavía no tiene servicios activos para reservar.</div>
+        {% endfor %}
+      </div>
+
+      <!-- Barra de confianza -->
+      <div class="cp-trust-bar">
+        <div class="cp-trust-item">{{ ic.icon('calendar-check', 20) }} <div><strong>Confirmación inmediata</strong><span>Tu turno al instante</span></div></div>
+        <div class="cp-trust-item">{{ ic.icon('shield', 20) }} <div><strong>Cancelación simple</strong><span>Sin complicaciones</span></div></div>
+        <div class="cp-trust-item">{{ ic.icon('user', 20) }} <div><strong>Atención profesional</strong><span>Un equipo capacitado</span></div></div>
+        <div class="cp-trust-item">{{ ic.icon('clock', 20) }} <div><strong>Turnos online 24/7</strong><span>Reservá cuando quieras</span></div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       EQUIPO
+  ═══════════════════════════════════ -->
+  {% set active_employees = company.employees | selectattr('active') | list %}
+  {% if active_employees %}
+  <section id="equipo" class="cp-section cp-section--alt">
+    <div class="container">
+      <div class="cp-section-head">
+        <div>
+          <span class="cp-eyebrow cp-eyebrow--dark">Equipo</span>
+          <h2 class="cp-section-title">Nuestro equipo</h2>
+          <p class="cp-section-sub">Conocé a nuestros profesionales y elegí con quién querés atenderte.</p>
+        </div>
+      </div>
+
+      <div class="cp-people-grid">
+        {% for employee in active_employees %}
+        <div class="cp-people-card">
+          {% if employee.photo_url %}
+          <img src="{{ employee.photo_url }}" alt="{{ employee.name }}" class="cp-people-avatar" style="object-fit:cover;">
+          {% else %}
+          <div class="cp-people-avatar" style="background:var(--brand);">{{ employee.name[0]|upper }}</div>
+          {% endif %}
+          <div class="cp-people-name">{{ employee.name }}</div>
+          <div class="cp-people-role">{{ employee.bio or (employee.services|map(attribute='name')|list|join(' · ') if employee.services else company.category or 'Profesional') }}</div>
+          <a href="{{ url_for('public.booking_page', slug=company.slug) }}?employee_id={{ employee.id }}" class="cp-people-cta">Ver horarios →</a>
+        </div>
+        {% endfor %}
+
+        {% if company.config.allow_booking_by_availability %}
+        <div class="cp-people-card cp-people-card--auto">
+          <div class="cp-people-avatar cp-people-avatar--auto">{{ ic.icon('plus', 22) }}</div>
+          <div class="cp-people-name">Dejar en automático</div>
+          <div class="cp-people-role">Te asignamos al primer disponible.</div>
+          <a href="{{ url_for('public.booking_page', slug=company.slug) }}?mode=availability" class="cp-people-cta">Ver horarios →</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════
+       NOSOTROS + CTA
+  ═══════════════════════════════════ -->
+  <section id="nosotros" class="cp-section">
+    <div class="container">
+      <div class="cp-about-block">
+        <span class="cp-eyebrow cp-eyebrow--dark">Sobre nosotros</span>
+        <h2 class="cp-section-title mt-2 mb-3">{{ company.name }}</h2>
+        <p class="cp-about-text">{{ company.description or 'Reservá tu turno online, sin llamadas ni esperas.' }}</p>
+      </div>
+
+      <div class="cp-final-cta">
+        <div class="cp-final-cta-left">
+          <span class="cp-final-cta-icon">{{ ic.icon('calendar', 20) }}</span>
+          <div>
+            <strong>¿Listo para tu próximo cambio?</strong>
+            <p>Reservá tu turno en pocos pasos y disfrutá de la mejor experiencia.</p>
+          </div>
+        </div>
+        <a href="{{ url_for('public.booking_page', slug=company.slug) }}" class="cp-final-cta-btn">Reservar turno →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════ -->
+  <footer class="cp-footer">
+    <div class="container cp-footer-inner">
+      <div>
+        <div class="cp-footer-brand">{{ company.name }}</div>
+        {% if company.category %}<p class="cp-footer-desc">{{ company.category }}</p>{% endif %}
+        {% if company.instagram_url or company.facebook_url %}
+        <div class="cp-social-row mt-2">
+          {% if company.instagram_url %}<a href="{{ company.instagram_url }}" target="_blank" rel="noopener" class="cp-social-btn cp-social-btn--dark" aria-label="Instagram"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>{% endif %}
+          {% if company.facebook_url %}<a href="{{ company.facebook_url }}" target="_blank" rel="noopener" class="cp-social-btn cp-social-btn--dark" aria-label="Facebook"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 4h-2a4 4 0 00-4 4v3H7v4h2v7h4v-7h3l1-4h-4V8a1 1 0 011-1h3V4z"/></svg></a>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <div>
+        <div class="cp-footer-title">Contacto</div>
+        {% if company.address %}<div class="cp-footer-line">{{ company.address }}</div>{% endif %}
+        {% if company.phone %}<div class="cp-footer-line">{{ company.phone }}</div>{% endif %}
+        {% if company.email %}<div class="cp-footer-line">{{ company.email }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="cp-footer-bottom">Powered by <a href="{{ url_for('public.home') }}">Turnex</a></div>
+  </footer>
+
+</div>
+{% endblock %}

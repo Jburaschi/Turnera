@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Turno confirmado{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="card shadow-sm mx-auto" style="max-width: 700px;">
+    <div class="card-body p-5">
+      <h1 class="h3 mb-3">¡Turno confirmado!</h1>
+      <p class="text-secondary">Tu reserva ya quedó registrada.</p>
+      <div class="rounded-4 bg-light p-4">
+        <div><strong>Empresa:</strong> {{ company.name }}</div>
+        <div><strong>Servicio:</strong> {{ appointment.service.name }}</div>
+        <div><strong>Profesional:</strong> {{ appointment.employee.name }}</div>
+        <div><strong>Inicio:</strong> {{ appointment.start_dt.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div><strong>Fin:</strong> {{ appointment.end_dt.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div><strong>Cliente:</strong> {{ appointment.customer_display_name }}</div>
+      </div>
+      <div class="mt-4 d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('public.company_page', slug=company.slug) }}" class="btn btn-dark">Volver al inicio</a>
+        <a href="{{ url_for('public.manage_appointment', slug=company.slug, token=appointment.manage_token) }}" class="btn btn-outline-dark">Gestionar (cancelar / reprogramar)</a>
+      </div>
+      <div class="text-secondary small mt-3">
+        Guardá este link para modificar tu turno más tarde.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

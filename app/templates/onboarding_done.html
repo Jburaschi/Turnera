@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}¡Listo! · Turnex{% endblock %}
+{% block topnav %}
+<div class="ob-wiz-header" style="justify-content:flex-start;">
+  <span class="ob-wiz-brand">
+    <span class="pub-brand-icon" style="width:30px;height:30px;font-size:.8rem;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-right:.4rem;">T</span>
+    Turnex
+  </span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="ob-done-page" id="ob-done-page">
+  <div class="ob-done-card">
+    <div class="ob-done-badge">{{ ic.icon('check', 36) }}</div>
+    <h1 class="ob-done-title">¡Felicidades{% if first_name %}, {{ first_name }}{% endif %}!</h1>
+    <p class="ob-done-sub">Tu negocio ya está publicado y listo para recibir turnos.</p>
+
+    <div class="ob-done-url-box">
+      <div class="ob-done-url-label">Tu página pública</div>
+      <div class="ob-copy-field">
+        <span id="ob-public-url">turnex.com/{{ company.slug }}</span>
+        <button type="button" onclick="obCopyUrl()" title="Copiar">{{ ic.icon('copy', 17) }}</button>
+      </div>
+      <div class="ob-done-actions">
+        <a class="ob-btn-outline" href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" rel="noopener">Ver mi página {{ ic.icon('external', 15) }}</a>
+        <a class="ob-submit-btn" href="{{ url_for('admin.dashboard', slug=company.slug) }}">Ir al panel →</a>
+      </div>
+    </div>
+
+    <p class="ob-done-note">Te enviamos un email con toda la información para que empieces.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var colors = ['#3654f0', '#e8a93b', '#22c55e', '#f472b6', '#0b1220'];
+  var page = document.getElementById('ob-done-page');
+  for (var i = 0; i < 60; i++) {
+    var el = document.createElement('span');
+    el.className = 'ob-confetti';
+    el.style.left = (Math.random() * 100) + '%';
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.animationDelay = (Math.random() * 0.6) + 's';
+    el.style.animationDuration = (2.4 + Math.random() * 1.4) + 's';
+    page.appendChild(el);
+  }
+})();
+function obCopyUrl() {
+  var text = document.getElementById('ob-public-url').textContent;
+  navigator.clipboard.writeText('https://' + text).catch(function () {});
+}
+</script>
+{% endblock %}

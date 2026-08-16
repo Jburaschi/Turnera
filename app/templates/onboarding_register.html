@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}Creá tu cuenta · Turnex{% endblock %}
+{% block topnav %}{% endblock %}
+{% block content %}
+<div class="ob-page">
+  <div class="container">
+    <div class="ob-register-layout">
+
+      <div class="ob-form-card">
+        <h2 class="ob-form-title">Creá tu cuenta</h2>
+        <p class="ob-form-sub">14 días gratis. Sin tarjeta de crédito.</p>
+
+        <form method="post" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="field">
+            <label class="form-label">Nombre completo *</label>
+            <input class="form-control {% if errors.full_name %}is-invalid{% endif %}"
+                   name="full_name" value="{{ form.get('full_name','') }}"
+                   placeholder="Jonathan Pérez" required autofocus>
+            {% if errors.full_name %}<div class="invalid-feedback">{{ errors.full_name }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="form-label">Email *</label>
+            <input class="form-control {% if errors.email %}is-invalid{% endif %}"
+                   name="email" value="{{ form.get('email','') }}"
+                   type="email" placeholder="tu@email.com" required autocomplete="email">
+            {% if errors.email %}<div class="invalid-feedback">{{ errors.email }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="form-label">Contraseña * <span class="text-muted fw-normal text-sm">— mín. 8 caracteres</span></label>
+            <input class="form-control {% if errors.password %}is-invalid{% endif %}"
+                   name="password" type="password" required
+                   autocomplete="new-password" placeholder="········">
+            {% if errors.password %}<div class="invalid-feedback">{{ errors.password }}</div>{% endif %}
+          </div>
+
+          <div class="ob-check-row">
+            <input type="checkbox" class="form-check-input" id="ob-terms" name="terms" {% if form.get('terms') %}checked{% endif %}>
+            <label for="ob-terms">Acepto los <a href="{{ url_for('public.terms') }}" target="_blank">Términos y Condiciones</a> y la <a href="{{ url_for('public.privacy') }}" target="_blank">Política de Privacidad</a>.</label>
+          </div>
+          {% if errors.terms %}<div class="invalid-feedback d-block mb-2">{{ errors.terms }}</div>{% endif %}
+
+          <button type="submit" class="ob-submit-btn">
+            Crear cuenta
+          </button>
+        </form>
+
+        <div class="ob-or-sep"><span>o continuar con</span></div>
+        <div class="ob-social-row">
+          <button type="button" class="ob-social-btn" disabled title="Próximamente">
+            <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46c-.28 1.5-1.13 2.78-2.4 3.63v3h3.88c2.27-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.94-2.9l-3.88-3c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.1C3.25 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29v-3.1H1.27A11.96 11.96 0 000 12c0 1.94.46 3.77 1.27 5.39l4-3.1z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.94 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.61l4 3.1C6.22 6.86 8.87 4.75 12 4.75z"/></svg>
+            Google
+          </button>
+          <button type="button" class="ob-social-btn" disabled title="Próximamente">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.42 2.14-1.24 2.98-.94.98-2.2 1.55-3.42 1.46-.14-1.14.44-2.32 1.24-3.1.9-.9 2.24-1.5 3.42-1.34zm3.6 17.05c-.6 1.4-.9 2-1.68 3.24-1.1 1.72-2.64 3.86-4.56 3.88-1.7.02-2.14-1.1-4.44-1.1s-2.8 1.08-4.5 1.12c-1.84.06-3.24-1.86-4.36-3.56C-2.1 17.7-1.36 11 1.5 8.06c1.4-1.44 3.12-2.32 4.9-2.34 1.72-.02 3.34 1.16 4.4 1.16 1.04 0 3.02-1.44 5.1-1.22.86.04 3.3.35 4.86 2.6-.14.08-2.9 1.7-2.86 5.08.04 4.02 3.55 5.36 3.6 5.38-.03.1-.55 1.9-1.85 3.83z"/></svg>
+            Apple
+          </button>
+        </div>
+
+        <p class="ob-terms" style="border-top:1px solid var(--c-border);padding-top:1rem;margin-top:1.2rem;">
+          ¿Ya tenés cuenta? <a href="{{ url_for('auth.admin_login') }}">Ingresá</a>
+        </p>
+      </div>
+
+      <div class="ob-pitch">
+        <div class="ob-pitch-badge">14 días gratis · Sin tarjeta</div>
+        <h1 class="ob-pitch-title">Tu negocio,<br><span class="hl-title-accent" style="color:#7c93ff;">siempre organizado.</span></h1>
+
+        <div class="ob-pitch-mock">
+          <div class="ob-pitch-mock-bar"><span></span><span></span><span></span></div>
+          <div class="ob-pitch-mock-body">
+            <div class="ob-pitch-mock-row" style="background:var(--c-blue-bg);border-color:var(--c-blue-muted)"><strong>Corte de pelo</strong><span>09:00</span></div>
+            <div class="ob-pitch-mock-row" style="background:#fdf0f9;border-color:#f6cdec"><strong>Barba</strong><span>09:30</span></div>
+          </div>
+          <div class="ob-pitch-mock-phone">
+            <span class="ob-pitch-mock-phone-label">Reservar</span>
+            <div class="ob-pitch-mock-phone-btn">Confirmar</div>
+          </div>
+        </div>
+
+        <div class="ob-benefits">
+          <div class="ob-benefit">
+            <span class="ob-benefit-icon">{{ ic.icon('calendar-check', 18) }}</span>
+            <div><strong>Reservas automáticas</strong><p>Tus clientes reservan solos, sin llamadas.</p></div>
+          </div>
+          <div class="ob-benefit">
+            <span class="ob-benefit-icon">{{ ic.icon('phone-off', 18) }}</span>
+            <div><strong>Menos ausencias</strong><p>Recordatorios por WhatsApp y email.</p></div>
+          </div>
+          <div class="ob-benefit">
+            <span class="ob-benefit-icon">{{ ic.icon('clock', 18) }}</span>
+            <div><strong>Más tiempo para vos</strong><p>Automatizá la agenda y enfocate en crecer.</p></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

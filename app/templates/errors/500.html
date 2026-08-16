@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Error interno · Turnex{% endblock %}
+{% block content %}
+<div class="container" style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:3rem 1.25rem;">
+  <div style="text-align:center;max-width:460px;">
+    <div style="font-size:4rem;font-weight:900;color:var(--c-border);line-height:1;margin-bottom:1rem;">500</div>
+    <h1 style="font-size:1.5rem;font-weight:800;color:var(--c-ink);margin-bottom:.5rem;">Algo salió mal</h1>
+    <p style="color:var(--c-ink-2);margin-bottom:2rem;line-height:1.65;">
+      Ocurrió un error interno. Ya lo registramos. Intentá de nuevo en unos minutos.
+    </p>
+    <a href="{{ url_for('public.home') }}" class="btn btn-dark">Volver al inicio</a>
+  </div>
+</div>
+{% endblock %}

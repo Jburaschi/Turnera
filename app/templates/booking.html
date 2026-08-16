@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}Reservar · {{ company.name }}{% endblock %}
+{% block content %}
+<div class="container pt-4 pb-5"
+     id="booking-root"
+     style="--brand: #3654f0;"
+     data-slug="{{ company.slug }}"
+     data-login-required="{{ 1 if company.config.require_customer_login else 0 }}"
+     data-allow-availability="{{ 1 if company.config.allow_booking_by_availability else 0 }}"
+     data-allow-employee="{{ 1 if company.config.allow_booking_by_employee else 0 }}"
+     data-brand="#3654f0">
+
+  <!-- Header compacto -->
+  <div class="booking-header-compact" id="booking-main-header">
+    <div>
+      <a href="{{ url_for('public.company_page', slug=company.slug) }}" class="booking-back-link">
+        {{ ic.icon('arrow-left', 15) }} Volver al inicio
+      </a>
+      <h1 class="booking-title" id="booking-flow-title">¿Qué servicio querés reservar?</h1>
+      <p class="booking-subtitle" id="booking-flow-subtitle">Elegí el servicio que mejor se adapte a vos.</p>
+    </div>
+
+    <div class="booking-stepper-compact" id="booking-stepper">
+      <div class="bstep" id="bstep-service" data-label="Servicio">
+        <div class="bstep-circle">1</div>
+        <div class="bstep-label">Servicio</div>
+      </div>
+      <div class="bstep-line"></div>
+      <div class="bstep" id="bstep-employee" data-label="Profesional">
+        <div class="bstep-circle">2</div>
+        <div class="bstep-label">Profesional</div>
+      </div>
+      <div class="bstep-line"></div>
+      <div class="bstep" id="bstep-date" data-label="Fecha">
+        <div class="bstep-circle">3</div>
+        <div class="bstep-label">Fecha</div>
+      </div>
+      <div class="bstep-line"></div>
+      <div class="bstep" id="bstep-time" data-label="Horario">
+        <div class="bstep-circle">4</div>
+        <div class="bstep-label">Horario</div>
+      </div>
+      <div class="bstep-line"></div>
+      <div class="bstep" id="bstep-confirm" data-label="Confirmación">
+        <div class="bstep-circle">5</div>
+        <div class="bstep-label">Confirmación</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flow: one active panel at a time -->
+  <div id="booking-flow-layout">
+    <div class="booking-layout">
+
+      <div class="booking-main">
+
+        <!-- Step: Service -->
+        <div class="booking-panel is-active" id="step-service">
+          <div class="booking-panel-header booking-panel-header--row">
+            <div>
+              <h2 class="booking-panel-title">Elegí un servicio</h2>
+              <p class="booking-panel-sub">Seleccioná el servicio que querés reservar.</p>
+            </div>
+            <div class="booking-search-box">
+              {{ ic.icon('search', 15) }}
+              <input type="search" id="service-search" placeholder="Buscar servicio...">
+            </div>
+          </div>
+          <div id="services-grid"></div>
+          <div class="booking-step-footer">
+            {% if company.phone %}
+            <a href="https://wa.me/{{ company.phone|replace(' ','')|replace('-','')|replace('(','')|replace(')','')|replace('+','') }}" target="_blank" rel="noopener" class="booking-help-hint">
+              {{ ic.icon('sparkle', 14) }} ¿No sabés qué elegir? <strong>Escribinos</strong> y te ayudamos →
+            </a>
+            {% else %}<span></span>{% endif %}
+            <button type="button" class="btn booking-confirm-btn booking-continue-btn" id="continue-service-btn" disabled style="width:auto;padding:.7rem 1.6rem;">Continuar →</button>
+          </div>
+          <span class="step-status visually-hidden" id="service-status">Elegí un servicio</span>
+        </div>
+
+        <!-- Step: Mode -->
+        <div class="booking-panel d-none" id="step-mode">
+          <div class="option-grid" id="mode-options"></div>
+          <span class="step-status visually-hidden" id="mode-status">Elegí una modalidad</span>
+        </div>
+
+        <!-- Step: Employee -->
+        <div class="booking-panel d-none" id="step-employee">
+          <div class="booking-panel-header">
+            <h2 class="booking-panel-title" id="employee-step-title">Elegí un profesional</h2>
+            <p class="booking-panel-sub" id="employee-step-help">Seleccioná quién querés que te atienda.</p>
+          </div>
+          <div id="employee-options" class="option-grid"></div>
+          <span class="step-status visually-hidden" id="employee-status">Elegí un profesional</span>
+        </div>
+
+        <!-- Step: Date -->
+        <div class="booking-panel d-none" id="step-date">
+          <div class="booking-panel-header">
+            <h2 class="booking-panel-title" id="date-step-title">Elegí una fecha</h2>
+            <p class="booking-panel-sub" id="date-step-help">Seleccioná el día que te quede mejor.</p>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" id="prev-month" type="button">←</button>
+              <button class="btn btn-outline-secondary btn-sm" id="next-month" type="button">→</button>
+            </div>
+            <span class="fw-semibold text-capitalize" id="calendar-title"></span>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+          <div class="small mt-3 d-flex gap-3 flex-wrap">
+            <span><span class="legend available"></span>Disponible</span>
+            <span><span class="legend unavailable"></span>No disponible</span>
+            <span><span class="legend selected"></span>Seleccionada</span>
+          </div>
+          <span class="step-status visually-hidden" id="date-status">Elegí una fecha</span>
+        </div>
+
+        <!-- Step: Time -->
+        <div class="booking-panel d-none" id="step-time">
+          <div class="booking-panel-header">
+            <h2 class="booking-panel-title" id="time-step-title">Elegí un horario</h2>
+            <div class="summary-pill mb-2" id="time-context">Primero elegí una fecha.</div>
+          </div>
+          <div class="timezone-note">
+            {{ ic.icon('globe', 14) }} Los horarios se muestran en la zona horaria de {{ company.name }}: <strong>{{ timezone_label }}</strong>
+          </div>
+          <div id="time-slots"></div>
+          <div class="small mt-3 d-flex gap-3 flex-wrap">
+            <span><span class="legend available"></span>Disponible</span>
+            <span><span class="legend selected"></span>Seleccionado</span>
+          </div>
+          <span class="step-status visually-hidden" id="time-status">Elegí un horario</span>
+        </div>
+
+      </div>
+
+      <!-- Tu selección — panel en vivo, se completa a medida que avanzás -->
+      <aside class="booking-side" id="booking-side">
+        <div class="booking-side-card">
+          <div class="booking-side-title-row">
+            <span class="booking-side-title">Tu selección</span>
+            <a href="#" class="booking-side-edit d-none" id="live-edit-service">Editar</a>
+          </div>
+          <div class="booking-side-row" id="live-row-service">
+            <span class="booking-side-icon">{{ ic.icon('briefcase', 16) }}</span>
+            <div><span class="booking-side-label">Servicio</span><strong id="live-summary-service">—</strong></div>
+          </div>
+          <div class="booking-side-row" id="live-row-employee">
+            <span class="booking-side-icon">{{ ic.icon('user', 16) }}</span>
+            <div><span class="booking-side-label">Profesional</span><strong id="live-summary-employee">—</strong></div>
+          </div>
+          <div class="booking-side-row" id="live-row-date">
+            <span class="booking-side-icon">{{ ic.icon('calendar', 16) }}</span>
+            <div><span class="booking-side-label">Fecha</span><strong id="live-summary-date">—</strong></div>
+          </div>
+          <div class="booking-side-row" id="live-row-time">
+            <span class="booking-side-icon">{{ ic.icon('clock', 16) }}</span>
+            <div><span class="booking-side-label">Horario</span><strong id="live-summary-time">—</strong></div>
+          </div>
+          <div class="booking-side-price d-none" id="live-summary-price-row">
+            <span>Total</span>
+            <strong id="live-summary-price">—</strong>
+          </div>
+        </div>
+        <div class="booking-side-trust">
+          {{ ic.icon('lock', 16) }}
+          <div><strong>Tus datos están protegidos</strong><span>Respetamos tu privacidad.</span></div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- Confirm Screen -->
+  <div id="confirm-screen" class="d-none">
+    <div class="booking-layout">
+      <div class="booking-main">
+        <div class="confirm-screen-card">
+          <span class="booking-kicker">Último paso</span>
+          <h2 class="confirm-screen-title mb-1">Confirmá tu reserva</h2>
+          <p class="text-secondary mb-4">Completá tus datos para finalizar la reserva.</p>
+
+          <form method="post" action="{{ url_for('public.create_appointment', slug=company.slug) }}" id="booking-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="service_id" id="service_id">
+            <input type="hidden" name="employee_id" id="employee_id">
+            <input type="hidden" name="start_dt" id="start_dt">
+
+            {% if company.config.require_customer_login %}
+              {% if not current_user.is_authenticated or current_user.is_admin %}
+                <div class="alert alert-warning">
+                  Esta empresa requiere login del cliente.
+                  <a href="{{ url_for('auth.customer_login', slug=company.slug, next=url_for('public.booking_page', slug=company.slug)) }}">Ingresar</a>
+                  o
+                  <a href="{{ url_for('auth.customer_register', slug=company.slug) }}">registrarse</a>.
+                </div>
+              {% else %}
+                <div class="alert alert-success">Reservás como {{ current_user.full_name }} ({{ current_user.email }})</div>
+              {% endif %}
+            {% else %}
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Nombre completo {% if company.config.required_name %}*{% endif %}</label>
+                <div class="input-icon-wrap">{{ ic.icon('user', 16) }}<input class="form-control" name="guest_name" placeholder="Tu nombre y apellido"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Teléfono {% if company.config.required_phone %}*{% endif %}</label>
+                <div class="input-icon-wrap">{{ ic.icon('phone-off', 16) }}<input class="form-control" name="guest_phone" placeholder="11 2345 6789"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email {% if company.config.required_email %}*{% endif %}</label>
+                <div class="input-icon-wrap">{{ ic.icon('mail', 16) }}<input class="form-control" name="guest_email" placeholder="tu@email.com"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">DNI {% if company.config.required_dni %}*{% endif %}</label>
+                <div class="input-icon-wrap">{{ ic.icon('user', 16) }}<input class="form-control" name="guest_dni" placeholder="Ej: 12.345.678"></div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Comentarios <span class="text-secondary fw-normal">(opcional)</span></label>
+                <div class="input-icon-wrap"><span class="input-icon-top">{{ ic.icon('message', 16) }}</span><textarea class="form-control" name="notes" rows="3" placeholder="Contanos algo que debamos saber"></textarea></div>
+              </div>
+            </div>
+            {% endif %}
+
+            <p class="confirm-privacy-note">{{ ic.icon('lock', 15) }} Tus datos están protegidos y solo serán utilizados para gestionar tu turno.</p>
+
+            <div class="booking-slot-hold d-none" id="slot-hold-box">
+              {{ ic.icon('lock', 16) }}
+              <div>
+                <strong>Estamos guardando este horario para vos</strong>
+                <span id="slot-hold-text">Confirmando reserva temporal…</span>
+              </div>
+            </div>
+            <div class="alert alert-warning mt-2 d-none" id="slot-taken-warning">
+              Este horario ya no está disponible. <a href="#" id="slot-taken-back">Elegí otro</a>.
+            </div>
+
+            <button class="btn booking-confirm-btn mt-3" type="submit">
+              {{ ic.icon('lock', 15) }} Reservar turno →
+            </button>
+            <p class="confirm-terms-note">Al confirmar aceptás nuestros <a href="{{ url_for('public.terms') }}" target="_blank">términos y condiciones</a>.</p>
+
+            <div class="d-flex gap-2 flex-wrap mt-3">
+              <button type="button" class="btn btn-outline-secondary" id="back-to-flow-btn-bottom">← Volver y editar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <aside class="booking-side">
+        <div class="booking-side-card">
+          <span class="booking-side-title">Tu turno</span>
+          <div class="booking-side-row is-filled">
+            <span class="booking-side-icon">{{ ic.icon('briefcase', 16) }}</span>
+            <div><span class="booking-side-label">Servicio</span><strong id="summary-service">—</strong></div>
+          </div>
+          <div class="booking-side-row is-filled">
+            <span class="booking-side-icon">{{ ic.icon('user', 16) }}</span>
+            <div><span class="booking-side-label">Profesional</span><strong id="summary-employee">—</strong></div>
+          </div>
+          <div class="booking-side-row is-filled">
+            <span class="booking-side-icon">{{ ic.icon('calendar', 16) }}</span>
+            <div><span class="booking-side-label">Fecha</span><strong id="summary-date-big">—</strong></div>
+          </div>
+          <div class="booking-side-row is-filled">
+            <span class="booking-side-icon">{{ ic.icon('clock', 16) }}</span>
+            <div><span class="booking-side-label">Horario</span><strong id="summary-time-big">—</strong></div>
+          </div>
+          <div class="booking-side-price" id="confirm-price-row" style="display:none;">
+            <span>Total</span>
+            <strong id="confirm-price">—</strong>
+          </div>
+        </div>
+
+        <span class="d-none" id="summary-date"></span>
+        <span class="d-none" id="summary-time"></span>
+        <span class="d-none" id="summary-note"></span>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="serviceModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="serviceModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="serviceModalBody"></p>
+        <div class="small text-secondary" id="serviceModalMeta"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Volver</button>
+        <button type="button" class="btn btn-primary" id="confirm-service-btn">Continuar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='booking.js') }}"></script>
+{% endblock %}

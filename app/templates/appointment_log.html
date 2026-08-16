@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Historial turno #{{ appointment.id }} · {{ company.name }} · Turnex{% endblock %}
+{% block topnav %}{% endblock %}
+
+{% block head_extra %}
+<style>.public-navbar{display:none!important}body{background:#f7f8fa}</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-brand">
+      <div class="admin-sidebar-company">{{ company.name }}</div>
+      <div class="admin-sidebar-meta">/{{ company.slug }}</div>
+    </div>
+    <nav class="admin-nav">
+      {% for section_key, section_label in sections.items() %}
+        <a href="{{ url_for('admin.dashboard', slug=company.slug, section=section_key) }}"
+           class="admin-nav-item {% if active_section == section_key %}active{% endif %}">{{ section_label }}</a>
+      {% endfor %}
+      <div class="admin-nav-footer">
+        <a href="{{ url_for('auth.logout') }}" class="admin-nav-item">Cerrar sesión</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-page-header">
+      <div>
+        <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=appointment.start_dt.date().isoformat()) }}"
+           style="color:#a1a1aa;font-size:.86rem;text-decoration:none;">← Volver a agenda</a>
+        <h1 class="admin-page-title mt-1">Historial del turno #{{ appointment.id }}</h1>
+        <p class="admin-page-sub">
+          {{ appointment.customer_display_name }} ·
+          {{ appointment.service.name if appointment.service else '—' }} ·
+          {{ appointment.start_dt.strftime('%d/%m/%Y %H:%M') }}
+        </p>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">Registro de cambios</h2>
+        <span class="entity-badge entity-badge--inactive">{{ logs|length }} evento{{ 's' if logs|length != 1 }}</span>
+      </div>
+      <div class="admin-card-body--compact">
+        {% if logs %}
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Fecha y hora</th>
+              <th>Acción</th>
+              <th>Detalle</th>
+              <th>Actor</th>
+              <th>Nota</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in logs %}
+            <tr>
+              <td style="white-space:nowrap;color:#71717a;">
+                {{ entry.created_at.strftime('%d/%m/%Y %H:%M') }}
+              </td>
+              <td>
+                {% set action_labels = {
+                  'CREATED':        ('Creado',       'entity-badge--active'),
+                  'STATUS_CHANGED': ('Estado',        'entity-badge--inactive'),
+                  'RESCHEDULED':    ('Reprogramado',  ''),
+                  'REMINDER_SENT':  ('Recordatorio',  ''),
+                } %}
+                {% set label, badge_cls = action_labels.get(entry.action, (entry.action, '')) %}
+                <span class="entity-badge {{ badge_cls }}"
+                      style="{% if not badge_cls %}background:#f0f4ff;color:#2563eb;{% endif %}">
+                  {{ label }}
+                </span>
+              </td>
+              <td>
+                {% if entry.old_value and entry.new_value %}
+                  <span style="color:#a1a1aa;text-decoration:line-through;">{{ entry.old_value }}</span>
+                  → <strong>{{ entry.new_value }}</strong>
+                {% elif entry.new_value %}
+                  <strong>{{ entry.new_value }}</strong>
+                {% elif entry.old_value %}
+                  {{ entry.old_value }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                <span style="font-weight:600;color:#18181b;">{{ entry.actor_name or '—' }}</span>
+                {% if entry.actor_type %}
+                <br><span style="font-size:.75rem;color:#a1a1aa;">{{ entry.actor_type }}</span>
+                {% endif %}
+              </td>
+              <td style="color:#71717a;font-size:.85rem;">{{ entry.notes or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-secondary small">Sin historial registrado para este turno.</div>
+        {% endif %}
+      </div>
+    </div>
+
+  </main>
+</div>
+{% endblock %}

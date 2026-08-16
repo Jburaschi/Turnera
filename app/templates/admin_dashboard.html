@@ -1,0 +1,1746 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}Panel · {{ company.name }}{% endblock %}
+{% block topnav %}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .public-navbar { display: none !important; }
+  body { background: #f1f5f9; }
+  .admin-shell { min-height: 100vh; }
+</style>
+{% endblock %}
+
+{% macro schedule_row(block_index, weekday, start_t, end_t, limited_ids) %}
+<tr class="schedule-block-row">
+  <td>
+    <select class="form-select form-select-sm" name="block_{{ block_index }}_weekday" data-field="weekday">
+      {% for wd, label in weekday_labels.items() %}<option value="{{ wd }}" {% if wd == weekday %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </td>
+  <td><input class="form-control form-control-sm" type="time" name="block_{{ block_index }}_start" value="{{ start_t }}" data-field="start"></td>
+  <td><input class="form-control form-control-sm" type="time" name="block_{{ block_index }}_end" value="{{ end_t }}" data-field="end"></td>
+  <td>
+    <select class="form-select form-select-sm schedule-service-multi" name="block_{{ block_index }}_service_ids" multiple size="3" data-field="services">
+      {% for service in company.services %}<option value="{{ service.id }}" {% if limited_ids and service.id in limited_ids %}selected{% endif %}>{{ service.name }}</option>{% endfor %}
+    </select>
+    <div class="small text-secondary lh-sm">Vacío: todas las prestaciones del profesional.</div>
+  </td>
+  <td class="align-top"><button type="button" class="btn btn-sm btn-outline-danger schedule-row-remove" title="Quitar fila">×</button></td>
+</tr>
+{% endmacro %}
+{% block content %}
+<div class="admin-shell">
+
+  <!-- ══ SIDEBAR ════════════════════════════════════ -->
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-brand">
+      <div class="admin-sidebar-logo">T</div>
+      <div>
+        <div class="admin-sidebar-company">{{ company.name }}</div>
+        <div class="admin-sidebar-meta">Plan {{ company.plan_name }}</div>
+      </div>
+    </div>
+    <nav class="admin-nav">
+      {% set nav_icons = {
+        'overview':'home', 'agenda':'calendar', 'customers':'users',
+        'professionals':'user', 'services':'briefcase', 'blocked':'ban',
+        'company':'building', 'payments':'credit-card', 'settings':'sliders',
+        'integrations':'plug',
+      } %}
+      {% set groups = [
+        ('Principal', ['overview','agenda','customers']),
+        ('Gestión', ['professionals','services','blocked','company','payments','settings']),
+        ('Configuración', ['integrations']),
+      ] %}
+      {% set staff_sections = ['overview','agenda','customers'] %}
+      {% for group_label, group_keys in groups %}
+        {% set visible_keys = group_keys|select('in', sections.keys())|list %}
+        {% if current_user.role == 'admin' %}
+          {% set visible_keys = visible_keys %}
+        {% else %}
+          {% set visible_keys = visible_keys|select('in', staff_sections)|list %}
+        {% endif %}
+        {% if visible_keys %}
+          <span class="admin-nav-section">{{ group_label }}</span>
+          {% for section_key in visible_keys %}
+          <a href="{{ url_for('admin.dashboard', slug=company.slug, section=section_key) }}"
+             class="admin-nav-item {% if active_section == section_key %}active{% endif %}">
+            <span class="admin-nav-icon">{{ ic.icon(nav_icons.get(section_key,'home'), 17) }}</span>
+            {{ sections[section_key] }}
+          </a>
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+      <div class="admin-nav-footer">
+        <a href="{{ url_for('admin.team', slug=company.slug) }}" class="admin-nav-item">
+          <span class="admin-nav-icon">{{ ic.icon('users', 17) }}</span> Equipo
+        </a>
+        <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="admin-nav-item">
+          <span class="admin-nav-icon">{{ ic.icon('external', 17) }}</span> Ver página pública
+        </a>
+        <a href="{{ url_for('auth.logout') }}" class="admin-nav-item">
+          <span class="admin-nav-icon">{{ ic.icon('log-out', 17) }}</span> Cerrar sesión
+        </a>
+      </div>
+    </nav>
+
+    <div class="admin-plan-card">
+      <div class="admin-plan-card-top">{{ ic.icon('crown', 16) }} Plan {{ company.plan_name }}</div>
+      {% if company.trial_expires_at %}
+      <div class="admin-plan-card-meta">Renovación: {{ company.trial_expires_at.strftime('%d/%m/%Y') }}</div>
+      {% endif %}
+      <a href="{{ url_for('admin.dashboard', slug=company.slug, section='payments') }}">Ver mi plan →</a>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ═══════════════════════════════════════ -->
+  <main class="admin-main">
+
+    <!-- ══ TOPBAR ═══════════════════════════════════ -->
+    <div class="admin-topbar">
+      <div class="admin-topbar-brand">
+        <div class="admin-topbar-logo">
+          {% if company.logo_url %}<img src="{{ company.logo_url }}" alt="{{ company.name }}">{% else %}T{% endif %}
+        </div>
+        <div style="min-width:0;">
+          <div class="admin-topbar-name">{{ company.name }}</div>
+          {% if company.address %}<div class="admin-topbar-sub">{{ company.address }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="admin-topbar-actions">
+        <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+          Ver página pública {{ ic.icon('external', 14) }}
+        </a>
+        <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}" class="btn btn-primary btn-sm">
+          {{ ic.icon('plus', 15) }} Nuevo turno
+        </a>
+        <button type="button" class="admin-topbar-bell" title="Actividad reciente">
+          {{ ic.icon('bell', 18) }}
+          {% if recent_activity %}<span class="admin-topbar-bell-badge">{{ recent_activity|length }}</span>{% endif %}
+        </button>
+        <div class="admin-topbar-user">
+          <div class="admin-topbar-avatar">{{ (current_user.name[0] if current_user.name else 'A')|upper }}</div>
+          <div>
+            <div class="admin-topbar-user-name">{{ current_user.name or current_user.email }}</div>
+            <div class="admin-topbar-user-role">{{ 'Administrador' if current_user.role == 'admin' else 'Staff' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-content">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show mb-3 rounded-3" role="alert">
+          {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if plan_state.trial_warning %}
+    <div class="trial-banner trial-banner--warning">
+      <div class="trial-banner-left">
+        <span class="trial-banner-icon">⏳</span>
+        <div>
+          <strong>Período de prueba: {{ plan_state.trial_days_left }} día{{ 's' if plan_state.trial_days_left != 1 }} restante{{ 's' if plan_state.trial_days_left != 1 }}</strong>
+          <span>Activá tu plan para no perder el acceso al panel ni la página pública.</span>
+        </div>
+      </div>
+      <a href="mailto:hola@turnex.com?subject=Quiero activar mi plan — {{ company.name }}" class="trial-banner-cta">
+        Activar plan
+      </a>
+    </div>
+    {% elif plan_state.trial_active %}
+    <div class="trial-banner trial-banner--info">
+      <div class="trial-banner-left">
+        <span class="trial-banner-icon">🔎</span>
+        <div>
+          <strong>Estás en período de prueba</strong>
+          <span>{{ plan_state.trial_days_left }} día{{ 's' if plan_state.trial_days_left != 1 }} restante{{ 's' if plan_state.trial_days_left != 1 }}. Todas las funciones están activas.</span>
+        </div>
+      </div>
+      <a href="mailto:hola@turnex.com?subject=Quiero activar mi plan — {{ company.name }}" class="trial-banner-cta trial-banner-cta--ghost">
+        Ver planes
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- ════ OVERVIEW ════════════════════════════════════ -->
+    {% if active_section == 'overview' %}
+      {% set first_name = (current_user.name.split()[0] if current_user.name else 'Administrador') %}
+      <div class="admin-page-header">
+        <div>
+          <h1 class="admin-page-title">¡Hola, {{ first_name }}! 👋</h1>
+          <p class="admin-page-sub">Acá tenés un resumen de tu negocio.</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}" class="btn btn-dark btn-sm">Ver agenda →</a>
+      </div>
+
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--blue">{{ ic.icon('calendar', 20) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Turnos hoy</span>
+            <div class="admin-stat-value-v2">{{ stats.today_appointments }}</div>
+            {% if stats.today_appointments == 0 %}<div class="admin-stat-sub">Sin turnos programados</div>{% endif %}
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--green">{{ ic.icon('trending-up', 20) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Turnos esta semana</span>
+            <div class="admin-stat-value-v2">{{ stats.week_appointments }}</div>
+            {% if stats.week_delta is not none %}
+            <span class="admin-stat-delta {{ 'admin-stat-delta--up' if stats.week_delta >= 0 else 'admin-stat-delta--down' }}">
+              {{ ic.icon('trending-up' if stats.week_delta >= 0 else 'trending-down', 13) }}
+              {{ '+' if stats.week_delta >= 0 }}{{ stats.week_delta }}% vs semana pasada
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--purple">{{ ic.icon('user-plus', 20) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Clientes nuevos</span>
+            <div class="admin-stat-value-v2">{{ stats.new_customers_week }}</div>
+            {% if stats.customers_delta is not none %}
+            <span class="admin-stat-delta {{ 'admin-stat-delta--up' if stats.customers_delta >= 0 else 'admin-stat-delta--down' }}">
+              {{ ic.icon('trending-up' if stats.customers_delta >= 0 else 'trending-down', 13) }}
+              {{ '+' if stats.customers_delta >= 0 }}{{ stats.customers_delta }}% vs semana pasada
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--amber">{{ ic.icon('dollar-sign', 20) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Ingresos (mes)</span>
+            <div class="admin-stat-value-v2">${{ '{:,.0f}'.format(stats.revenue_month).replace(',', '.') }}</div>
+            {% if stats.revenue_delta is not none %}
+            <span class="admin-stat-delta {{ 'admin-stat-delta--up' if stats.revenue_delta >= 0 else 'admin-stat-delta--down' }}">
+              {{ ic.icon('trending-up' if stats.revenue_delta >= 0 else 'trending-down', 13) }}
+              {{ '+' if stats.revenue_delta >= 0 }}{{ stats.revenue_delta }}% vs mes pasado
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-lg-5">
+          {% if not setup_complete %}
+          <div class="admin-card setup-checklist-card">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Configuración del negocio</h2>
+              <div class="setup-progress-pill">{{ setup_progress }}% completado</div>
+            </div>
+            <div class="setup-progress-bar-wrap">
+              <div class="setup-progress-bar" style="width:{{ setup_progress }}%"></div>
+            </div>
+            <div class="admin-card-body--compact">
+              {% for step in setup_checklist %}
+              <a href="{{ step.url }}" class="setup-step {% if step.ok %}setup-step--done{% endif %}" style="text-decoration:none;">
+                <div class="setup-step-check">
+                  {% if step.ok %}<span class="setup-check-icon">{{ ic.icon('check', 12) }}</span>
+                  {% else %}<span class="setup-check-empty"></span>{% endif %}
+                </div>
+                <div class="setup-step-body">
+                  <div class="setup-step-title">{{ step.title }}</div>
+                  <div class="setup-step-desc">{{ 'Completado' if step.ok else step.desc }}</div>
+                </div>
+                <span class="setup-step-arrow">{{ ic.icon('chevron-right', 16) }}</span>
+              </a>
+              {% endfor %}
+            </div>
+            <a href="{{ url_for('admin.dashboard', slug=company.slug, section='company') }}" class="btn btn-outline-dark btn-sm" style="margin:0 1.2rem 1.1rem;">Editar configuración</a>
+          </div>
+          {% else %}
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Configuración del negocio</h2>
+              <div class="setup-progress-pill">100% completado</div>
+            </div>
+            <div class="setup-progress-bar-wrap"><div class="setup-progress-bar" style="width:100%"></div></div>
+            <div class="admin-card-body--compact">
+              {% for step in setup_checklist %}
+              <div class="setup-step setup-step--done">
+                <div class="setup-step-check"><span class="setup-check-icon">{{ ic.icon('check', 12) }}</span></div>
+                <div class="setup-step-body"><div class="setup-step-title">{{ step.title }}</div><div class="setup-step-desc">Completado</div></div>
+                <span class="setup-step-arrow">{{ ic.icon('chevron-right', 16) }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            <a href="{{ url_for('admin.dashboard', slug=company.slug, section='company') }}" class="btn btn-outline-dark btn-sm" style="margin:0 1.2rem 1.1rem;">Editar configuración</a>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-lg-7">
+          <div class="admin-card h-100">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Próximos turnos</h2>
+              <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}" class="btn btn-outline-dark btn-sm">Ver agenda</a>
+            </div>
+            {% if upcoming %}
+            <div class="admin-card-body--compact">
+              {% for ap in upcoming %}
+              <div class="upcoming-item">
+                <div class="upcoming-time">
+                  <div>{{ ap.start_dt.strftime('%d/%m') }}</div>
+                  <div style="font-size:.85em;opacity:.7">{{ ap.start_dt.strftime('%H:%M') }}</div>
+                </div>
+                <div class="upcoming-info">
+                  <div class="upcoming-name">{{ ap.customer_display_name }}</div>
+                  <div class="upcoming-meta">{{ ap.service.name }} · {{ ap.employee.name }}</div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="admin-empty-state">
+              <span class="admin-empty-icon">{{ ic.icon('calendar', 30) }}</span>
+              <div class="admin-empty-title">No hay turnos próximos</div>
+              <div class="admin-empty-sub">Cuando tengas turnos programados, los vas a ver acá.</div>
+              <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}" class="btn btn-primary btn-sm">Ir a la agenda</a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <div class="admin-card h-100">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Prestaciones más reservadas</h2>
+              <a href="{{ url_for('admin.dashboard', slug=company.slug, section='services') }}" class="btn btn-outline-dark btn-sm">Ver todas</a>
+            </div>
+            <div class="admin-card-body--compact">
+              {% set max_count = (services_rank[0].appointments|selectattr('status','equalto','BOOKED')|list|length) if services_rank else 0 %}
+              {% for service in services_rank %}
+                {% set svc_count = service.appointments|selectattr('status','equalto','BOOKED')|list|length %}
+                <div class="rank-item">
+                  <span class="rank-badge">{{ loop.index }}</span>
+                  <div class="rank-item-body">
+                    <div class="rank-name">{{ service.name }}</div>
+                    <div class="rank-meta">{{ service.duration_min }} min · ${{ '%.0f'|format(service.price) }}</div>
+                    <div class="rank-bar-wrap"><div class="rank-bar" style="width:{{ (svc_count / max_count * 100) if max_count else 0 }}%"></div></div>
+                  </div>
+                  <span class="rank-count">{{ svc_count }} turno{{ 's' if svc_count != 1 }}</span>
+                </div>
+              {% else %}
+              <div class="p-4 text-center text-secondary small">Todavía no hay datos.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="admin-card h-100">
+            <div class="admin-card-header"><h2 class="admin-card-title">Actividad reciente</h2></div>
+            <div class="admin-card-body--compact">
+              {% for item in recent_activity %}
+              <div class="admin-activity-item">
+                <span class="admin-activity-icon">{{ ic.icon(item.icon, 16) }}</span>
+                <div class="admin-activity-body">
+                  <div class="admin-activity-title">{{ item.title }}</div>
+                  <div class="admin-activity-sub">{{ item.sub }}</div>
+                </div>
+                <span class="admin-activity-time">{{ item.relative }}</span>
+              </div>
+              {% else %}
+              <div class="p-4 text-center text-secondary small">Todavía no hay actividad para mostrar.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="admin-card h-100">
+            <div class="admin-card-header"><h2 class="admin-card-title">Acciones rápidas</h2></div>
+            <div class="admin-card-body--compact" style="padding:.4rem 1.2rem 1.1rem;">
+              <a class="admin-quickaction" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}">
+                <span class="admin-quickaction-icon">{{ ic.icon('calendar', 15) }}</span>
+                <span>Nuevo turno</span>{{ ic.icon('chevron-right', 15) }}
+              </a>
+              <a class="admin-quickaction" href="{{ url_for('admin.dashboard', slug=company.slug, section='customers') }}">
+                <span class="admin-quickaction-icon">{{ ic.icon('user-plus', 15) }}</span>
+                <span>Nuevo cliente</span>{{ ic.icon('chevron-right', 15) }}
+              </a>
+              <a class="admin-quickaction" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}">
+                <span class="admin-quickaction-icon">{{ ic.icon('calendar-check', 15) }}</span>
+                <span>Ver agenda</span>{{ ic.icon('chevron-right', 15) }}
+              </a>
+              <a class="admin-quickaction" href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank">
+                <span class="admin-quickaction-icon">{{ ic.icon('globe', 15) }}</span>
+                <span>Ver página pública</span>{{ ic.icon('chevron-right', 15) }}
+              </a>
+              <a class="admin-quickaction" href="{{ url_for('admin.dashboard', slug=company.slug, section='blocked') }}">
+                <span class="admin-quickaction-icon">{{ ic.icon('ban', 15) }}</span>
+                <span>Bloquear horario</span>{{ ic.icon('chevron-right', 15) }}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if not company.google_calendar %}
+      <div class="admin-tip-banner mt-3">
+        <div class="admin-tip-banner-left">
+          <span class="admin-tip-icon">{{ ic.icon('sparkle', 18) }}</span>
+          <div>
+            <strong>Tip para vos</strong>
+            <p>Conectá tu calendario de Google para evitar turnos duplicados y gestionar mejor tu tiempo.</p>
+          </div>
+        </div>
+        <a href="{{ url_for('admin.dashboard', slug=company.slug, section='integrations') }}" class="btn btn-outline-secondary btn-sm">Conectar calendario</a>
+      </div>
+      {% endif %}
+
+      <!-- Alertas de configuración incompleta -->
+      {% if services_without_professionals or professionals_without_services or professionals_without_schedules %}
+      <div class="admin-card mt-3" style="border-color:#fde68a;background:#fffbeb;">
+        <div class="admin-card-header" style="border-color:#fde68a;">
+          <h2 class="admin-card-title" style="color:#92400e;">Configuración incompleta</h2>
+        </div>
+        <div class="admin-card-body--compact">
+          {% for svc in services_without_professionals %}
+          <div class="setup-item">
+            <span>Prestación <strong>{{ svc.name }}</strong> no tiene profesionales asignados</span>
+            <a href="{{ url_for('admin.dashboard', slug=company.slug, section='professionals') }}" class="btn btn-outline-warning btn-sm">Asignar →</a>
+          </div>
+          {% endfor %}
+          {% for emp in professionals_without_services %}
+          <div class="setup-item">
+            <span>Profesional <strong>{{ emp.name }}</strong> no tiene prestaciones asignadas</span>
+            <a href="{{ url_for('admin.dashboard', slug=company.slug, section='professionals') }}" class="btn btn-outline-warning btn-sm">Asignar →</a>
+          </div>
+          {% endfor %}
+          {% for emp in professionals_without_schedules %}
+          <div class="setup-item">
+            <span>Profesional <strong>{{ emp.name }}</strong> no tiene franjas horarias cargadas</span>
+            <a href="{{ url_for('admin.dashboard', slug=company.slug, section='professionals') }}" class="btn btn-outline-warning btn-sm">Agregar →</a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% elif active_section == 'agenda' %}
+        {% set ROW_PX = 52 %}
+        <div id="agenda-main">
+
+          <div class="admin-page-header">
+            <div class="d-flex align-items-center gap-3">
+              <span class="admin-section-icon">{{ ic.icon('calendar', 22) }}</span>
+              <div>
+                <h1 class="admin-page-title">Agenda</h1>
+                <p class="admin-page-sub">Administrá tus turnos y la disponibilidad de tu equipo.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="agenda-toolbar mb-3">
+            <div class="agenda-toolbar-left">
+              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day - timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">‹</a>
+              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">Hoy</a>
+              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day + timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">›</a>
+              <span class="agenda-date-label">{{ ic.icon('calendar', 15) }} {{ selected_day.strftime('%A %d de %B de %Y')|capitalize }}</span>
+            </div>
+            <div class="agenda-toolbar-right">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#agenda-filters-panel">{{ ic.icon('sliders', 14) }} Filtros</button>
+              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.export_agenda_csv', slug=company.slug, day=selected_day.isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">Exportar CSV</a>
+              <button class="btn btn-primary btn-sm" id="btn-nuevo-turno" type="button">{{ ic.icon('plus', 14) }} Nuevo turno</button>
+            </div>
+          </div>
+
+          <div class="admin-card collapse mb-3" id="agenda-filters-panel">
+            <div class="admin-card-body">
+              <form method="get" class="row g-3 align-items-end">
+                <input type="hidden" name="section" value="agenda">
+                <input type="hidden" name="day" value="{{ selected_day.isoformat() }}">
+                <div class="col-md-3"><label class="form-label">Prestación</label>
+                  <select class="form-select form-select-sm" name="service_id"><option value="">Todas</option>{% for s in company.services %}<option value="{{ s.id }}" {% if selected_service_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select>
+                </div>
+                <div class="col-md-3"><label class="form-label">Estado</label>
+                  <select class="form-select form-select-sm" name="status"><option value="">Todos</option>{% for option in status_options %}<option value="{{ option }}" {% if selected_status == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>
+                </div>
+                <div class="col-md-3"><button class="btn btn-primary btn-sm">Aplicar filtros</button>
+                  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat()) }}">Limpiar</a>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Chips de profesional -->
+          <div class="agenda-chips mb-3">
+            <a class="agenda-chip {{ 'active' if not selected_professional_id }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat(), service_id=selected_service_id, status=selected_status) }}">Todos</a>
+            {% for p in company.employees if p.active %}
+            <a class="agenda-chip {{ 'active' if selected_professional_id == p.id }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat(), professional_id=p.id, service_id=selected_service_id, status=selected_status) }}">
+              <span class="agenda-chip-dot" style="background:{{ p.color or '#3654f0' }}"></span>{{ p.name }}
+            </a>
+            {% endfor %}
+          </div>
+
+          <div class="agenda-layout">
+
+            <!-- ── Grilla de calendario ── -->
+            <div class="admin-card agenda-grid-card">
+              {% if agenda_employees %}
+              <div class="agenda-grid" style="--row-px:{{ ROW_PX }}px; --n-cols:{{ agenda_employees|length }};">
+                <div class="agenda-grid-hours">
+                  <div class="agenda-grid-corner"></div>
+                  {% for h in agenda_hour_marks %}<div class="agenda-hour-mark" style="height:{{ ROW_PX*2 }}px;">{{ '%02d:00'|format(h) }}</div>{% endfor %}
+                </div>
+                <div class="agenda-grid-cols">
+                  {% for prof in agenda_employees %}
+                  <div class="agenda-col">
+                    <div class="agenda-col-head"><span class="agenda-chip-dot" style="background:{{ prof.color or '#3654f0' }}"></span>{{ prof.name }}</div>
+                    <div class="agenda-col-body" style="height:{{ (agenda_end_hour-agenda_start_hour)*2*ROW_PX }}px;">
+                      {% for h in range(1, (agenda_end_hour-agenda_start_hour)) %}<div class="agenda-hline" style="top:{{ h*2*ROW_PX }}px;"></div>{% endfor %}
+                      {% for ap in agenda_by_employee.get(prof.id, []) %}
+                        {% set start_offset = (ap.start_dt.hour - agenda_start_hour)*60 + ap.start_dt.minute %}
+                        {% set duration_min = ((ap.end_dt - ap.start_dt).total_seconds() / 60)|int %}
+                        {% set top = (start_offset / 30 * ROW_PX)|round(1) %}
+                        {% set h_px = ([(duration_min / 30 * ROW_PX)|round(1), 26]|max) %}
+                        {% set color = service_color_map.get(ap.service_id, '#3654f0') %}
+                        <a href="#ap_detail_{{ ap.id }}" data-bs-toggle="collapse" class="agenda-card {{ 'agenda-card--canceled' if ap.status == 'CANCELED' }}"
+                           style="top:{{ top }}px; height:{{ h_px }}px; background:{{ color }}14; border-color:{{ color }}55; color:{{ color }};">
+                          <strong>{{ ap.customer_display_name }}</strong>
+                          <span>{{ ap.service.name if ap.service else '—' }}</span>
+                          <span class="agenda-card-time">{{ ap.start_dt.strftime('%H:%M') }} - {{ ap.end_dt.strftime('%H:%M') }}</span>
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% else %}
+              <div class="admin-empty-state">
+                <span class="admin-empty-icon">{{ ic.icon('user', 30) }}</span>
+                <div class="admin-empty-title">No hay profesionales activos</div>
+                <div class="admin-empty-sub">Agregá un profesional para poder ver la agenda.</div>
+              </div>
+              {% endif %}
+
+              <div class="agenda-legend">
+                {% for s in company.services %}
+                <span class="agenda-legend-item"><span class="agenda-chip-dot" style="background:{{ service_color_map.get(s.id,'#3654f0') }}"></span>{{ s.name }}</span>
+                {% endfor %}
+                <span class="agenda-legend-item"><span class="agenda-chip-dot" style="background:#a1a1aa"></span>Bloqueo</span>
+              </div>
+            </div>
+
+            <!-- ── Sidebar derecha ── -->
+            <div class="agenda-sidebar">
+
+              <div class="admin-card mb-3">
+                <div class="admin-card-header">
+                  <h2 class="admin-card-title text-capitalize">{{ mini_cal_month_label }}</h2>
+                  <div class="d-flex gap-1">
+                    <a class="admin-icon-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=prev_month_date.isoformat()) }}">‹</a>
+                    <a class="admin-icon-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=next_month_date.isoformat()) }}">›</a>
+                  </div>
+                </div>
+                <div class="admin-card-body">
+                  <table class="mini-cal">
+                    <thead><tr>{% for d in ['L','M','X','J','V','S','D'] %}<th>{{ d }}</th>{% endfor %}</tr></thead>
+                    <tbody>
+                      {% for week in mini_cal_weeks %}
+                      <tr>
+                        {% for day_num in week %}
+                          {% if day_num == 0 %}<td></td>
+                          {% else %}
+                            {% set this_date = selected_day.replace(day=day_num) %}
+                            <td><a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=this_date.isoformat(), professional_id=selected_professional_id) }}" class="mini-cal-day {{ 'mini-cal-day--selected' if this_date == selected_day }} {{ 'mini-cal-day--today' if this_date == today }}">{{ day_num }}</a></td>
+                          {% endif %}
+                        {% endfor %}
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="admin-card mb-3">
+                <div class="admin-card-header"><h2 class="admin-card-title">Vista rápida</h2></div>
+                <div class="admin-card-body--compact">
+                  <div class="agenda-quickstat"><span>Turnos hoy</span><strong>{{ agenda_today_count }}</strong></div>
+                  <div class="agenda-quickstat"><span>Turnos esta semana</span><strong>{{ agenda_week_count }}</strong></div>
+                  <div class="agenda-quickstat"><span>Turnos sin confirmar</span><strong>{{ agenda_unconfirmed_count }}{% if agenda_unconfirmed_count > 0 %}<span class="agenda-quickstat-dot"></span>{% endif %}</strong></div>
+                </div>
+              </div>
+
+              <div class="admin-card">
+                <div class="admin-card-header"><h2 class="admin-card-title">Acciones rápidas</h2></div>
+                <div class="admin-card-body--compact" style="padding-bottom:1.1rem;">
+                  <button type="button" class="admin-quickaction w-100" style="border:0;background:none;text-align:left;" id="btn-nuevo-turno-quick">
+                    <span class="admin-quickaction-icon">{{ ic.icon('calendar', 15) }}</span><span>Nuevo turno</span>{{ ic.icon('chevron-right', 15) }}
+                  </button>
+                  <a class="admin-quickaction" href="{{ url_for('admin.dashboard', slug=company.slug, section='blocked') }}">
+                    <span class="admin-quickaction-icon">{{ ic.icon('ban', 15) }}</span><span>Bloquear horario</span>{{ ic.icon('chevron-right', 15) }}
+                  </a>
+                  <a class="admin-quickaction" href="{{ url_for('admin.export_agenda_csv', slug=company.slug, day=selected_day.isoformat()) }}">
+                    <span class="admin-quickaction-icon">{{ ic.icon('calendar-check', 15) }}</span><span>Exportar turnos del día</span>{{ ic.icon('chevron-right', 15) }}
+                  </a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ── Detalle / acciones por turno (se abre al tocar una card) ── -->
+          {% if appointments %}
+          <div class="admin-card mt-3">
+            <div class="admin-card-header"><h2 class="admin-card-title">Turnos del día <span class="badge text-bg-primary ms-1">{{ appointments|length }}</span></h2></div>
+            <div class="admin-card-body--compact">
+              {% for ap in appointments %}
+              <div class="agenda-list-row {% if ap.status == 'CANCELED' %}opacity-50{% endif %}" data-bs-toggle="collapse" data-bs-target="#ap_detail_{{ ap.id }}" style="cursor:pointer;">
+                <span class="agenda-chip-dot" style="background:{{ service_color_map.get(ap.service_id,'#3654f0') }}"></span>
+                <div class="upcoming-time"><div>{{ ap.start_dt.strftime('%H:%M') }}</div><div style="font-size:.85em;opacity:.7">{{ ap.end_dt.strftime('%H:%M') }}</div></div>
+                <div class="upcoming-info flex-1">
+                  <div class="upcoming-name">{{ ap.customer_display_name }}</div>
+                  <div class="upcoming-meta">{{ ap.service.name if ap.service else '—' }} · {{ ap.employee.name if ap.employee else '—' }}</div>
+                </div>
+                {% if ap.status == 'BOOKED' %}<span class="status-pill status-pill--booked">Confirmado</span>
+                {% elif ap.status == 'DONE' %}<span class="status-pill status-pill--done">Realizado</span>
+                {% elif ap.status == 'CANCELED' %}<span class="status-pill status-pill--canceled">Cancelado</span>
+                {% elif ap.status == 'NO_SHOW' %}<span class="status-pill status-pill--noshow">No asistió</span>{% endif %}
+              </div>
+              <div class="collapse" id="ap_detail_{{ ap.id }}">
+                <div class="rounded-3 border bg-light p-3 mb-2">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="small fw-semibold mb-2">Cambiar estado</div>
+                      <div class="d-flex flex-wrap gap-2">
+                        {% if ap.status == 'BOOKED' %}
+                        <form method="post" action="{{ url_for('admin.update_appointment_status', slug=company.slug, appointment_id=ap.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="DONE"><button class="btn btn-sm btn-success">Realizado</button></form>
+                        <form method="post" action="{{ url_for('admin.update_appointment_status', slug=company.slug, appointment_id=ap.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="NO_SHOW"><button class="btn btn-sm btn-warning">No asistió</button></form>
+                        <form method="post" action="{{ url_for('admin.update_appointment_status', slug=company.slug, appointment_id=ap.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="CANCELED"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Cancelar este turno?')">Cancelar</button></form>
+                        {% endif %}
+                        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.appointment_log', slug=company.slug, appointment_id=ap.id) }}">Ver historial</a>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="small fw-semibold mb-2">Reprogramar</div>
+                      <form method="post" action="{{ url_for('admin.reschedule_appointment', slug=company.slug, appointment_id=ap.id) }}" class="d-flex flex-wrap gap-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <select class="form-select form-select-sm" name="service_id" style="min-width:120px">{% for service in company.services if service.active %}<option value="{{ service.id }}" {% if ap.service_id == service.id %}selected{% endif %}>{{ service.name }}</option>{% endfor %}</select>
+                        <select class="form-select form-select-sm" name="employee_id" style="min-width:120px">{% for professional in company.employees if professional.active %}<option value="{{ professional.id }}" {% if ap.employee_id == professional.id %}selected{% endif %}>{{ professional.name }}</option>{% endfor %}</select>
+                        <input class="form-control form-control-sm" type="datetime-local" name="start_dt" value="{{ ap.start_dt.strftime('%Y-%m-%dT%H:%M') }}" style="min-width:180px">
+                        <button class="btn btn-sm btn-outline-dark">Reprogramar</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+        </div><!-- /agenda-main -->
+
+        <!-- ╔══════════════════════════════════════════╗
+             ║  PANEL NUEVO TURNO (oculto por defecto) ║
+             ╚══════════════════════════════════════════╝ -->
+        <div id="nuevo-turno-panel" class="d-none">
+          <div class="card shadow-sm">
+            <div class="card-body p-4">
+
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h2 class="h5 mb-1">Nuevo turno manual</h2>
+                  <p class="text-secondary small mb-0">Cargá un turno por teléfono, WhatsApp o presencial.</p>
+                </div>
+                <button type="button" class="btn btn-outline-secondary" id="btn-cancelar-nuevo-turno">
+                  ← Volver a la agenda
+                </button>
+              </div>
+
+              <form method="post" action="{{ url_for('admin.create_manual_appointment', slug=company.slug) }}"
+                    id="nuevo-turno-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Paso 1: Servicio + Profesional + Fecha -->
+                <div class="nt-section mb-4">
+                  <div class="nt-section-title">1 · Elegí prestación, profesional y fecha</div>
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label">Prestación *</label>
+                      <select class="form-select" name="service_id" id="nt-service" required>
+                        <option value="">Elegir…</option>
+                        {% for service in company.services if service.active %}
+                        <option value="{{ service.id }}" data-duration="{{ service.duration_min }}">{{ service.name }} ({{ service.duration_min }} min)</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Profesional *</label>
+                      <select class="form-select" name="employee_id" id="nt-employee" required>
+                        <option value="">Primero elegí una prestación</option>
+                        {% for p in company.employees if p.active %}
+                        <option value="{{ p.id }}" class="nt-emp-opt" style="display:none" data-services='{{ p.services | map(attribute="id") | list | tojson }}'>{{ p.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Fecha *</label>
+                      <input class="form-control" type="date" id="nt-date" value="{{ selected_day.isoformat() }}" required>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Paso 2: Horarios disponibles -->
+                <div class="nt-section mb-4" id="nt-slots-section">
+                  <div class="nt-section-title">2 · Elegí un horario disponible</div>
+                  <div id="nt-slots-state" class="text-secondary small mb-2">
+                    Completá prestación, profesional y fecha para ver los horarios.
+                  </div>
+                  <input type="hidden" name="start_dt" id="nt-start-dt">
+                  <div id="nt-slots-grid" class="d-flex flex-wrap gap-2"></div>
+                </div>
+
+                <!-- Paso 3: Datos del cliente -->
+                <div class="nt-section mb-4" id="nt-client-section">
+                  <div class="nt-section-title">3 · Datos del cliente</div>
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Cliente existente</label>
+                      <select class="form-select" name="customer_id" id="nt-customer-id">
+                        <option value="">— Sin cuenta registrada —</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}"
+                                data-name="{{ customer.full_name }}"
+                                data-phone="{{ customer.phone or '' }}"
+                                data-email="{{ customer.email }}"
+                                data-dni="{{ customer.dni or '' }}">
+                          {{ customer.full_name }} · {{ customer.email }}{% if customer.phone %} · {{ customer.phone }}{% endif %}
+                        </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Nombre</label>
+                      <input class="form-control" name="guest_name" id="nt-guest-name" placeholder="Apellido y nombre">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Teléfono</label>
+                      <input class="form-control" name="guest_phone" id="nt-guest-phone" type="tel">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Email</label>
+                      <input class="form-control" name="guest_email" id="nt-guest-email" type="email">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">DNI</label>
+                      <input class="form-control" name="guest_dni" id="nt-guest-dni">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">Notas internas</label>
+                      <input class="form-control" name="notes" placeholder="Opcional">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Resumen + confirmar -->
+                <div class="nt-confirm-bar" id="nt-confirm-bar" style="display:none">
+                  <div class="nt-confirm-summary" id="nt-confirm-summary"></div>
+                  <button type="submit" class="btn btn-dark">Crear turno</button>
+                </div>
+
+              </form>
+            </div>
+          </div>
+        </div><!-- /nuevo-turno-panel -->
+
+
+
+    <!-- ════ CUSTOMERS ═══════════════════════════════════ -->
+    {% elif active_section == 'customers' %}
+      {% set avatar_colors = ['#7c3aed','#3654f0','#dc2626','#16a34a','#c98a1e','#0891b2'] %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('users', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Clientes</h1>
+            <p class="admin-page-sub">Gestioná tu base de clientes.</p>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-customer-form">
+          {{ ic.icon('plus', 15) }} Nuevo cliente
+        </button>
+      </div>
+
+      <form method="get" class="admin-search-bar mb-3">
+        <input type="hidden" name="section" value="customers">
+        <span class="admin-search-icon">{{ ic.icon('users', 15) }}</span>
+        <input type="text" name="q" class="form-control" value="{{ customers_search }}" placeholder="Buscar cliente por nombre, email o teléfono...">
+        {% if customers_search %}<a href="{{ url_for('admin.dashboard', slug=company.slug, section='customers') }}" class="btn btn-outline-secondary btn-sm">×</a>{% endif %}
+        <button class="btn btn-outline-secondary btn-sm" type="submit">Buscar</button>
+      </form>
+
+      <div class="admin-stats-grid mb-3">
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--blue">{{ ic.icon('users', 18) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Total clientes</span>
+            <div class="admin-stat-value-v2">{{ customers_all_total }}</div>
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--purple">{{ ic.icon('user-plus', 18) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Nuevos este mes</span>
+            <div class="admin-stat-value-v2">{{ customers_new_month }}</div>
+            {% if customers_new_month_delta is not none %}
+            <span class="admin-stat-delta {{ 'admin-stat-delta--up' if customers_new_month_delta >= 0 else 'admin-stat-delta--down' }}">{{ '+' if customers_new_month_delta >= 0 }}{{ customers_new_month_delta }}% vs mes pasado</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--green">{{ ic.icon('calendar-check', 18) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Con turnos (30 días)</span>
+            <div class="admin-stat-value-v2">{{ customers_with_appts_30d }}</div>
+            <span class="admin-stat-sub">{{ with_appts_pct }}% del total</span>
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--amber">{{ ic.icon('clock', 18) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Sin turnos (30 días)</span>
+            <div class="admin-stat-value-v2">{{ customers_without_appts_30d }}</div>
+            <span class="admin-stat-sub">{{ without_appts_pct }}% del total</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card collapse mb-3" id="new-customer-form">
+        <div class="admin-card-header"><h2 class="admin-card-title">Nuevo cliente</h2></div>
+        <div class="admin-card-body">
+          <form method="post" action="{{ url_for('admin.create_customer', slug=company.slug) }}" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="full_name" required></div>
+            <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" required></div>
+            <div class="col-md-4"><label class="form-label">Teléfono</label><input class="form-control" name="phone"></div>
+            <div class="col-md-4"><label class="form-label">DNI</label><input class="form-control" name="dni"></div>
+            <div class="col-md-4"><label class="form-label">Contraseña inicial <span class="text-secondary fw-normal small">(opcional)</span></label><input class="form-control" name="password" type="password"></div>
+            <div class="col-md-6"><label class="form-label">Etiquetas</label><input class="form-control" name="tags" placeholder="VIP, alergias..."></div>
+            <div class="col-md-6"><label class="form-label">Notas internas</label><input class="form-control" name="notes"></div>
+            <div class="col-12"><button class="btn btn-primary">Crear cliente</button></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Cliente</th><th>Contacto</th><th>Último turno</th><th>Turnos</th><th style="text-align:right;">Acciones</th></tr>
+            </thead>
+            <tbody>
+              {% for customer in customers %}
+              {% set last_ap = (customer.appointments|sort(attribute='start_dt')|list)[-1] if customer.appointments else none %}
+              <tr>
+                <td>
+                  <div class="admin-table-person">
+                    <span class="admin-table-avatar" style="background:{{ avatar_colors[loop.index0 % avatar_colors|length] }}">{{ customer.full_name[0]|upper }}</span>
+                    <div>
+                      <div class="fw-semibold">{{ customer.full_name }}</div>
+                      {% if customer.needs_password_setup|default(false) %}<span class="entity-badge" style="background:#fef9c3;color:#92400e;">Primer acceso</span>{% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div>{{ customer.email }}</div>
+                  {% if customer.phone %}<div class="text-muted text-sm">{{ customer.phone }}</div>{% endif %}
+                </td>
+                <td>
+                  {% if last_ap %}
+                  <div>{{ last_ap.start_dt.strftime('%d/%m/%Y') }}</div>
+                  <div class="text-muted text-sm">{{ last_ap.service.name if last_ap.service else '—' }}</div>
+                  {% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ customer.appointments|length }}</div>
+                  {% if customer.appointments %}<a href="#" class="text-sm" data-bs-toggle="collapse" data-bs-target="#hist_{{ customer.id }}">Ver historial</a>{% endif %}
+                </td>
+                <td style="text-align:right;">
+                  <button class="admin-icon-btn" type="button" data-bs-toggle="collapse" data-bs-target="#customer_{{ customer.id }}" title="Editar">{{ ic.icon('grip', 15) }}</button>
+                </td>
+              </tr>
+              {% if customer.appointments %}
+              <tr class="collapse" id="hist_{{ customer.id }}"><td colspan="5">
+                <div class="admin-card-body--compact" style="background:var(--c-bg);border-radius:8px;">
+                  {% for ap in customer.appointments|sort(attribute='start_dt', reverse=true) %}
+                  <div class="upcoming-item">
+                    <div class="upcoming-time"><div>{{ ap.start_dt.strftime('%d/%m/%y') }}</div><div style="font-size:.85em;opacity:.7">{{ ap.start_dt.strftime('%H:%M') }}</div></div>
+                    <div class="upcoming-info"><div class="upcoming-name">{{ ap.service.name if ap.service else '—' }}</div><div class="upcoming-meta">{{ ap.employee.name if ap.employee else '—' }} · {{ ap.status }}</div></div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </td></tr>
+              {% endif %}
+              <tr class="collapse" id="customer_{{ customer.id }}"><td colspan="5">
+                <div class="expand-panel">
+                  <form method="post" action="{{ url_for('admin.update_customer', slug=company.slug, customer_id=customer.id) }}" class="row g-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="full_name" value="{{ customer.full_name }}"></div>
+                    <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ customer.email }}"></div>
+                    <div class="col-md-4"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ customer.phone or '' }}"></div>
+                    <div class="col-md-4"><label class="form-label">DNI</label><input class="form-control" name="dni" value="{{ customer.dni or '' }}"></div>
+                    <div class="col-md-4"><label class="form-label">Nueva contraseña</label><input class="form-control" name="password"></div>
+                    <div class="col-md-6"><label class="form-label">Etiquetas</label><input class="form-control" name="tags" value="{{ customer.tags or '' }}"></div>
+                    <div class="col-md-6"><label class="form-label">Notas</label><input class="form-control" name="notes" value="{{ customer.notes or '' }}"></div>
+                    <div class="col-12"><button class="btn btn-primary btn-sm">Guardar cliente</button></div>
+                  </form>
+                </div>
+              </td></tr>
+              {% else %}
+              <tr><td colspan="5" class="p-4 text-center text-secondary small">
+                {% if customers_search %}No encontramos clientes para "{{ customers_search }}".{% else %}Todavía no hay clientes registrados.{% endif %}
+              </td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if customers_pages > 1 %}
+        <div class="admin-pagination">
+          <span class="text-muted text-sm">Mostrando {{ customers|length }} de {{ customers_total }} clientes</span>
+          <div class="admin-pagination-btns">
+            <a class="btn btn-outline-secondary btn-sm {{ 'disabled' if customers_page <= 1 }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='customers', customers_page=customers_page-1, q=customers_search) }}">‹</a>
+            {% for p in range(1, customers_pages+1) %}
+              {% if p == customers_page %}<span class="admin-pagination-current">{{ p }}</span>
+              {% elif p == 1 or p == customers_pages or (p >= customers_page-1 and p <= customers_page+1) %}
+                <a href="{{ url_for('admin.dashboard', slug=company.slug, section='customers', customers_page=p, q=customers_search) }}">{{ p }}</a>
+              {% elif p == 2 or p == customers_pages-1 %}<span class="text-muted">…</span>
+              {% endif %}
+            {% endfor %}
+            <a class="btn btn-outline-secondary btn-sm {{ 'disabled' if customers_page >= customers_pages }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='customers', customers_page=customers_page+1, q=customers_search) }}">›</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    <!-- ════ PROFESSIONALS ═══════════════════════════════ -->
+    {% elif active_section == 'professionals' %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('user', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Profesionales</h1>
+            <p class="admin-page-sub">Administrá tu equipo de trabajo.</p>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-employee-form">
+          {{ ic.icon('plus', 15) }} Nuevo profesional
+        </button>
+      </div>
+
+      <div class="admin-card collapse mb-3" id="new-employee-form">
+        <div class="admin-card-header"><h2 class="admin-card-title">Nuevo profesional</h2></div>
+        <div class="admin-card-body">
+          <p class="small text-secondary mb-3">Podés agregar varias franjas el mismo día. En cada franja podés limitar prestaciones o dejarlas vacías para aplicar todas.</p>
+          <form method="post" action="{{ url_for('admin.create_employee', slug=company.slug) }}" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" required></div>
+            <div class="col-md-3"><label class="form-label">Color</label><input class="form-control form-control-color" type="color" name="color" value="#3654f0"></div>
+            <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" role="switch" type="checkbox" name="active" checked id="new_employee_active"><label class="form-check-label" for="new_employee_active">Activo</label></div></div>
+            <div class="col-md-8"><label class="form-label">Foto (URL) <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="photo_url" type="url" placeholder="https://..."></div>
+            <div class="col-md-4"><label class="form-label">Descripción breve</label><input class="form-control" name="bio" maxlength="300" placeholder="Aparece en la página pública"></div>
+            <div class="col-12"><label class="form-label">Prestaciones</label>
+              <div class="border rounded-3 p-3 bg-light" style="max-height:200px;overflow-y:auto;">
+                {% if company.services %}<div class="row g-2">{% for service in company.services %}
+                <div class="col-md-6"><div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="service_ids" value="{{ service.id }}" id="new_svc_{{ service.id }}">
+                  <label class="form-check-label" for="new_svc_{{ service.id }}"><strong>{{ service.name }}</strong> <span class="text-secondary small">· {{ service.duration_min }} min</span></label>
+                </div></div>
+                {% endfor %}</div>{% else %}<span class="text-secondary small">Primero creá prestaciones.</span>{% endif %}
+              </div>
+            </div>
+            <div class="col-12"><label class="form-label fw-semibold">Franjas horarias</label></div>
+            <div class="col-12 table-responsive"><table class="table table-sm align-middle mb-2"><thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Prestaciones en esta franja</th><th></th></tr></thead>
+              <tbody id="schedule-rows-new" data-schedule-tbody>{{ schedule_row(0, 0, '09:00', '17:00', []) }}</tbody>
+            </table></div>
+            <div class="col-12 d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm schedule-add-row" data-schedule-tbody="schedule-rows-new">+ Franja</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm schedule-replicate-mon-fri" data-schedule-tbody="schedule-rows-new">Replicar lu → mar–vie</button>
+            </div>
+            <div class="col-12"><button class="btn btn-primary">Crear profesional</button></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Profesional</th><th>Estado</th><th>Prestaciones</th><th>Horario</th><th style="text-align:right;">Acciones</th></tr></thead>
+            <tbody>
+              {% for professional in company.employees %}
+              {% set days_open = professional.schedules|map(attribute='weekday')|unique|list %}
+              <tr>
+                <td>
+                  <div class="admin-table-person">
+                    <span class="admin-table-avatar" style="background:{{ professional.color or '#3654f0' }}">{{ professional.name[0]|upper }}</span>
+                    <div class="fw-semibold">{{ professional.name }}</div>
+                  </div>
+                </td>
+                <td><span class="entity-badge {% if professional.active %}entity-badge--active{% else %}entity-badge--inactive{% endif %}">{{ 'Activo' if professional.active else 'Inactivo' }}</span></td>
+                <td class="text-sm">
+                  {% if professional.services %}
+                    {{ professional.services[:2]|map(attribute='name')|join(', ') }}{% if professional.services|length > 2 %} +{{ professional.services|length - 2 }} más{% endif %}
+                  {% else %}<span class="text-muted">Sin prestaciones</span>{% endif %}
+                </td>
+                <td class="text-sm">
+                  {% if professional.schedules %}
+                    {{ days_open|length }} día{{ 's' if days_open|length != 1 }}/sem.
+                  {% else %}<span class="text-muted">Sin horario</span>{% endif %}
+                </td>
+                <td style="text-align:right;">
+                  <button class="admin-icon-btn" type="button" data-bs-toggle="collapse" data-bs-target="#employee_{{ professional.id }}" title="Editar">{{ ic.icon('grip', 15) }}</button>
+                </td>
+              </tr>
+              <tr class="collapse" id="employee_{{ professional.id }}"><td colspan="5">
+              <div class="expand-panel">
+              <form method="post" action="{{ url_for('admin.update_employee', slug=company.slug, employee_id=professional.id) }}" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" value="{{ professional.name }}"></div>
+                <div class="col-md-3"><label class="form-label">Color</label><input class="form-control form-control-color" type="color" name="color" value="{{ professional.color }}"></div>
+                <div class="col-12 col-md-9"><label class="form-label">Foto (URL) <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="photo_url" type="url" value="{{ professional.photo_url or '' }}" placeholder="https://..."></div>
+                <div class="col-12 col-md-3"><label class="form-label">Descripción breve</label><input class="form-control" name="bio" maxlength="300" value="{{ professional.bio or '' }}" placeholder="Aparece públicamente"></div>
+                <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" role="switch" type="checkbox" name="active" {% if professional.active %}checked{% endif %} id="emp_active_{{ professional.id }}"><label class="form-check-label" for="emp_active_{{ professional.id }}">Activo</label></div></div>
+                <div class="col-12"><label class="form-label">Prestaciones</label>
+                  <div class="border rounded-3 p-3 bg-light" style="max-height:180px;overflow-y:auto;">
+                    {% if company.services %}<div class="row g-2">{% for service in company.services %}
+                    <div class="col-md-6"><div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="service_ids" value="{{ service.id }}" id="edit_svc_{{ professional.id }}_{{ service.id }}" {% if service in professional.services %}checked{% endif %}>
+                      <label class="form-check-label" for="edit_svc_{{ professional.id }}_{{ service.id }}"><strong>{{ service.name }}</strong> <span class="text-secondary small">· {{ service.duration_min }} min</span></label>
+                    </div></div>
+                    {% endfor %}</div>{% else %}<span class="text-secondary small">Sin prestaciones cargadas.</span>{% endif %}
+                  </div>
+                </div>
+                <div class="col-12"><label class="form-label fw-semibold">Franjas horarias</label></div>
+                <div class="col-12 table-responsive"><table class="table table-sm align-middle mb-2"><thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Prestaciones en esta franja</th><th></th></tr></thead>
+                  <tbody id="schedule-rows-{{ professional.id }}" data-schedule-tbody>
+                  {% if professional.schedules %}{% for sch in professional.schedules %}{% set lids = sch.limited_services|map(attribute='id')|list if sch.limited_services else [] %}{{ schedule_row(loop.index0, sch.weekday, sch.start_time.strftime('%H:%M'), sch.end_time.strftime('%H:%M'), lids) }}{% endfor %}
+                  {% else %}{{ schedule_row(0, 0, '09:00', '17:00', []) }}{% endif %}
+                  </tbody>
+                </table></div>
+                <div class="col-12 d-flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-outline-secondary btn-sm schedule-add-row" data-schedule-tbody="schedule-rows-{{ professional.id }}">+ Franja</button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm schedule-replicate-mon-fri" data-schedule-tbody="schedule-rows-{{ professional.id }}">Replicar lu → mar–vie</button>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                  <button type="submit" class="btn btn-primary btn-sm">Guardar</button></form>
+                  <form method="post" action="{{ url_for('admin.delete_employee', slug=company.slug, employee_id=professional.id) }}" onsubmit="return confirm('¿Eliminar o desactivar?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                  </form>
+                </div>
+              </div>
+              </td></tr>
+              {% else %}
+              <tr><td colspan="5" class="p-4 text-center text-secondary small">Todavía no hay profesionales cargados.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="text-muted text-sm mt-2">{{ ic.icon('grip', 13) }} Podés arrastrar y soltar para ordenar cómo se muestran en la agenda.</p>
+
+    <!-- ════ SERVICES ════════════════════════════════════ -->
+    {% elif active_section == 'services' %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('briefcase', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Prestaciones</h1>
+            <p class="admin-page-sub">Administrá los servicios que ofrecés.</p>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-service-form">
+          {{ ic.icon('plus', 15) }} Nueva prestación
+        </button>
+      </div>
+      <div class="admin-card collapse mb-3" id="new-service-form">
+        <div class="admin-card-header"><h2 class="admin-card-title">Nueva prestación</h2></div>
+        <div class="admin-card-body">
+          <form method="post" action="{{ url_for('admin.create_service', slug=company.slug) }}" class="row g-3" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" required></div>
+            <div class="col-md-6"><label class="form-label">Descripción corta</label><input class="form-control" name="short_description"></div>
+            <div class="col-12"><label class="form-label">Descripción larga</label><textarea class="form-control" rows="2" name="long_description"></textarea></div>
+            <div class="col-md-3"><label class="form-label">Duración (min)</label><input class="form-control" type="number" name="duration_min" required></div>
+            <div class="col-md-3"><label class="form-label">Precio</label><input class="form-control" type="number" step="0.01" name="price" required></div>
+            <div class="col-md-3"><label class="form-label">Foto <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" type="file" name="photo" accept=".png,.jpg,.jpeg"></div>
+            <div class="col-md-3"><label class="form-label">Color en agenda</label><input class="form-control form-control-color" type="color" name="color" value="#3654f0"></div>
+            <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" role="switch" type="checkbox" name="active" checked id="new_service_active"><label class="form-check-label" for="new_service_active">Visible</label></div></div>
+            <div class="col-12"><button class="btn btn-primary">Crear prestación</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="admin-card">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Prestación</th><th>Duración</th><th>Precio</th><th>Visible</th><th style="text-align:right;">Acciones</th></tr></thead>
+            <tbody>
+              {% set svc_colors = ['#3654f0','#16a34a','#c98a1e','#ec4899','#7c3aed','#0891b2'] %}
+              {% for service in company.services %}
+              <tr>
+                <td>
+                  <div class="admin-table-person">
+                    <span class="admin-table-avatar" style="background:{{ service_color_map.get(service.id, '#3654f0') }}">{{ ic.icon('briefcase', 15) }}</span>
+                    <div>
+                      <div class="fw-semibold">{{ service.name }}</div>
+                      {% if service.short_description %}<div class="text-muted text-sm">{{ service.short_description }}</div>{% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td>{{ service.duration_min }} min</td>
+                <td class="fw-semibold">${{ '%.0f'|format(service.price) }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.update_service', slug=company.slug, service_id=service.id) }}" onchange="this.submit()">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="name" value="{{ service.name }}">
+                    <input type="hidden" name="short_description" value="{{ service.short_description or '' }}">
+                    <input type="hidden" name="long_description" value="{{ service.long_description or '' }}">
+                    <input type="hidden" name="duration_min" value="{{ service.duration_min }}">
+                    <input type="hidden" name="price" value="{{ service.price }}">
+                    <input class="form-check-input" role="switch" type="checkbox" name="active" {% if service.active %}checked{% endif %} style="cursor:pointer;">
+                  </form>
+                </td>
+                <td style="text-align:right;">
+                  <button class="admin-icon-btn" type="button" data-bs-toggle="collapse" data-bs-target="#service_{{ service.id }}" title="Editar">{{ ic.icon('grip', 15) }}</button>
+                </td>
+              </tr>
+              <tr class="collapse" id="service_{{ service.id }}"><td colspan="5">
+              <div class="expand-panel">
+              <form method="post" action="{{ url_for('admin.update_service', slug=company.slug, service_id=service.id) }}" class="row g-3" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" value="{{ service.name }}"></div>
+                <div class="col-md-6"><label class="form-label">Descripción corta</label><input class="form-control" name="short_description" value="{{ service.short_description or '' }}"></div>
+                <div class="col-12"><label class="form-label">Descripción larga</label><textarea class="form-control" rows="2" name="long_description">{{ service.long_description or '' }}</textarea></div>
+                <div class="col-md-4"><label class="form-label">Duración (min)</label><input class="form-control" type="number" name="duration_min" value="{{ service.duration_min }}"></div>
+                <div class="col-md-4"><label class="form-label">Precio</label><input class="form-control" type="number" step="0.01" name="price" value="{{ service.price }}"></div>
+                <div class="col-md-4"><label class="form-label">Color en agenda</label><input class="form-control form-control-color w-100" type="color" name="color" value="{{ service_color_map.get(service.id, '#3654f0') }}"></div>
+
+                <div class="col-12">
+                  <label class="form-label">Foto <span class="text-secondary fw-normal small">— opcional</span></label>
+                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                    {% if service.photo_url %}
+                      <img src="{{ service.photo_url }}" style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex:0 0 auto;">
+                    {% endif %}
+                    <input class="form-control" style="max-width:260px;" type="file" name="photo" accept=".png,.jpg,.jpeg">
+                    {% if service.photo_url %}
+                    <label class="d-flex align-items-center gap-2 text-danger small mb-0" style="cursor:pointer;">
+                      <input type="checkbox" name="remove_photo" value="1"> Quitar foto actual
+                    </label>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end"><div class="form-check"><input class="form-check-input" role="switch" type="checkbox" name="active" {% if service.active %}checked{% endif %} id="svc_active_{{ service.id }}"><label class="form-check-label" for="svc_active_{{ service.id }}">Visible</label></div></div>
+                <div class="col-12 d-flex gap-2">
+                  <button class="btn btn-primary btn-sm">Guardar</button></form>
+                  <form method="post" action="{{ url_for('admin.delete_service', slug=company.slug, service_id=service.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-danger btn-sm">Eliminar</button>
+                  </form>
+                </div>
+              </div>
+              </td></tr>
+              {% else %}
+              <tr><td colspan="5" class="p-4 text-center text-secondary small">Todavía no hay prestaciones.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    <!-- ════ BLOCKED ══════════════════════════════════════ -->
+    {% elif active_section == 'blocked' %}
+      {% set block_type_labels = {'vacation':'Vacaciones','training':'Capacitación','manual':'Bloqueo manual','holiday':'Feriado'} %}
+      {% set block_type_colors = {'vacation':('#eafaf0','#16a34a'),'training':('#f3ecfe','#7c3aed'),'manual':('#fff6e4','#c98a1e'),'holiday':('#fef2f2','#dc2626')} %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('ban', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Bloqueos de agenda</h1>
+            <p class="admin-page-sub">Gestioná vacaciones, capacitaciones y bloqueos.</p>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-block-form">
+          {{ ic.icon('plus', 15) }} Nuevo bloqueo
+        </button>
+      </div>
+
+      <div class="admin-card collapse mb-3" id="new-block-form">
+        <div class="admin-card-header"><h2 class="admin-card-title">Nuevo bloqueo</h2></div>
+        <div class="admin-card-body">
+          <form method="post" action="{{ url_for('admin.create_blocked_period', slug=company.slug) }}" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-4"><label class="form-label">Título</label><input class="form-control" name="title" placeholder="Vacaciones, corte..."></div>
+            <div class="col-md-4"><label class="form-label">Tipo</label>
+              <select class="form-select" name="block_type">
+                <option value="manual">Bloqueo manual</option>
+                <option value="vacation">Vacaciones</option>
+                <option value="training">Capacitación</option>
+                <option value="holiday">Feriado</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label">Profesional</label><select class="form-select" name="employee_id"><option value="">Toda la empresa</option>{% for p in company.employees %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><label class="form-label">Fecha inicio</label><input class="form-control" type="date" name="start_date" required></div>
+            <div class="col-md-3"><label class="form-label">Hora inicio</label><input class="form-control" type="time" name="start_time" required></div>
+            <div class="col-md-3"><label class="form-label">Fecha fin</label><input class="form-control" type="date" name="end_date" required></div>
+            <div class="col-md-3"><label class="form-label">Hora fin</label><input class="form-control" type="time" name="end_time" required></div>
+            <div class="col-12"><label class="form-label">Notas</label><input class="form-control" name="notes"></div>
+            <div class="col-12"><button class="btn btn-primary">Crear bloqueo</button></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="admin-tabs mb-3">
+        <a class="admin-tab {{ 'active' if not blocked_type_filter }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='blocked') }}">Todos</a>
+        {% for key, label in block_type_labels.items() %}
+        <a class="admin-tab {{ 'active' if blocked_type_filter == key }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='blocked', block_type=key) }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Título</th><th>Tipo</th><th>Profesional</th><th>Desde</th><th>Hasta</th><th style="text-align:right;">Acciones</th></tr></thead>
+            <tbody>
+              {% for block in blocked_periods %}
+              {% set bg, fg = block_type_colors.get(block.block_type, block_type_colors['manual']) %}
+              <tr>
+                <td class="fw-semibold">{{ block.title }}</td>
+                <td><span class="entity-badge" style="background:{{ bg }};color:{{ fg }};">{{ block_type_labels.get(block.block_type, 'Bloqueo manual') }}</span></td>
+                <td>{{ block.employee.name if block.employee else 'Empresa completa' }}</td>
+                <td>{{ block.start_dt.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>{{ block.end_dt.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td style="text-align:right;">
+                  <form method="post" action="{{ url_for('admin.delete_blocked_period', slug=company.slug, block_id=block.id) }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="admin-icon-btn" title="Eliminar">{{ ic.icon('trash', 15) }}</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-secondary text-center py-4 small">No hay bloqueos {{ 'de este tipo' if blocked_type_filter else 'cargados' }}.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    <!-- ════ COMPANY ══════════════════════════════════════ -->
+    {% elif active_section == 'company' %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('building', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Perfil del negocio</h1>
+            <p class="admin-page-sub">Configurá la información pública de tu negocio.</p>
+          </div>
+        </div>
+      </div>
+      <div class="row g-3">
+        <div class="col-lg-8">
+          <div class="admin-card">
+            <div class="admin-card-body">
+              <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" class="row g-3" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="target_section" value="company">
+                <div class="col-md-6"><label class="form-label">Nombre del negocio</label><input class="form-control" name="name" value="{{ company.name }}"></div>
+                <div class="col-md-6"><label class="form-label">Categoría</label><input class="form-control" name="category" value="{{ company.category or '' }}"></div>
+                <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" rows="3" name="description">{{ company.description or '' }}</textarea></div>
+                <div class="col-md-8"><label class="form-label">Dirección</label><input class="form-control" name="address" value="{{ company.address or '' }}"></div>
+                <div class="col-md-4"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ company.phone or '' }}"></div>
+                <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ company.email or '' }}"></div>
+                <div class="col-md-6"><label class="form-label">Color principal</label><input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color }}"></div>
+                <div class="col-md-6"><label class="form-label">Instagram <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="instagram_url" value="{{ company.instagram_url or '' }}" placeholder="https://instagram.com/tu_negocio"></div>
+                <div class="col-md-6"><label class="form-label">Facebook <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="facebook_url" value="{{ company.facebook_url or '' }}" placeholder="https://facebook.com/tu_negocio"></div>
+                <div class="col-12"><button class="btn btn-primary">Guardar cambios</button></div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="admin-card mb-3">
+            <div class="admin-card-header"><h2 class="admin-card-title">Logo del negocio</h2></div>
+            <div class="admin-card-body text-center">
+              {% if company.logo_url %}
+                <img src="{{ company.logo_url }}" alt="{{ company.name }}" style="width:88px;height:88px;border-radius:14px;object-fit:cover;margin-bottom:1rem;">
+              {% else %}
+                <div style="width:88px;height:88px;border-radius:14px;background:#3654f0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.6rem;margin:0 auto 1rem;">{{ company.name[:2]|upper }}</div>
+              {% endif %}
+              <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="target_section" value="company">
+                <input type="file" name="logo" accept=".png,.jpg,.jpeg" class="form-control form-control-sm mb-2">
+                <button class="btn btn-outline-secondary btn-sm w-100 mb-2">{{ 'Cambiar logo' if company.logo_url else 'Subir logo' }}</button>
+                {% if company.logo_url %}
+                <label class="d-flex align-items-center justify-content-center gap-2 text-danger small" style="cursor:pointer;">
+                  <input type="checkbox" name="remove_logo" value="1" onchange="this.form.submit()"> Quitar logo actual
+                </label>
+                {% endif %}
+              </form>
+            </div>
+          </div>
+          <div class="admin-card mb-3">
+            <div class="admin-card-header"><h2 class="admin-card-title">Foto de portada</h2></div>
+            <div class="admin-card-body">
+              <p class="text-secondary small mb-2">Se muestra de fondo en el encabezado de tu página pública. Si no subís una, se usa un fondo con el color de tu marca.</p>
+              {% if company.cover_photo_url %}
+                <img src="{{ company.cover_photo_url }}" alt="Portada" style="width:100%;height:110px;border-radius:10px;object-fit:cover;margin-bottom:.8rem;">
+              {% endif %}
+              <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="target_section" value="company">
+                <input type="file" name="cover_photo" accept=".png,.jpg,.jpeg" class="form-control form-control-sm mb-2">
+                <button class="btn btn-outline-secondary btn-sm w-100 mb-2">{{ 'Cambiar foto de portada' if company.cover_photo_url else 'Subir foto de portada' }}</button>
+                {% if company.cover_photo_url %}
+                <label class="d-flex align-items-center justify-content-center gap-2 text-danger small" style="cursor:pointer;">
+                  <input type="checkbox" name="remove_cover_photo" value="1" onchange="this.form.submit()"> Quitar foto de portada
+                </label>
+                {% endif %}
+              </form>
+            </div>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-header"><h2 class="admin-card-title">Vista previa</h2></div>
+            <div class="admin-card-body">
+              <div class="admin-table-person mb-2">
+                {% if company.logo_url %}<img src="{{ company.logo_url }}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;">
+                {% else %}<span class="admin-table-avatar" style="background:#3654f0;border-radius:8px;">{{ company.name[0]|upper }}</span>{% endif %}
+                <div>
+                  <div class="fw-semibold">{{ company.name }}</div>
+                  <div class="text-muted text-sm">{{ company.category or 'Sin categoría' }}</div>
+                </div>
+              </div>
+              {% if company.address %}<div class="text-muted text-sm mb-1">{{ ic.icon('pin', 13) }} {{ company.address }}</div>{% endif %}
+              {% if company.phone %}<div class="text-muted text-sm">{{ ic.icon('mail', 13) }} {{ company.phone }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!-- ════ PAYMENTS ══════════════════════════════════════ -->
+    {% elif active_section == 'payments' %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('credit-card', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Pagos</h1>
+            <p class="admin-page-sub">Controlá tus ingresos y cobros.</p>
+          </div>
+        </div>
+        {% if unpaid_appointments %}
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-payment-form">
+          {{ ic.icon('plus', 15) }} Registrar pago
+        </button>
+        {% endif %}
+      </div>
+
+      <div class="admin-stats-grid mb-3">
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--green">{{ ic.icon('dollar-sign', 18) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Cobrado (mes)</span>
+            <div class="admin-stat-value-v2">${{ '{:,.0f}'.format(payments_paid_month).replace(',', '.') }}</div>
+            {% if payments_paid_delta is not none %}
+            <span class="admin-stat-delta {{ 'admin-stat-delta--up' if payments_paid_delta >= 0 else 'admin-stat-delta--down' }}">{{ '+' if payments_paid_delta >= 0 }}{{ payments_paid_delta }}% vs mes pasado</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--amber">{{ ic.icon('clock', 18) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Pendiente</span>
+            <div class="admin-stat-value-v2">${{ '{:,.0f}'.format(payments_pending_total).replace(',', '.') }}</div>
+            <span class="admin-stat-sub">{{ payments_pending_count }} turno{{ 's' if payments_pending_count != 1 }} pendiente{{ 's' if payments_pending_count != 1 }}</span>
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--blue">{{ ic.icon('calendar', 18) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Este mes</span>
+            <div class="admin-stat-value-v2">{{ payments_month_count }}</div>
+            <span class="admin-stat-sub">turnos cobrados</span>
+          </div>
+        </div>
+        <div class="admin-stat-card-v2">
+          <span class="admin-stat-icon-v2 admin-stat-icon-v2--purple">{{ ic.icon('trending-up', 18) }}</span>
+          <div class="admin-stat-body-v2">
+            <span class="admin-stat-label-v2">Total histórico</span>
+            <div class="admin-stat-value-v2">${{ '{:,.0f}'.format(payments_total_historic).replace(',', '.') }}</div>
+          </div>
+        </div>
+      </div>
+
+      {% if unpaid_appointments %}
+      <div class="admin-card collapse mb-3" id="new-payment-form">
+        <div class="admin-card-header"><h2 class="admin-card-title">Registrar pago</h2></div>
+        <div class="admin-card-body">
+          <form method="post" action="{{ url_for('admin.update_appointment_payment', slug=company.slug) }}" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-6"><label class="form-label">Turno</label>
+              <select class="form-select" name="appointment_id" onchange="document.getElementById('pay-amount').value=this.selectedOptions[0].dataset.price">
+                {% for ap in unpaid_appointments %}
+                <option value="{{ ap.id }}" data-price="{{ '%.0f'|format(ap.service.price) if ap.service else 0 }}">{{ ap.start_dt.strftime('%d/%m') }} · {{ ap.customer_display_name }} · {{ ap.service.name if ap.service else '—' }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Monto</label><input class="form-control" id="pay-amount" type="number" step="0.01" name="paid_amount" value="{{ '%.0f'|format(unpaid_appointments[0].service.price) if unpaid_appointments[0].service else '' }}"></div>
+            <div class="col-md-3"><label class="form-label">Método</label>
+              <select class="form-select" name="payment_method"><option>Efectivo</option><option>Transferencia</option><option>Mercado Pago</option><option>Tarjeta</option></select>
+            </div>
+            <div class="col-md-4"><label class="form-label">Estado</label>
+              <select class="form-select" name="payment_status"><option value="PAID">Pagado</option><option value="PENDING">Pendiente</option></select>
+            </div>
+            <div class="col-md-8"><label class="form-label">Notas</label><input class="form-control" name="payment_notes" placeholder="Ej: seña, servicio adicional..."></div>
+            <div class="col-12"><button class="btn btn-primary">Guardar pago</button></div>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="admin-card">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Fecha</th><th>Cliente</th><th>Monto</th><th>Método</th><th>Estado</th><th>Notas</th></tr></thead>
+            <tbody>
+              {% for ap in payments_list %}
+              <tr>
+                <td>{{ ap.start_dt.strftime('%d/%m/%Y') }}</td>
+                <td>{{ ap.customer_display_name }}</td>
+                <td class="fw-bold">${{ '{:,.0f}'.format(ap.paid_amount).replace(',', '.') if ap.paid_amount else '—' }}</td>
+                <td>{{ ap.payment_method or '—' }}</td>
+                <td><span class="entity-badge {{ 'entity-badge--active' if ap.payment_status == 'PAID' else '' }}" {% if ap.payment_status != 'PAID' %}style="background:#fff6e4;color:#c98a1e;"{% endif %}>{{ 'Pagado' if ap.payment_status == 'PAID' else 'Pendiente' }}</span></td>
+                <td class="text-muted text-sm">{{ ap.payment_notes or (ap.service.name if ap.service) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="p-4 text-center text-secondary small">Todavía no registraste ningún pago. {% if unpaid_appointments %}Usá "Registrar pago" arriba.{% endif %}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if payments_pages > 1 %}
+        <div class="admin-pagination">
+          <span class="text-muted text-sm">Mostrando {{ payments_list|length }} de {{ payments_total_rows }} pagos</span>
+          <div class="admin-pagination-btns">
+            <a class="btn btn-outline-secondary btn-sm {{ 'disabled' if payments_page <= 1 }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='payments', payments_page=payments_page-1) }}">‹</a>
+            {% for p in range(1, payments_pages+1) %}
+              {% if p == payments_page %}<span class="admin-pagination-current">{{ p }}</span>
+              {% elif p == 1 or p == payments_pages or (p >= payments_page-1 and p <= payments_page+1) %}
+                <a href="{{ url_for('admin.dashboard', slug=company.slug, section='payments', payments_page=p) }}">{{ p }}</a>
+              {% elif p == 2 or p == payments_pages-1 %}<span class="text-muted">…</span>
+              {% endif %}
+            {% endfor %}
+            <a class="btn btn-outline-secondary btn-sm {{ 'disabled' if payments_page >= payments_pages }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='payments', payments_page=payments_page+1) }}">›</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    <!-- ════ SETTINGS ══════════════════════════════════════ -->
+    {% elif active_section == 'settings' %}
+      {% set cfg = company.config %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('sliders', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Reglas de reserva</h1>
+            <p class="admin-page-sub">Definí cómo funcionan los turnos de tu negocio.</p>
+          </div>
+        </div>
+      </div>
+      {% if not cfg.allow_booking_by_availability and not cfg.allow_booking_by_employee %}
+        <div class="alert alert-warning rounded-3 mb-3">Activá al menos una modalidad de búsqueda. Si ambas están desmarcadas, los clientes no podrán continuar después de elegir el servicio.</div>
+      {% endif %}
+      <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="target_section" value="settings">
+        <div class="admin-card mb-3">
+          <div class="admin-card-header"><h2 class="admin-card-title">Modalidades de reserva</h2></div>
+          <div class="admin-card-body--compact">
+            {% set s_rows = [
+              ('require_customer_login', cfg.require_customer_login, 'Exigir login del cliente', 'Los clientes deben registrarse antes de reservar.'),
+              ('allow_booking_by_availability', cfg.allow_booking_by_availability, 'Búsqueda por disponibilidad', 'El cliente elige fecha/hora y ve los profesionales disponibles.'),
+              ('allow_booking_by_employee', cfg.allow_booking_by_employee, 'Búsqueda por profesional', 'El cliente elige primero al profesional y luego la fecha.'),
+              ('allow_customer_choose_employee', cfg.allow_customer_choose_employee, 'Elegir profesional al final', 'En modo disponibilidad, el cliente elige quién lo atiende.'),
+            ] %}
+            {% for name, val, label, sub in s_rows %}
+            <div class="setting-row">
+              <div><div class="setting-label">{{ label }}</div><div class="setting-sub">{{ sub }}</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" role="switch" type="checkbox" name="{{ name }}" {% if val %}checked{% endif %} id="cfg_{{ name }}"></div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="admin-card mb-3">
+          <div class="admin-card-header"><h2 class="admin-card-title">Campos obligatorios en reserva</h2></div>
+          <div class="admin-card-body--compact">
+            {% set f_rows = [
+              ('required_name', cfg.required_name, 'Nombre'),
+              ('required_phone', cfg.required_phone, 'Teléfono'),
+              ('required_email', cfg.required_email, 'Email'),
+              ('required_dni', cfg.required_dni, 'DNI'),
+            ] %}
+            {% for name, val, label in f_rows %}
+            <div class="setting-row">
+              <div class="setting-label">{{ label }}</div>
+              <div class="form-check form-switch"><input class="form-check-input" role="switch" type="checkbox" name="{{ name }}" {% if val %}checked{% endif %} id="cfg_{{ name }}"></div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="admin-card mb-3">
+          <div class="admin-card-header"><h2 class="admin-card-title">Reglas de cancelación</h2></div>
+          <div class="admin-card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Límite para cancelar (horas antes)</label>
+                <input class="form-control" type="number" name="cancelation_limit_hours"
+                       value="{{ company.cancelation_limit_hours or 24 }}" min="0" max="720">
+                <div class="form-text">0 = se puede cancelar hasta el momento del turno.</div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-check mt-4">
+                  <input class="form-check-input" type="checkbox" name="cancelation_penalty_enabled"
+                         {% if company.cancelation_penalty_enabled %}checked{% endif %} id="pen_enabled">
+                  <label class="form-check-label" for="pen_enabled">Aplicar penalidad por cancelación tardía</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Monto de penalidad ($)</label>
+                <input class="form-control" type="number" step="0.01" name="cancelation_penalty_amount"
+                       value="{{ company.cancelation_penalty_amount or 0 }}">
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary">Guardar reglas</button>
+      </form>
+
+    <!-- ════ INTEGRATIONS ══════════════════════════════════ -->
+    {% elif active_section == 'integrations' %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('plug', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Integraciones</h1>
+            <p class="admin-page-sub">Conectá herramientas externas para automatizar tu agenda.</p>
+          </div>
+        </div>
+        <span class="entity-badge entity-badge--inactive">Plan {{ company.plan_name }}</span>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <div class="admin-integration-card">
+            <div class="admin-integration-icon" style="background:#eef1ff;color:#3654f0;">{{ ic.icon('calendar', 22) }}</div>
+            <div class="fw-semibold mb-1">Google Calendar</div>
+            <p class="text-muted text-sm mb-2">Sincronizá tus turnos automáticamente.</p>
+            {% set gconn = company.google_calendar %}
+            {% if gconn and gconn.enabled and gconn.refresh_token %}
+              <span class="entity-badge entity-badge--active mb-2 d-inline-block">{{ ic.icon('check', 12) }} Conectado</span><br>
+              <form method="post" action="{{ url_for('admin.google_disconnect', slug=company.slug) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-dark btn-sm">Desconectar</button>
+              </form>
+            {% elif not google_plan_enabled %}
+              <span class="entity-badge entity-badge--inactive mb-2 d-inline-block">Disponible en PRO/PREMIUM</span>
+            {% else %}
+              <span class="entity-badge mb-2 d-inline-block" style="background:#fff6e4;color:#c98a1e;">No conectado</span><br>
+              <a class="btn btn-primary btn-sm" href="{{ url_for('admin.google_connect', slug=company.slug) }}">Conectar</a>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="admin-integration-card">
+            <div class="admin-integration-icon" style="background:#eafaf0;color:#16a34a;">{{ ic.icon('mail', 22) }}</div>
+            <div class="fw-semibold mb-1">WhatsApp Business</div>
+            <p class="text-muted text-sm mb-2">Recordatorios y notificaciones automáticas.</p>
+            <span class="entity-badge entity-badge--inactive mb-2 d-inline-block">Próximamente</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="admin-integration-card">
+            <div class="admin-integration-icon" style="background:#eef6ff;color:#0891b2;">{{ ic.icon('credit-card', 22) }}</div>
+            <div class="fw-semibold mb-1">Mercado Pago</div>
+            <p class="text-muted text-sm mb-2">Cobros online para tus clientes.</p>
+            <span class="entity-badge entity-badge--inactive mb-2 d-inline-block">Próximamente</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-header"><h2 class="admin-card-title">Qué se sincroniza con Google Calendar</h2></div>
+        <div class="admin-card-body">
+          <ul class="mb-0 small text-secondary" style="padding-left:1.1rem; line-height:1.8;">
+            <li>Al reservar → crea evento en Google Calendar</li>
+            <li>Al reprogramar → actualiza fecha y hora</li>
+            <li>Al cancelar → elimina el evento</li>
+          </ul>
+        </div>
+      </div>
+
+    {% endif %}
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.TURNEX_EMPLOYEES_BY_SERVICE = {{ employees_by_service|tojson }};
+  window.TURNEX_SELECTED_MANUAL_EMPLOYEE_ID = {{ manual_employee_id|tojson }};
+  window.TURNEX_ADMIN_SLOTS_URL = "{{ url_for('admin.admin_slots_api', slug=company.slug) }}";
+</script>
+<script src="{{ url_for('static', filename='admin_schedule_rows.js') }}"></script>
+<script src="{{ url_for('static', filename='admin_agenda.js') }}"></script>
+<script>
+// ── Nuevo Turno Panel ──────────────────────────────────────
+(function () {
+  const agendaMain  = document.getElementById('agenda-main');
+  const ntPanel     = document.getElementById('nuevo-turno-panel');
+  const btnOpen     = document.getElementById('btn-nuevo-turno');
+  const btnOpenQuick= document.getElementById('btn-nuevo-turno-quick');
+  const btnOpenEmpty= document.getElementById('btn-nuevo-turno-empty');
+  const btnClose    = document.getElementById('btn-cancelar-nuevo-turno');
+
+  const ntService   = document.getElementById('nt-service');
+  const ntEmployee  = document.getElementById('nt-employee');
+  const ntDate      = document.getElementById('nt-date');
+  const ntSlotsGrid = document.getElementById('nt-slots-grid');
+  const ntSlotsState= document.getElementById('nt-slots-state');
+  const ntStartDt   = document.getElementById('nt-start-dt');
+  const ntConfirmBar= document.getElementById('nt-confirm-bar');
+  const ntConfirmSum= document.getElementById('nt-confirm-summary');
+  const ntCustomer  = document.getElementById('nt-customer-id');
+  const ntGuestName = document.getElementById('nt-guest-name');
+  const ntGuestPhone= document.getElementById('nt-guest-phone');
+  const ntGuestEmail= document.getElementById('nt-guest-email');
+  const ntGuestDni  = document.getElementById('nt-guest-dni');
+
+  let selectedSlotLabel = null;
+
+  function openPanel() {
+    agendaMain.classList.add('d-none');
+    ntPanel.classList.remove('d-none');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function closePanel() {
+    ntPanel.classList.add('d-none');
+    agendaMain.classList.remove('d-none');
+  }
+
+  btnOpen?.addEventListener('click', openPanel);
+  btnOpenQuick?.addEventListener('click', openPanel);
+  btnOpenEmpty?.addEventListener('click', openPanel);
+  btnClose?.addEventListener('click', closePanel);
+
+  // Filtrar profesionales por servicio seleccionado
+  function filterEmployees() {
+    const svcId = parseInt(ntService.value);
+    const opts = ntEmployee.querySelectorAll('.nt-emp-opt');
+    ntEmployee.value = '';
+    opts.forEach(opt => {
+      const services = JSON.parse(opt.dataset.services || '[]');
+      opt.style.display = services.includes(svcId) ? '' : 'none';
+    });
+    if (svcId) {
+      ntEmployee.querySelector('option[value=""]').textContent = 'Elegir profesional…';
+    } else {
+      ntEmployee.querySelector('option[value=""]').textContent = 'Primero elegí una prestación';
+    }
+    clearSlots();
+  }
+
+  function clearSlots() {
+    ntSlotsGrid.innerHTML = '';
+    ntSlotsState.textContent = 'Completá prestación, profesional y fecha para ver los horarios.';
+    ntStartDt.value = '';
+    selectedSlotLabel = null;
+    hideConfirm();
+  }
+
+  function hideConfirm() {
+    ntConfirmBar.style.display = 'none';
+    ntConfirmSum.textContent = '';
+  }
+
+  function showConfirm() {
+    const emp = ntEmployee.options[ntEmployee.selectedIndex]?.text || '';
+    const svc = ntService.options[ntService.selectedIndex]?.text || '';
+    const date = ntDate.value;
+    ntConfirmSum.textContent =
+      `✓ ${svc} con ${emp} el ${date} a las ${selectedSlotLabel}`;
+    ntConfirmBar.style.display = 'flex';
+    ntConfirmBar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function loadSlots() {
+    const svcId = ntService.value;
+    const empId = ntEmployee.value;
+    const day   = ntDate.value;
+    if (!svcId || !empId || !day) return;
+
+    ntSlotsState.textContent = 'Cargando horarios disponibles…';
+    ntSlotsGrid.innerHTML = '';
+    ntStartDt.value = '';
+    selectedSlotLabel = null;
+    hideConfirm();
+
+    const url = `${window.TURNEX_ADMIN_SLOTS_URL}?service_id=${svcId}&employee_id=${empId}&day=${day}`;
+    try {
+      const res = await fetch(url);
+      const slots = await res.json();
+
+      if (!slots.length) {
+        ntSlotsState.textContent = 'No hay horarios disponibles para esa combinación.';
+        return;
+      }
+
+      ntSlotsState.textContent = `${slots.length} horario${slots.length !== 1 ? 's' : ''} disponible${slots.length !== 1 ? 's' : ''}:`;
+      slots.forEach(slot => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'nt-slot-btn';
+        btn.textContent = slot.label;
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.nt-slot-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          ntStartDt.value = slot.value;
+          selectedSlotLabel = slot.label;
+          showConfirm();
+        });
+        ntSlotsGrid.appendChild(btn);
+      });
+    } catch (e) {
+      ntSlotsState.textContent = 'Error al cargar horarios. Intentá de nuevo.';
+    }
+  }
+
+  ntService.addEventListener('change', filterEmployees);
+  ntEmployee.addEventListener('change', loadSlots);
+  ntDate.addEventListener('change', loadSlots);
+
+  // Autocompletar campos desde cliente existente
+  ntCustomer?.addEventListener('change', () => {
+    const opt = ntCustomer.options[ntCustomer.selectedIndex];
+    if (!opt || !opt.value) return;
+    if (opt.dataset.name)  ntGuestName.value  = opt.dataset.name;
+    if (opt.dataset.phone) ntGuestPhone.value = opt.dataset.phone;
+    if (opt.dataset.email) ntGuestEmail.value = opt.dataset.email;
+    if (opt.dataset.dni)   ntGuestDni.value   = opt.dataset.dni;
+  });
+})();
+</script>
+{% endblock %}

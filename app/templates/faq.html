@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Preguntas frecuentes · Turnex{% endblock %}
+{% block content %}
+<div class="container legal-page">
+  <div class="legal-card">
+    <span class="cp-eyebrow cp-eyebrow--dark">Ayuda</span>
+    <h1 class="legal-title">Preguntas frecuentes</h1>
+    <p class="legal-updated">Todo lo que necesitás saber antes de empezar.</p>
+
+    <h2>¿Necesito tarjeta de crédito para crear mi negocio?</h2>
+    <p>No. Podés crear tu cuenta y empezar a usar Turnex sin cargar ningún medio de pago.</p>
+
+    <h2>¿Mis clientes necesitan crear una cuenta para reservar un turno?</h2>
+    <p>No es obligatorio: por defecto pueden reservar como invitados, completando solo su nombre y
+    teléfono. Si preferís que se registren con email y contraseña para poder ver su historial de
+    turnos, podés activar esa opción desde tu panel.</p>
+
+    <h2>¿Puedo tener varios profesionales trabajando en la misma agenda?</h2>
+    <p>Sí. Podés cargar todos los profesionales de tu equipo, asignarles los servicios que realiza
+    cada uno y sus propios horarios de atención. Tus clientes pueden elegir con quién atenderse, o
+    dejar que el sistema les asigne el primer turno disponible.</p>
+
+    <h2>¿Se sincroniza con Google Calendar?</h2>
+    <p>Sí, es una integración opcional que podés activar desde tu panel. Cuando un turno se crea,
+    reprograma o cancela, se refleja automáticamente en tu Google Calendar.</p>
+
+    <h2>¿Qué pasa si un cliente pierde el link para gestionar su turno?</h2>
+    <p>Cada turno tiene su propio link de gestión que se envía por email al confirmar la reserva.
+    Si tu negocio requiere que los clientes tengan cuenta, también pueden recuperar su acceso desde
+    "Olvidé mi contraseña" en la página de tu negocio.</p>
+
+    <h2>¿Puedo cambiar de plan más adelante?</h2>
+    <p>Sí, podés cambiar de plan cuando lo necesites según cuánto vaya creciendo tu negocio.</p>
+
+    <h2>¿Mis datos y los de mis clientes están seguros?</h2>
+    <p>Las contraseñas se guardan encriptadas, nunca en texto plano, y cada negocio solo puede ver
+    y administrar su propia información — nunca la de otro negocio. Podés ver más detalle en nuestra
+    <a href="{{ url_for('public.privacy') }}">Política de Privacidad</a>.</p>
+
+    <h2>¿Todavía tenés dudas?</h2>
+    <p>Escribinos a <a href="mailto:hola@turnex.com">hola@turnex.com</a> y te ayudamos.</p>
+  </div>
+</div>
+{% endblock %}

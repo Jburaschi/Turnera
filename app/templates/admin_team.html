@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}Equipo · {{ company.name }} · Turnex{% endblock %}
+{% block topnav %}{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-brand">
+      <div class="admin-sidebar-logo">T</div>
+      <div>
+        <div class="admin-sidebar-company">{{ company.name }}</div>
+        <div class="admin-sidebar-meta">Plan {{ company.plan_name }}</div>
+      </div>
+    </div>
+    <nav class="admin-nav">
+      {% set nav_icons = {
+        'overview':'home', 'agenda':'calendar', 'customers':'users',
+        'professionals':'user', 'services':'briefcase', 'blocked':'ban',
+        'company':'building', 'payments':'credit-card', 'settings':'sliders',
+        'integrations':'plug',
+      } %}
+      {% set groups = [
+        ('Principal', ['overview','agenda','customers']),
+        ('Gestión', ['professionals','services','blocked','company','payments','settings']),
+        ('Configuración', ['integrations']),
+      ] %}
+      {% for group_label, group_keys in groups %}
+        <span class="admin-nav-section">{{ group_label }}</span>
+        {% for section_key in group_keys %}
+        <a href="{{ url_for('admin.dashboard', slug=company.slug, section=section_key) }}" class="admin-nav-item">
+          <span class="admin-nav-icon">{{ ic.icon(nav_icons.get(section_key,'home'), 17) }}</span>
+          {{ sections[section_key] }}
+        </a>
+        {% endfor %}
+      {% endfor %}
+      <div class="admin-nav-footer">
+        <a href="{{ url_for('admin.team', slug=company.slug) }}" class="admin-nav-item active">
+          <span class="admin-nav-icon">{{ ic.icon('users', 17) }}</span> Equipo
+        </a>
+        <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="admin-nav-item">
+          <span class="admin-nav-icon">{{ ic.icon('external', 17) }}</span> Ver página pública
+        </a>
+        <a href="{{ url_for('auth.logout') }}" class="admin-nav-item">
+          <span class="admin-nav-icon">{{ ic.icon('log-out', 17) }}</span> Cerrar sesión
+        </a>
+      </div>
+    </nav>
+    <div class="admin-plan-card">
+      <div class="admin-plan-card-top">{{ ic.icon('crown', 16) }} Plan {{ company.plan_name }}</div>
+      <a href="{{ url_for('admin.dashboard', slug=company.slug, section='payments') }}">Ver mi plan →</a>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <div class="admin-topbar-brand">
+        <div class="admin-topbar-logo">
+          {% if company.logo_url %}<img src="{{ company.logo_url }}" alt="{{ company.name }}">{% else %}T{% endif %}
+        </div>
+        <div style="min-width:0;">
+          <div class="admin-topbar-name">{{ company.name }}</div>
+          {% if company.address %}<div class="admin-topbar-sub">{{ company.address }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="admin-topbar-actions">
+        <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm">Ver página pública {{ ic.icon('external', 14) }}</a>
+        <div class="admin-topbar-user">
+          <div class="admin-topbar-avatar">{{ (current_user.name[0] if current_user.name else 'A')|upper }}</div>
+          <div>
+            <div class="admin-topbar-user-name">{{ current_user.name or current_user.email }}</div>
+            <div class="admin-topbar-user-role">{{ 'Administrador' if current_user.role == 'admin' else 'Staff' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3 rounded-3">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="admin-page-header">
+      <div class="d-flex align-items-center gap-3">
+        <span class="admin-section-icon">{{ ic.icon('users', 22) }}</span>
+        <div>
+          <h1 class="admin-page-title">Equipo</h1>
+          <p class="admin-page-sub">Usuarios que pueden acceder al panel de {{ company.name }}.</p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-team-form">
+        {{ ic.icon('plus', 15) }} Invitar miembro
+      </button>
+    </div>
+
+    <div class="admin-card collapse mb-3" id="new-team-form">
+      <div class="admin-card-header"><h2 class="admin-card-title">Agregar usuario</h2></div>
+      <div class="admin-card-body">
+        <form method="post" class="row g-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="col-md-4"><label class="form-label">Nombre</label><input class="form-control" name="name" required></div>
+          <div class="col-md-4"><label class="form-label">Email</label><input class="form-control" type="email" name="email" required></div>
+          <div class="col-md-4"><label class="form-label">Contraseña</label><input class="form-control" type="password" name="password" required minlength="8"></div>
+          <div class="col-md-4">
+            <label class="form-label">Rol</label>
+            <select class="form-select" name="role">
+              <option value="admin">Admin — acceso completo</option>
+              <option value="staff" selected>Staff — agenda y clientes</option>
+            </select>
+          </div>
+          <div class="col-md-8 d-flex align-items-end">
+            <button class="btn btn-primary">Crear usuario</button>
+          </div>
+        </form>
+        <div class="mt-3 small text-secondary">
+          <strong>Admin</strong> puede configurar la empresa, prestaciones, profesionales y ver pagos.<br>
+          <strong>Staff</strong> solo accede a agenda y clientes — no puede cambiar la configuración.
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th style="text-align:right;">Acciones</th></tr></thead>
+          <tbody>
+            {% set role_colors = {'admin':'#3654f0','staff':'#16a34a'} %}
+            {% for member in admins %}
+            <tr>
+              <td>
+                <div class="admin-table-person">
+                  <span class="admin-table-avatar" style="background:{{ role_colors.get(member.role,'#3654f0') }}">{{ member.name[0]|upper }}</span>
+                  <div>
+                    <div class="fw-semibold">{{ member.name }} {% if member.id == current_user.id %}<span class="entity-badge" style="background:#eef1ff;color:#3654f0;">Vos</span>{% endif %}</div>
+                    <div class="text-muted text-sm">{{ member.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-capitalize">{{ member.role }}</td>
+              <td><span class="entity-badge {% if member.active %}entity-badge--active{% else %}entity-badge--inactive{% endif %}">{{ 'Activo' if member.active else 'Inactivo' }}</span></td>
+              <td style="text-align:right;">
+                <button class="admin-icon-btn" type="button" data-bs-toggle="collapse" data-bs-target="#team_{{ member.id }}" title="Editar">{{ ic.icon('grip', 15) }}</button>
+              </td>
+            </tr>
+            <tr class="collapse" id="team_{{ member.id }}"><td colspan="4">
+              <div class="expand-panel">
+                <form method="post" action="{{ url_for('admin.update_team_member', slug=company.slug, admin_id=member.id) }}" class="row g-3">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="col-md-4"><label class="form-label">Nombre</label><input class="form-control" name="name" value="{{ member.name }}"></div>
+                  <div class="col-md-4"><label class="form-label">Nueva contraseña</label><input class="form-control" type="password" name="password" placeholder="Solo si querés cambiarla"></div>
+                  <div class="col-md-4"><label class="form-label">Rol</label>
+                    <select class="form-select" name="role">
+                      <option value="admin" {% if member.role=='admin' %}selected{% endif %}>Admin</option>
+                      <option value="staff" {% if member.role=='staff' %}selected{% endif %}>Staff</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 d-flex align-items-end gap-3">
+                    <div class="form-check">
+                      <input class="form-check-input" role="switch" type="checkbox" name="active" {% if member.active %}checked{% endif %} id="active_{{ member.id }}">
+                      <label class="form-check-label" for="active_{{ member.id }}">Activo</label>
+                    </div>
+                  </div>
+                  <div class="col-12 d-flex gap-2">
+                    <button class="btn btn-primary btn-sm">Guardar cambios</button>
+                    </form>
+                    {% if member.id != current_user.id %}
+                    <form method="post" action="{{ url_for('admin.delete_team_member', slug=company.slug, admin_id=member.id) }}" onsubmit="return confirm('¿Eliminar a {{ member.name }}?')">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="btn btn-outline-danger btn-sm">Eliminar</button>
+                    </form>
+                    {% endif %}
+                  </div>
+              </div>
+            </td></tr>
+            {% else %}
+            <tr><td colspan="4" class="p-4 text-center text-secondary small">Todavía no hay usuarios cargados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    </div>
+  </main>
+</div>
+{% endblock %}

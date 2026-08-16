@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Información del negocio · Turnex{% endblock %}
+{% block topnav %}{% include '_wizard_header.html' %}{% endblock %}
+{% block content %}
+<div class="ob-wizard">
+  <div class="ob-wiz-container">
+    <div class="ob-wiz-card">
+
+      <h2 class="ob-wiz-card-title">Contanos sobre tu negocio</h2>
+      <p class="ob-wiz-card-sub">Esta información aparecerá en tu página pública.</p>
+
+      <form method="post" novalidate enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="field">
+          <label class="form-label">Nombre del negocio *</label>
+          <input class="form-control {% if errors.name %}is-invalid{% endif %}"
+                 name="name" value="{{ form.get('name','') }}"
+                 placeholder="Ej: Mi Barbería" required autofocus>
+          {% if errors.name %}<div class="invalid-feedback">{{ errors.name }}</div>{% endif %}
+        </div>
+
+        <div class="field">
+          <label class="form-label">Rubro / Categoría *</label>
+          <select class="form-control {% if errors.category %}is-invalid{% endif %}" name="category" required>
+            <option value="" disabled {% if not form.get('category') %}selected{% endif %}>Elegí una categoría</option>
+            {% for c in categories %}
+              <option value="{{ c }}" {% if form.get('category') == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.category %}<div class="invalid-feedback">{{ errors.category }}</div>{% endif %}
+        </div>
+
+        <div class="ob-field-row">
+          <div class="field">
+            <label class="form-label">Teléfono</label>
+            <input class="form-control" name="phone" value="{{ form.get('phone','') }}" placeholder="11 1234-5678">
+          </div>
+          <div class="field">
+            <label class="form-label">Dirección <span class="text-muted fw-normal text-sm">— opcional</span></label>
+            <input class="form-control" name="address" value="{{ form.get('address','') }}" placeholder="Av. Corrientes 1234, CABA">
+          </div>
+        </div>
+
+        <div class="ob-field-row">
+          <div class="field">
+            <label class="form-label">Zona horaria</label>
+            <select class="form-control" name="timezone">
+              {% for tz_value, tz_label in timezones %}
+                <option value="{{ tz_value }}" {% if form.get('timezone') == tz_value %}selected{% endif %}>{{ tz_label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label class="form-label">Logo <span class="text-muted fw-normal text-sm">— opcional</span></label>
+            <label class="ob-file-drop" id="ob-file-drop">
+              <input type="file" name="logo" accept=".png,.jpg,.jpeg" id="ob-logo-input" hidden>
+              <span id="ob-file-drop-text">📁 Subir logo</span>
+              <small>PNG o JPG. Máx 2MB.</small>
+            </label>
+          </div>
+        </div>
+
+        <div class="ob-wiz-actions">
+          <a class="ob-btn-outline" href="{{ url_for('onboarding.register') }}">← Volver</a>
+          <button type="submit" class="ob-submit-btn">Continuar →</button>
+        </div>
+      </form>
+
+      <p class="ob-terms" style="text-align:left;margin-top:1.4rem;">📍 Tu información está segura y podés editar todo cuando quieras.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const obLogoInput = document.getElementById('ob-logo-input');
+const obDropText = document.getElementById('ob-file-drop-text');
+if (obLogoInput) {
+  obLogoInput.addEventListener('change', () => {
+    if (obLogoInput.files && obLogoInput.files[0]) {
+      obDropText.textContent = obLogoInput.files[0].name;
+    }
+  });
+}
+</script>
+{% endblock %}

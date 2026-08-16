@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}Publicar negocio · Turnex{% endblock %}
+{% block topnav %}{% include '_wizard_header.html' %}{% endblock %}
+{% block content %}
+<div class="ob-wizard">
+  <div class="ob-wiz-container">
+    <div class="ob-wiz-card ob-publish-card">
+
+      <div class="ob-publish-icon">{{ ic.icon('rocket', 36) }}</div>
+      <h2 class="ob-wiz-card-title" style="text-align:center;">¡Todo listo para publicar!</h2>
+      <p class="ob-wiz-card-sub" style="text-align:center;">Revisá que toda la información esté correcta.</p>
+
+      <ul class="ob-publish-checklist">
+        <li>{{ ic.icon('check', 16) }} Información del negocio</li>
+        <li>{{ ic.icon('check', 16) }} {{ employees_count }} profesional{{ 'es' if employees_count != 1 }} creado{{ 's' if employees_count != 1 }}{% if company.staffing_mode == 'solo' %} (vos){% endif %}</li>
+        <li>{{ ic.icon('check', 16) }} {{ services_count }} servicio{{ 's' if services_count != 1 }} agregado{{ 's' if services_count != 1 }}</li>
+        <li>{{ ic.icon('check', 16) }} Horarios configurados</li>
+      </ul>
+
+      <form method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="ob-wiz-actions">
+          <a class="ob-btn-outline" href="{{ url_for('onboarding.hours') }}">← Volver</a>
+          <button type="submit" class="ob-submit-btn">Publicar mi negocio 🚀</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

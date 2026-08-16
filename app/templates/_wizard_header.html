@@ -1,0 +1,23 @@
+{% import '_icons.html' as ic %}
+<div class="ob-wiz-header">
+  <span class="ob-wiz-brand">
+    <span class="pub-brand-icon" style="width:30px;height:30px;font-size:.8rem;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-right:.4rem;">T</span>
+    Turnex
+  </span>
+
+  <div class="ob-wiz-steps">
+    <div class="ob-wiz-step ob-wiz-step--done">
+      <span class="ob-wiz-step-circle">{{ ic.icon('check', 13) }}</span>
+    </div>
+    {% for n in range(2, 8) %}
+      <span class="ob-wiz-step-line"></span>
+      <div class="ob-wiz-step {% if n == active_step %}ob-wiz-step--active{% elif n < active_step %}ob-wiz-step--done{% endif %}">
+        <span class="ob-wiz-step-circle">
+          {% if n < active_step %}{{ ic.icon('check', 13) }}{% else %}{{ n }}{% endif %}
+        </span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <a class="ob-wiz-skip" href="{{ url_for('auth.logout') }}">Salir</a>
+</div>

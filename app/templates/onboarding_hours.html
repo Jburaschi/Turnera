@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}Horarios · Turnex{% endblock %}
+{% block topnav %}{% include '_wizard_header.html' %}{% endblock %}
+{% block content %}
+<div class="ob-wizard">
+  <div class="ob-wiz-container">
+    <div class="ob-wiz-card">
+
+      <h2 class="ob-wiz-card-title">Definí tus horarios de atención</h2>
+      <p class="ob-wiz-card-sub">Estos serán los horarios para todos tus servicios.</p>
+
+      {% if errors.hours %}<div class="alert alert-danger">{{ errors.hours }}</div>{% endif %}
+
+      <form method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% for day_name in weekdays %}
+          {% set day_idx = loop.index0 %}
+          {% set day_rows = existing.get(day_idx, []) %}
+          {% set is_open = day_rows or (not existing and day_idx < 5) or (not existing and day_idx == 5) %}
+          <div class="ob-hours-day">
+            <div class="ob-hours-day-toggle">
+              <input type="checkbox" role="switch" class="form-check-input ob-day-switch"
+                     name="day_open_{{ day_idx }}" data-day="{{ day_idx }}"
+                     {% if is_open %}checked{% endif %}>
+              <span class="ob-hours-day-name">{{ day_name }}</span>
+            </div>
+
+            <div class="ob-hours-ranges" id="ob-ranges-{{ day_idx }}" style="{% if not is_open %}display:none;{% endif %}">
+              {% if day_rows %}
+                {% for r in day_rows %}
+                <div class="ob-hours-range-row">
+                  <input type="time" class="form-control" name="start_{{ day_idx }}[]" value="{{ r.start_time.strftime('%H:%M') }}">
+                  <span class="ob-hours-sep">a</span>
+                  <input type="time" class="form-control" name="end_{{ day_idx }}[]" value="{{ r.end_time.strftime('%H:%M') }}">
+                  {% if loop.first %}
+                  <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
+                  {% else %}
+                  <button type="button" class="ob-hours-remove-range" onclick="this.closest('.ob-hours-range-row').remove()">{{ ic.icon('trash', 15) }}</button>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              {% elif not existing %}
+                <div class="ob-hours-range-row">
+                  <input type="time" class="form-control" name="start_{{ day_idx }}[]" value="{% if day_idx == 5 %}10:00{% else %}09:00{% endif %}">
+                  <span class="ob-hours-sep">a</span>
+                  <input type="time" class="form-control" name="end_{{ day_idx }}[]" value="{% if day_idx == 5 %}14:00{% else %}20:00{% endif %}">
+                  <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
+                </div>
+              {% else %}
+                <div class="ob-hours-range-row">
+                  <input type="time" class="form-control" name="start_{{ day_idx }}[]" value="09:00">
+                  <span class="ob-hours-sep">a</span>
+                  <input type="time" class="form-control" name="end_{{ day_idx }}[]" value="20:00">
+                  <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
+                </div>
+              {% endif %}
+            </div>
+            <span class="ob-hours-closed-label" id="ob-closed-{{ day_idx }}" style="{% if is_open %}display:none;{% endif %}">Cerrado</span>
+          </div>
+        {% endfor %}
+
+        <div class="ob-hours-tip">
+          {{ ic.icon('sparkle', 16) }}
+          Podrás configurar horarios y servicios diferentes por profesional desde <strong>Configuración → Disponibilidad avanzada</strong>, una vez publicado tu negocio.
+        </div>
+
+        <div class="ob-wiz-actions">
+          <a class="ob-btn-outline" href="{{ url_for('onboarding.services') }}">← Volver</a>
+          <button type="submit" class="ob-submit-btn">Continuar →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<template id="ob-range-row-template">
+  <div class="ob-hours-range-row">
+    <input type="time" class="form-control" name="start_X[]" value="09:00">
+    <span class="ob-hours-sep">a</span>
+    <input type="time" class="form-control" name="end_X[]" value="18:00">
+    <button type="button" class="ob-hours-remove-range" onclick="this.closest('.ob-hours-range-row').remove()">{{ ic.icon('trash', 15) }}</button>
+  </div>
+</template>
+
+<script>
+document.querySelectorAll('.ob-day-switch').forEach(function (sw) {
+  sw.addEventListener('change', function () {
+    var day = sw.dataset.day;
+    document.getElementById('ob-ranges-' + day).style.display = sw.checked ? '' : 'none';
+    document.getElementById('ob-closed-' + day).style.display = sw.checked ? 'none' : '';
+  });
+});
+function obAddRange(dayIdx) {
+  var tpl = document.getElementById('ob-range-row-template');
+  var clone = tpl.content.cloneNode(true);
+  clone.querySelectorAll('input[name="start_X[]"]').forEach(function (el) { el.name = 'start_' + dayIdx + '[]'; });
+  clone.querySelectorAll('input[name="end_X[]"]').forEach(function (el) { el.name = 'end_' + dayIdx + '[]'; });
+  document.getElementById('ob-ranges-' + dayIdx).appendChild(clone);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}¿Quién atiende? · Turnex{% endblock %}
+{% block topnav %}{% include '_wizard_header.html' %}{% endblock %}
+{% block content %}
+<div class="ob-wizard">
+  <div class="ob-wiz-container">
+    <div class="ob-wiz-card">
+
+      <h2 class="ob-wiz-card-title">¿Cuántas personas atienden turnos en tu negocio?</h2>
+      <p class="ob-wiz-card-sub">Podés agregar más profesionales después.</p>
+
+      {% if errors.staffing_mode %}<div class="alert alert-danger">{{ errors.staffing_mode }}</div>{% endif %}
+
+      <form method="post" novalidate id="ob-staffing-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label class="ob-choice-card" data-mode="solo">
+          <input type="radio" name="staffing_mode" value="solo" {% if company.staffing_mode == 'solo' or not company.staffing_mode %}checked{% endif %}>
+          <span class="ob-choice-icon">{{ ic.icon('heart', 22) }}</span>
+          <span class="ob-choice-body">
+            <strong>Atiendo yo solo</strong>
+            <p>Ideal para profesionales independientes.</p>
+          </span>
+          <span class="ob-choice-check">{{ ic.icon('check', 14) }}</span>
+        </label>
+
+        <label class="ob-choice-card" data-mode="team">
+          <input type="radio" name="staffing_mode" value="team" {% if company.staffing_mode == 'team' %}checked{% endif %}>
+          <span class="ob-choice-icon">{{ ic.icon('layout', 22) }}</span>
+          <span class="ob-choice-body">
+            <strong>Tenemos varios profesionales</strong>
+            <p>Para peluquerías, clínicas, gimnasios, centros estéticos.</p>
+          </span>
+          <span class="ob-choice-check">{{ ic.icon('check', 14) }}</span>
+        </label>
+
+        <div class="ob-hours-tip" id="ob-staffing-hint">
+          {{ ic.icon('sparkle', 16) }}
+          <span id="ob-staffing-hint-text">Perfecto, vamos a crear automáticamente tu perfil como profesional.</span>
+        </div>
+
+        <div class="ob-wiz-actions">
+          <a class="ob-btn-outline" href="{{ url_for('onboarding.business') }}">← Volver</a>
+          <button type="submit" class="ob-submit-btn">Continuar →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const obHintText = document.getElementById('ob-staffing-hint-text');
+document.querySelectorAll('input[name="staffing_mode"]').forEach(function (input) {
+  input.addEventListener('change', function () {
+    document.querySelectorAll('.ob-choice-card').forEach(function (c) { c.classList.remove('is-selected'); });
+    this.closest('.ob-choice-card').classList.add('is-selected');
+    obHintText.textContent = this.value === 'solo'
+      ? 'Perfecto, vamos a crear automáticamente tu perfil como profesional.'
+      : 'Vas a poder sumar a tu equipo desde el panel, apenas termines este registro.';
+  });
+});
+document.querySelectorAll('.ob-choice-card').forEach(function (card) {
+  if (card.querySelector('input').checked) card.classList.add('is-selected');
+});
+</script>
+{% endblock %}

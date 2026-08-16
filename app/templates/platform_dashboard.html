@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% block title %}Plataforma · Turnex{% endblock %}
+{% block topnav %}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .public-navbar { display: none !important; }
+  body { background: #f1f5f9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+
+  <!-- ══ SIDEBAR ════════════════════════════════════ -->
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-brand">
+      <div class="admin-sidebar-company">Turnex</div>
+      <div class="admin-sidebar-meta">Panel plataforma</div>
+    </div>
+    <nav class="admin-nav">
+      <span class="admin-nav-section">Gestión</span>
+      <a href="{{ url_for('platform.dashboard') }}" class="admin-nav-item active">
+        <span class="admin-nav-icon">🏢</span> Empresas
+      </a>
+      <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.08);margin-left:.75rem;margin-right:.75rem;">
+        <a href="{{ url_for('auth.logout') }}" class="admin-nav-item" style="font-size:.82rem;">
+           Cerrar sesión
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ══ MAIN ═══════════════════════════════════════ -->
+  <main class="admin-main">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show mb-3 rounded-3" role="alert">
+          {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="admin-page-header">
+      <div>
+        <h1 class="admin-page-title">Gestión de empresas</h1>
+        <p class="admin-page-sub">Creá y administrá todas las empresas de la plataforma.</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="admin-stats-grid mb-4">
+      <div class="admin-stat-card admin-stat-card--accent">
+        <span class="admin-stat-label">Empresas</span>
+        <span class="admin-stat-value">{{ stats.companies }}</span>
+      </div>
+      <div class="admin-stat-card">
+        <span class="admin-stat-label">Activas</span>
+        <span class="admin-stat-value">{{ stats.active_companies }}</span>
+      </div>
+      <div class="admin-stat-card">
+        <span class="admin-stat-label">Turnos totales</span>
+        <span class="admin-stat-value">{{ stats.appointments }}</span>
+      </div>
+      <div class="admin-stat-card">
+        <span class="admin-stat-label">Cobrado</span>
+        <span class="admin-stat-value">${{ '%.0f'|format(stats.paid_total) }}</span>
+      </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+
+      <!-- Formulario nueva empresa -->
+      <div class="col-lg-5">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h2 class="admin-card-title">Nueva empresa</h2>
+          </div>
+          <div class="admin-card-body">
+            <form method="post" action="{{ url_for('platform.create_company') }}" class="row g-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+              <div class="col-12">
+                <div class="nt-section-title" style="font-size:.8rem;color:#64748b;letter-spacing:.04em;text-transform:uppercase;font-weight:800;margin-bottom:.75rem;">Datos del negocio</div>
+              </div>
+              <div class="col-md-8"><label class="form-label">Nombre comercial</label><input class="form-control" name="name" required></div>
+              <div class="col-md-4"><label class="form-label">Slug / URL</label><input class="form-control" name="slug" placeholder="mi-negocio" required></div>
+              <div class="col-md-6"><label class="form-label">Email público</label><input class="form-control" name="email" type="email"></div>
+              <div class="col-md-6"><label class="form-label">Teléfono</label><input class="form-control" name="phone"></div>
+              <div class="col-12"><label class="form-label">Dirección</label><input class="form-control" name="address"></div>
+              <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" rows="2" name="description"></textarea></div>
+              <div class="col-md-4"><label class="form-label">Plan</label>
+                <select class="form-select" name="plan_name">
+                  <option>BASE</option><option>PRO</option><option>PREMIUM</option>
+                </select>
+              </div>
+              <div class="col-md-4"><label class="form-label">Estado</label>
+                <select class="form-select" name="plan_status">
+                  <option>ACTIVE</option><option>PENDING</option><option>SUSPENDED</option>
+                </select>
+              </div>
+              <div class="col-md-4"><label class="form-label">Color</label><input class="form-control form-control-color" type="color" name="brand_color" value="#198754"></div>
+
+              <div class="col-12 border-top pt-3 mt-1">
+                <div class="nt-section-title" style="font-size:.8rem;color:#64748b;letter-spacing:.04em;text-transform:uppercase;font-weight:800;margin-bottom:.75rem;">Cuenta de administrador</div>
+              </div>
+              <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="admin_name" value="Administrador" required></div>
+              <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="admin_email" required></div>
+              <div class="col-md-6"><label class="form-label">Contraseña</label><input class="form-control" name="admin_password" required></div>
+              <div class="col-md-6 d-flex align-items-end">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="active" checked id="company_active">
+                  <label class="form-check-label" for="company_active">Empresa visible</label>
+                </div>
+              </div>
+
+              <div class="col-12 pt-1"><button class="btn btn-dark w-100">Crear empresa</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de empresas -->
+      <div class="col-lg-7">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h2 class="admin-card-title">Empresas registradas</h2>
+            <span class="entity-badge entity-badge--inactive">{{ companies|length }}</span>
+          </div>
+          <div class="admin-card-body--compact">
+            {% for company in companies %}
+            {% set admin = company.admins[0] if company.admins else None %}
+            <div class="entity-row">
+              <div class="entity-avatar" style="background:{{ company.brand_color or '#374151' }};">
+                {{ company.name[0]|upper }}
+              </div>
+              <div class="entity-info">
+                <div class="entity-name">
+                  {{ company.name }}
+                  <span class="entity-badge ms-1 {% if company.active %}entity-badge--active{% else %}entity-badge--inactive{% endif %}">
+                    {{ company.plan_name }} · {{ 'Activa' if company.active else 'Oculta' }}
+                  </span>
+                </div>
+                <div class="entity-meta">
+                  /{{ company.slug }}
+                  {% if admin %} · {{ admin.email }}{% endif %}
+                  · {{ company.plan_status }}
+                  {% if company.plan_status == 'TRIAL' and company.trial_expires_at %}
+                    — vence {{ company.trial_expires_at.strftime('%d/%m/%Y') }}
+                    {% set days_left = (company.trial_expires_at.date() - now.date()).days %}
+                    {% if days_left <= 0 %}
+                      <span class="entity-badge ms-1" style="background:#fef2f2;color:#b91c1c;">Vencido</span>
+                    {% elif days_left <= 7 %}
+                      <span class="entity-badge ms-1" style="background:#fffbeb;color:#92400e;">{{ days_left }}d</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+              <div class="entity-actions">
+                <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Ver página">↗</a>
+                <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#plat_company_{{ company.id }}">Editar</button>
+              </div>
+            </div>
+
+            <div class="collapse" id="plat_company_{{ company.id }}">
+              <div class="expand-panel">
+
+                <!-- Editar empresa -->
+                <div class="small fw-bold text-secondary text-uppercase mb-2" style="letter-spacing:.05em;font-size:.75rem;">Datos de la empresa</div>
+                <form method="post" action="{{ url_for('platform.update_company', company_id=company.id) }}" class="row g-3 mb-3">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" value="{{ company.name }}"></div>
+                  <div class="col-md-6"><label class="form-label">Slug</label><input class="form-control" name="slug" value="{{ company.slug }}"></div>
+                  <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ company.email or '' }}"></div>
+                  <div class="col-md-6"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ company.phone or '' }}"></div>
+                  <div class="col-12"><label class="form-label">Dirección</label><input class="form-control" name="address" value="{{ company.address or '' }}"></div>
+                  <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" name="description" rows="2">{{ company.description or '' }}</textarea></div>
+                  <div class="col-md-4"><label class="form-label">Plan</label><input class="form-control" name="plan_name" value="{{ company.plan_name }}"></div>
+                  <div class="col-md-4"><label class="form-label">Estado plan</label>
+                    <select class="form-select" name="plan_status" id="plan_status_{{ company.id }}">
+                      <option value="TRIAL"     {% if company.plan_status=='TRIAL' %}selected{% endif %}>TRIAL</option>
+                      <option value="ACTIVE"    {% if company.plan_status=='ACTIVE' %}selected{% endif %}>ACTIVE</option>
+                      <option value="SUSPENDED" {% if company.plan_status=='SUSPENDED' %}selected{% endif %}>SUSPENDED</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4" id="trial_days_row_{{ company.id }}" {% if company.plan_status != 'TRIAL' %}style="display:none"{% endif %}>
+                    <label class="form-label">
+                      Días de trial
+                      {% if company.trial_expires_at %}
+                        <span class="text-secondary fw-normal small">
+                          — vence {{ company.trial_expires_at.strftime('%d/%m/%Y') }}
+                        </span>
+                      {% endif %}
+                    </label>
+                    <input class="form-control" type="number" name="trial_days" min="1" max="365"
+                           placeholder="Ej: 14 — extiende desde hoy">
+                  </div>
+                  <div class="col-md-4"><label class="form-label">Color</label><input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color }}"></div>
+                  <div class="col-md-6"><label class="form-label">Admin nombre</label><input class="form-control" name="admin_name" value="{{ admin.name if admin else '' }}"></div>
+                  <div class="col-md-6"><label class="form-label">Admin email</label><input class="form-control" name="admin_email" value="{{ admin.email if admin else '' }}"></div>
+                  <div class="col-md-6"><label class="form-label">Nueva contraseña admin</label><input class="form-control" name="admin_password" placeholder="Solo si querés cambiarla"></div>
+                  <div class="col-md-3 d-flex align-items-end">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="active" {% if company.active %}checked{% endif %} id="active_{{ company.id }}">
+                      <label class="form-check-label" for="active_{{ company.id }}">Empresa visible</label>
+                    </div>
+                  </div>
+                  <div class="col-md-3 d-flex align-items-end">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="admin_active" {% if admin and admin.active %}checked{% endif %} id="admin_active_{{ company.id }}">
+                      <label class="form-check-label" for="admin_active_{{ company.id }}">Admin activo</label>
+                    </div>
+                  </div>
+                  <div class="col-12"><button class="btn btn-dark btn-sm">Guardar empresa</button></div>
+                </form>
+
+                <!-- Registrar pago -->
+                <div class="small fw-bold text-secondary text-uppercase mb-2 mt-3 pt-3 border-top" style="letter-spacing:.05em;font-size:.75rem;">Registrar pago</div>
+                <form method="post" action="{{ url_for('platform.add_payment', company_id=company.id) }}" class="row g-3">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="col-md-3"><label class="form-label">Monto</label><input class="form-control" name="amount" type="number" step="0.01"></div>
+                  <div class="col-md-3"><label class="form-label">Método</label><input class="form-control" name="method" value="Transferencia"></div>
+                  <div class="col-md-3"><label class="form-label">Estado</label><select class="form-select" name="status"><option>PAID</option><option>PENDING</option></select></div>
+                  <div class="col-md-3"><label class="form-label">Notas</label><input class="form-control" name="notes"></div>
+                  <div class="col-12"><button class="btn btn-outline-dark btn-sm">Registrar pago</button></div>
+                </form>
+
+              </div>
+            </div>
+            {% else %}
+            <div class="p-5 text-center text-secondary small">Todavía no hay empresas cargadas.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('[id^="plan_status_"]').forEach(function(sel) {
+  var id = sel.id.replace('plan_status_', '');
+  var row = document.getElementById('trial_days_row_' + id);
+  if (!row) return;
+  sel.addEventListener('change', function() {
+    row.style.display = sel.value === 'TRIAL' ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}429 · Demasiadas solicitudes{% endblock %}
+{% block content %}
+<div class="container py-5 text-center">
+  <div class="display-1 fw-bold text-secondary mb-2">429</div>
+  <h1 class="h3 mb-3">Demasiadas solicitudes</h1>
+  <p class="text-secondary mb-4">Hiciste demasiados intentos en poco tiempo. Esperá un momento antes de continuar.</p>
+  <a href="{{ url_for('public.home') }}" class="btn btn-dark">Volver al inicio</a>
+</div>
+{% endblock %}

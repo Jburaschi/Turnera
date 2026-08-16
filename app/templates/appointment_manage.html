@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Gestionar turno · {{ company.name }}{% endblock %}
+{% block topnav %}{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+      <div class="card shadow-sm">
+        <div class="card-body p-4 p-lg-5">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+            <div>
+              <div class="booking-kicker">Gestión de turno</div>
+              <h1 class="h3 mb-1">{{ company.name }}</h1>
+              <div class="text-secondary small">Usá esta página para cancelar o reprogramar tu turno.</div>
+            </div>
+            <a class="btn btn-outline-dark" href="{{ url_for('public.company_page', slug=company.slug) }}">Ir al inicio</a>
+          </div>
+
+          <div class="rounded-4 bg-light p-4 mb-4">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <span class="info-label">Servicio</span>
+                <div class="fw-semibold">{{ appointment.service.name }}</div>
+              </div>
+              <div class="col-md-6">
+                <span class="info-label">Profesional</span>
+                <div class="fw-semibold">{{ appointment.employee.name }}</div>
+              </div>
+              <div class="col-md-6">
+                <span class="info-label">Inicio</span>
+                <div class="fw-semibold">{{ appointment.start_dt.strftime('%d/%m/%Y %H:%M') }}</div>
+              </div>
+              <div class="col-md-6">
+                <span class="info-label">Estado</span>
+                <div class="fw-semibold">{{ appointment.status }}</div>
+              </div>
+              <div class="col-12">
+                <span class="info-label">Cliente</span>
+                <div class="fw-semibold">{{ appointment.customer_display_name }}</div>
+              </div>
+            </div>
+          </div>
+
+          {% if appointment.status != 'BOOKED' %}
+            <div class="alert alert-secondary mb-0">Este turno ya no está activo, por lo que no se puede modificar.</div>
+          {% else %}
+            <div class="alert alert-light border mb-4">
+              <div class="small text-secondary">
+                Tip: si no encontrás lugar, volvé a la web del negocio para ver todos los horarios disponibles.
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-lg-7">
+                <div class="border rounded-4 p-3 h-100">
+                  <div class="fw-semibold mb-1">Reprogramar</div>
+                  <div class="text-secondary small mb-3">Elegí una nueva fecha y hora. El sistema valida disponibilidad.</div>
+                  <form method="post" action="{{ url_for('public.manage_appointment_reschedule', slug=company.slug, token=appointment.manage_token) }}" class="row g-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-12">
+                      <input class="form-control" type="datetime-local" name="start_dt" required>
+                      <div class="form-text">Elegí la fecha y hora deseadas (se valida que esté libre).</div>
+                    </div>
+                    <div class="col-12">
+                      <button class="btn btn-dark w-100">Reprogramar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="col-lg-5">
+                <div class="border rounded-4 p-3 h-100">
+                  <div class="fw-semibold mb-1">Cancelar</div>
+                  <div class="text-secondary small mb-3">Si cancelás, este turno quedará liberado.</div>
+                  <form method="post" action="{{ url_for('public.manage_appointment_cancel', slug=company.slug, token=appointment.manage_token) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-dark w-100" onclick="return confirm('¿Seguro que querés cancelar el turno?');">Cancelar turno</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

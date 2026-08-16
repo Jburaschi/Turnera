@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Acceso suspendido · {{ company.name }} · Turnex{% endblock %}
+
+{% block head_extra %}
+<style>
+  .public-navbar { display: none !important; }
+  body { background: #f7f8fa; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;">
+  <div style="width:100%;max-width:520px;text-align:center;">
+
+    <div style="width:56px;height:56px;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;
+                display:inline-flex;align-items:center;justify-content:center;
+                font-size:1.4rem;margin-bottom:1.5rem;">
+      ⛔
+    </div>
+
+    <h1 style="font-size:1.6rem;font-weight:800;color:#18181b;margin:0 0 .6rem;letter-spacing:-.02em;">
+      {% if state.trial_days_left == 0 %}
+        Período de prueba vencido
+      {% else %}
+        Panel suspendido
+      {% endif %}
+    </h1>
+
+    <p style="color:#52525b;font-size:1rem;line-height:1.65;margin:0 0 2rem;max-width:400px;display:inline-block;">
+      {% if state.trial_days_left == 0 %}
+        El período de prueba de <strong>{{ company.name }}</strong> llegó a su fin.
+        Para seguir usando Turnex y que tus clientes puedan reservar, activá un plan.
+      {% else %}
+        El acceso al panel de <strong>{{ company.name }}</strong> fue suspendido.
+        Contactate con nosotros para regularizar la situación.
+      {% endif %}
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:.75rem;align-items:center;">
+      <a href="mailto:hola@turnex.com?subject=Quiero activar mi plan — {{ company.name }}"
+         style="display:inline-flex;align-items:center;padding:.85rem 2rem;border-radius:8px;
+                background:#18181b;color:#fff;font-weight:700;font-size:.97rem;text-decoration:none;">
+        Contactar a Turnex para activar
+      </a>
+      <a href="{{ url_for('auth.logout') }}"
+         style="color:#a1a1aa;font-size:.86rem;text-decoration:none;">
+        Cerrar sesión
+      </a>
+    </div>
+
+    <div style="margin-top:2.5rem;padding:1.25rem;background:#fff;border:1px solid #e4e7ec;
+                border-radius:12px;text-align:left;">
+      <div style="font-size:.76rem;font-weight:700;color:#a1a1aa;text-transform:uppercase;
+                  letter-spacing:.05em;margin-bottom:.75rem;">
+        Mientras tanto, tu página pública sigue activa
+      </div>
+      <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank"
+         style="display:flex;align-items:center;gap:.75rem;text-decoration:none;color:#18181b;">
+        <span style="font-size:.93rem;font-weight:600;">turnex.com/{{ company.slug }}</span>
+        <span style="color:#a1a1aa;font-size:.85rem;">↗</span>
+      </a>
+      <p style="margin:.5rem 0 0;color:#71717a;font-size:.82rem;">
+        Los clientes pueden ver tu negocio, pero las reservas estarán deshabilitadas hasta activar el plan.
+      </p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

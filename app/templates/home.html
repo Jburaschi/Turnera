@@ -1,0 +1,497 @@
+{% extends 'base.html' %}
+{% block title %}Turnex · Software de turnos para tu negocio{% endblock %}
+
+{% macro icon(name, size=20) %}
+{%- if name == 'mail' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+{%- elif name == 'clock' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+{%- elif name == 'shield' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.5-3 7.7-7 9.5-4-1.8-7-5-7-9.5V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+{%- elif name == 'link' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6"/><path d="M8.5 16.5L6 19a3 3 0 01-4-4l3-3a3 3 0 013.5-.5"/><path d="M15.5 7.5L18 5a3 3 0 014 4l-3 3a3 3 0 01-3.5.5"/></svg>
+{%- elif name == 'phone-off' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l1.5 4.5-2 2a11 11 0 005 5l2-2L20 15v4a1.5 1.5 0 01-1.6 1.5A17 17 0 013.5 5.6 1.5 1.5 0 015 4z"/><path d="M3 3l18 18"/></svg>
+{%- elif name == 'calendar' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+{%- elif name == 'layout' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.2"/><rect x="14" y="3" width="7" height="5" rx="1.2"/><rect x="14" y="12" width="7" height="9" rx="1.2"/><rect x="3" y="16" width="7" height="5" rx="1.2"/></svg>
+{%- elif name == 'globe' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.5 3.8 5.7 3.8 9s-1.4 6.5-3.8 9c-2.4-2.5-3.8-5.7-3.8-9s1.4-6.5 3.8-9z"/></svg>
+{%- elif name == 'lock' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+{%- elif name == 'rocket' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c3 2 5 6.3 5 10.3 0 2-.7 3.8-1.7 5l-1 3-2.3-2.2-2.3 2.2-1-3C7.7 16.6 7 14.8 7 12.8c0-4 2-8.3 5-10.3z"/><circle cx="12" cy="10.5" r="1.7"/><path d="M8 17l-2.5 1.5M16 17l2.5 1.5"/></svg>
+{%- elif name == 'calendar-check' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8.5 15l2 2 4.5-4.5"/></svg>
+{%- elif name == 'bar-chart' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M12 20V4M20 20v-7"/></svg>
+{%- elif name == 'heart' -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.2-4.4-9.6-9.1C.8 8.2 2.2 4 6.2 4c2 0 3.6 1.2 5.8 3.4C14.2 5.2 15.8 4 17.8 4c4 0 5.4 4.2 3.8 7.4-2.4 4.7-9.6 9.1-9.6 9.1z"/></svg>
+{%- endif -%}
+{% endmacro %}
+
+{% block content %}
+
+<div class="hl-page">
+
+  <!-- ══════════════════════════════
+       HERO
+  ══════════════════════════════ -->
+  <section class="hl-hero">
+    <div class="container">
+      <div class="hl-hero-inner">
+
+        <div class="hl-hero-left">
+          <div class="hl-pill-row">
+            <span class="hl-pill">{{ icon('calendar', 15) }} Gestión de turnos online</span>
+          </div>
+          <h1 class="hl-title">
+            Tu negocio con<br><span class="hl-title-accent">agenda online</span><br>en minutos
+          </h1>
+          <p class="hl-sub">
+            Tus clientes reservan solos.<br>Vos administrás todo desde un solo lugar.
+          </p>
+          <div class="hl-actions">
+            <a href="{{ url_for('onboarding.register') }}" class="hl-btn-primary">
+              Crear mi agenda gratis →
+            </a>
+            <a href="#demo" class="hl-btn-ghost">
+              {{ icon('rocket', 16) }} Ver cómo funciona
+            </a>
+          </div>
+          <div class="hl-trust">
+            <span class="hl-trust-item">{{ icon('mail', 17) }} Sin tarjeta de crédito</span>
+            <span class="hl-trust-item">{{ icon('clock', 17) }} Configuración rápida</span>
+            <span class="hl-trust-item">{{ icon('shield', 17) }} Soporte real siempre</span>
+          </div>
+        </div>
+
+        <div class="hl-hero-right">
+          <div class="hl-mock-laptop">
+            <div class="hl-mock-screen">
+              <div class="hl-mock-bar">
+                <span class="hl-device-dot"></span><span class="hl-device-dot"></span><span class="hl-device-dot"></span>
+                <span class="hl-mock-bar-title">tuapp.turnex.com/admin</span>
+              </div>
+              <div class="hl-mock-app">
+                <div class="hl-mock-sidebar">
+                  <div class="hl-mock-sidebar-brand"><span class="hl-mock-sidebar-logo">T</span> Turnex</div>
+                  <div class="hl-mock-sidebar-item hl-mock-sidebar-item--active">{{ icon('calendar', 14) }} Agenda</div>
+                  <div class="hl-mock-sidebar-item">{{ icon('link', 14) }} Turnos</div>
+                  <div class="hl-mock-sidebar-item">{{ icon('heart', 14) }} Clientes</div>
+                  <div class="hl-mock-sidebar-item">{{ icon('layout', 14) }} Servicios</div>
+                  <div class="hl-mock-sidebar-item">{{ icon('rocket', 14) }} Profesionales</div>
+                  <div class="hl-mock-sidebar-item">{{ icon('bar-chart', 14) }} Reportes</div>
+                  <div class="hl-mock-sidebar-item">{{ icon('shield', 14) }} Configuración</div>
+                </div>
+                <div class="hl-mock-main">
+                  <div class="hl-mock-toolbar">
+                    <div>
+                      <strong>Agenda</strong>
+                      <span>‹ Martes 29 de abril ›</span>
+                    </div>
+                    <span class="hl-mock-newbtn">+ Nuevo turno</span>
+                  </div>
+                  <div class="hl-mock-laptop-body">
+                    <div class="hl-mock-hours">
+                      <span>08:00</span><span>09:00</span><span>10:00</span><span>11:00</span><span>12:00</span><span>13:00</span><span>14:00</span>
+                    </div>
+                    <div class="hl-mock-slots">
+                      <div class="hl-mock-slot" style="background:var(--c-blue-bg);border-color:var(--c-blue-muted);top:0">
+                        <strong>Camila Ruiz</strong><span>Corte de pelo</span>
+                      </div>
+                      <div class="hl-mock-slot" style="background:var(--c-gold-bg);border-color:var(--c-gold-muted);top:52px">
+                        <strong>Juan Pérez</strong><span>Barba</span>
+                      </div>
+                      <div class="hl-mock-slot" style="background:#fdf0f9;border-color:#f6cdec;top:104px">
+                        <strong>María Gómez</strong><span>Color</span>
+                      </div>
+                      <div class="hl-mock-slot" style="background:var(--c-blue-bg);border-color:var(--c-blue-muted);top:156px">
+                        <strong>Lucas Díaz</strong><span>Corte de pelo</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="hl-mock-base"></div>
+            <div class="hl-mock-phone">
+              <div class="hl-mock-phone-notch"></div>
+              <div class="hl-mock-phone-body">
+                <span class="hl-mock-phone-label">Reservar turno</span>
+                <div class="hl-mock-phone-row">Corte de pelo</div>
+                <div class="hl-mock-phone-row">Mar 29 de abril</div>
+                <div class="hl-mock-phone-row">11:00</div>
+                <div class="hl-mock-phone-btn">Confirmar turno</div>
+              </div>
+            </div>
+            <div class="hl-mock-toast">
+              {{ icon('calendar-check', 20) }}
+              <div>
+                <strong>¡Nuevo turno confirmado!</strong>
+                <span>María Gómez · 14:30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════
+       BENEFICIOS (franja oscura)
+  ══════════════════════════════ -->
+  <div class="hl-benefits-strip">
+    <div class="container">
+      <div class="hl-benefits-grid">
+        <div class="hl-benefit">
+          <span class="hl-benefit-icon">{{ icon('calendar', 20) }}</span>
+          <div><strong>Agenda online 24/7</strong><p>Tus clientes reservan cuando quieren, desde cualquier lugar.</p></div>
+        </div>
+        <div class="hl-benefit">
+          <span class="hl-benefit-icon">{{ icon('phone-off', 20) }}</span>
+          <div><strong>Menos llamados</strong><p>Automatizá tus turnos y reducí las consultas por WhatsApp.</p></div>
+        </div>
+        <div class="hl-benefit">
+          <span class="hl-benefit-icon">{{ icon('bar-chart', 20) }}</span>
+          <div><strong>Más tiempo para vos</strong><p>Organizá tu día y enfocate en lo que realmente importa.</p></div>
+        </div>
+        <div class="hl-benefit">
+          <span class="hl-benefit-icon">{{ icon('shield', 20) }}</span>
+          <div><strong>Datos seguros</strong><p>Tu información y la de tus clientes siempre protegida.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       STATS STRIP
+  ══════════════════════════════ -->
+  <!-- ══════════════════════════════
+       DEMO — tabs + pantallas reales
+  ══════════════════════════════ -->
+  <section class="hl-showcase" id="demo">
+    <div class="container">
+      <div class="hl-showcase-head">
+        <span class="hl-pill hl-pill--dark">Demo</span>
+        <h2 class="hl-section-title">Todo lo que necesitás, <span class="hl-title-accent">en un solo lugar</span></h2>
+      </div>
+
+      <div class="hl-tabs" role="tablist">
+        <button type="button" class="hl-tab is-active" data-panel="panel-booking">{{ icon('calendar', 17) }} Reservar turno</button>
+        <button type="button" class="hl-tab" data-panel="panel-admin">{{ icon('layout', 17) }} Panel del negocio</button>
+        <button type="button" class="hl-tab" data-panel="panel-public">{{ icon('globe', 17) }} Página pública</button>
+      </div>
+
+      <div class="hl-stage">
+
+        <div class="hl-panel is-active" id="panel-booking">
+          <div class="hl-booking-layout">
+            <div class="hl-device">
+              <div class="hl-device-bar">
+                <span class="hl-device-dot"></span><span class="hl-device-dot"></span><span class="hl-device-dot"></span>
+              </div>
+              <div class="hl-device-body">
+                <p class="fw-semibold mb-2">Elegí un servicio</p>
+                <div class="d-flex gap-2 flex-wrap mb-4">
+                  <span class="badge text-bg-primary hl-chip-price">Corte de pelo <s>$4.500</s> $4.000</span>
+                  <span class="badge" style="background:var(--c-bg);color:var(--c-ink-2)">Barba · $2.800</span>
+                  <span class="badge" style="background:var(--c-bg);color:var(--c-ink-2)">Color · $9.200</span>
+                </div>
+                <p class="fw-semibold mb-2">Elegí fecha y horario</p>
+                <div class="d-flex gap-2 flex-wrap mb-4">
+                  <span class="btn btn-outline-secondary btn-sm">Lun 28</span>
+                  <span class="btn btn-primary btn-sm">Mar 29</span>
+                  <span class="btn btn-outline-secondary btn-sm">Mié 30</span>
+                  <span class="btn btn-outline-secondary btn-sm">Jue 01</span>
+                  <span class="btn btn-outline-secondary btn-sm">Vie 02</span>
+                  <span class="btn btn-outline-secondary btn-sm">09:00</span>
+                  <span class="btn btn-outline-secondary btn-sm">10:30</span>
+                  <span class="btn btn-primary btn-sm">11:00</span>
+                  <span class="btn btn-outline-secondary btn-sm">11:30</span>
+                  <span class="btn btn-outline-secondary btn-sm">12:00</span>
+                </div>
+                <button type="button" class="btn btn-primary w-100">Confirmar turno →</button>
+              </div>
+            </div>
+            <div class="hl-summary-card">
+              <p class="hl-summary-title">Resumen</p>
+              <div class="hl-summary-row"><span>Servicio</span><strong>Corte de pelo</strong></div>
+              <div class="hl-summary-row"><span>Fecha</span><strong>Martes 29 de abril</strong></div>
+              <div class="hl-summary-row"><span>Horario</span><strong>11:00</strong></div>
+              <div class="hl-summary-total"><span>Total</span><strong>$4.500</strong></div>
+              <div class="hl-summary-trust">
+                {{ icon('lock', 16) }}
+                <div><strong>Tu reserva está protegida</strong><span>Sin pago por adelantado</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hl-panel" id="panel-admin">
+          <div class="hl-device hl-device--wide">
+            <div class="hl-device-bar">
+              <span class="hl-device-dot"></span><span class="hl-device-dot"></span><span class="hl-device-dot"></span>
+            </div>
+            <div class="hl-device-body">
+              <div class="row g-3 mb-4">
+                <div class="col-4">
+                  <div class="p-3 rounded-3" style="background:var(--c-bg)">
+                    <span class="text-muted text-sm">Turnos hoy</span>
+                    <div class="fs-3 fw-bold">14</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-3 rounded-3" style="background:var(--c-bg)">
+                    <span class="text-muted text-sm">Ocupación</span>
+                    <div class="fs-3 fw-bold">82%</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-3 rounded-3" style="background:var(--c-bg)">
+                    <span class="text-muted text-sm">Ingresos</span>
+                    <div class="fs-3 fw-bold">$62k</div>
+                  </div>
+                </div>
+              </div>
+              <table class="table table-sm mb-0">
+                <thead><tr><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Estado</th></tr></thead>
+                <tbody>
+                  <tr><td>09:00</td><td>Marcos D.</td><td>Corte</td><td><span class="badge text-bg-success">Confirmado</span></td></tr>
+                  <tr><td>10:30</td><td>Ariana P.</td><td>Color</td><td><span class="badge text-bg-warning">Pendiente</span></td></tr>
+                  <tr><td>11:15</td><td>Julián R.</td><td>Barba</td><td><span class="badge text-bg-success">Confirmado</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="hl-panel" id="panel-public">
+          <div class="hl-device hl-device--wide">
+            <div class="hl-device-bar">
+              <span class="hl-device-dot"></span><span class="hl-device-dot"></span><span class="hl-device-dot"></span>
+            </div>
+            <div class="hl-device-body">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div style="width:44px;height:44px;border-radius:10px;background:var(--c-blue)"></div>
+                <div>
+                  <p class="fw-bold mb-0">Barbería Pedro</p>
+                  <span class="text-muted text-sm">turnex.com/barberia-pedro</span>
+                </div>
+              </div>
+              <p class="fw-semibold mb-2">Servicios</p>
+              <div class="d-flex justify-content-between border-top py-2">
+                <span>Corte de pelo</span><span class="fw-semibold">$4.500</span>
+              </div>
+              <div class="d-flex justify-content-between border-top py-2 mb-3">
+                <span>Barba</span><span class="fw-semibold">$2.800</span>
+              </div>
+              <button type="button" class="btn btn-primary w-100">Reservar turno →</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════
+       PLANES
+  ══════════════════════════════ -->
+  <section class="hl-section" id="planes">
+    <div class="container">
+
+      <div class="hl-plans-layout">
+
+        <div class="hl-plans-intro">
+          <span class="hl-pill hl-pill--dark">Planes</span>
+          <h2 class="hl-section-title hl-section-title--left">Elegí el plan que <span class="hl-title-accent">mejor se adapte</span></h2>
+          <p class="hl-section-sub hl-section-sub--left">Empezá gratis y escalá cuando necesites automatizaciones.</p>
+
+          <div class="hl-billing-toggle" role="tablist">
+            <button type="button" class="hl-billing-opt is-active" data-billing="monthly">Mensual</button>
+            <button type="button" class="hl-billing-opt" data-billing="annual">Anual <span class="hl-billing-off">20% OFF</span></button>
+          </div>
+        </div>
+
+        <div class="hl-plans-grid">
+
+          <!-- BASE -->
+          <div class="hl-plan">
+            <div class="hl-plan-top">
+              <span class="hl-plan-tier">BASE</span>
+              <div class="hl-plan-price">$0</div>
+              <div class="hl-plan-period">para probar</div>
+            </div>
+            <ul class="hl-plan-features">
+              <li>URL pública del negocio</li>
+              <li>Servicios, profesionales y horarios</li>
+              <li>Agenda online y alta manual</li>
+              <li>Panel de administración</li>
+            </ul>
+            <a class="hl-plan-btn hl-plan-btn--outline" href="{{ url_for('onboarding.register') }}?plan=BASE">
+              Empezar gratis
+            </a>
+          </div>
+
+          <!-- PRO -->
+          <div class="hl-plan hl-plan--featured">
+            <div class="hl-plan-badge">Más elegido</div>
+            <div class="hl-plan-top">
+              <span class="hl-plan-tier">PRO</span>
+              <div class="hl-plan-price">
+                <span class="hl-price-monthly">$9.990</span>
+                <span class="hl-price-annual d-none">$7.990</span>
+              </div>
+              <div class="hl-plan-period">por mes</div>
+            </div>
+            <ul class="hl-plan-features">
+              <li>Todo lo del plan BASE</li>
+              <li><strong>Sincronización Google Calendar</strong></li>
+              <li>Recordatorios automáticos</li>
+              <li>Gestión rápida de agenda diaria</li>
+            </ul>
+            <a class="hl-plan-btn hl-plan-btn--primary" href="{{ url_for('onboarding.register') }}?plan=PRO">
+              Empezar ahora →
+            </a>
+          </div>
+
+          <!-- PREMIUM -->
+          <div class="hl-plan">
+            <div class="hl-plan-top">
+              <span class="hl-plan-tier">PREMIUM</span>
+              <div class="hl-plan-price">
+                <span class="hl-price-monthly">$19.990</span>
+                <span class="hl-price-annual d-none">$15.990</span>
+              </div>
+              <div class="hl-plan-period">por mes</div>
+            </div>
+            <ul class="hl-plan-features">
+              <li>Todo lo del plan PRO</li>
+              <li>Soporte prioritario</li>
+              <li>Funcionalidades a medida</li>
+              <li>Onboarding personalizado</li>
+            </ul>
+            <a class="hl-plan-btn hl-plan-btn--outline" href="{{ url_for('auth.platform_login') }}">
+              Hablar con ventas
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+
+      <p class="hl-plans-note">
+        * Los precios son de ejemplo. El plan se configura por empresa desde plataforma.
+      </p>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════
+       POR QUÉ ELEGIR TURNEX
+  ══════════════════════════════ -->
+  <section class="hl-section hl-why">
+    <div class="container">
+
+      <div class="hl-section-head">
+        <h2 class="hl-section-title">¿Por qué elegir <span class="hl-title-accent">Turnex</span>?</h2>
+        <p class="hl-section-sub">Diseñado para ahorrar tiempo, mejorar la experiencia de tus clientes y hacer crecer tu negocio.</p>
+      </div>
+
+      <div class="hl-why-grid">
+        <div class="hl-why-item">
+          <span class="hl-why-icon">{{ icon('rocket', 26) }}</span>
+          <strong>Empezá en minutos</strong>
+          <p>Configurá tu negocio, servicios y horarios en pocos pasos.</p>
+        </div>
+        <div class="hl-why-item">
+          <span class="hl-why-icon">{{ icon('calendar-check', 26) }}</span>
+          <strong>Menos ausencias</strong>
+          <p>Recordatorios automáticos por WhatsApp y email.</p>
+        </div>
+        <div class="hl-why-item">
+          <span class="hl-why-icon">{{ icon('bar-chart', 26) }}</span>
+          <strong>Más eficiencia</strong>
+          <p>Gestioná tu agenda desde cualquier dispositivo.</p>
+        </div>
+        <div class="hl-why-item">
+          <span class="hl-why-icon">{{ icon('heart', 26) }}</span>
+          <strong>Clientes felices</strong>
+          <p>Reservas simples, rápidas y sin fricción.</p>
+        </div>
+      </div>
+
+      <div class="hl-final-cta">
+        <p>Listo para transformar tu negocio y dejar de perder tiempo?</p>
+        <div class="hl-final-cta-actions">
+          <a href="{{ url_for('onboarding.register') }}" class="hl-btn-primary">Registrá tu negocio gratis</a>
+          <a href="{{ url_for('public.company_page', slug='pepito') }}" class="hl-btn-ghost">Ver demo</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════
+       FOOTER
+  ══════════════════════════════ -->
+  <footer class="hl-footer">
+    <div class="container">
+      <div class="hl-footer-top">
+        <div class="hl-footer-brand">
+          <div class="hl-footer-logo"><span class="hl-footer-logo-mark">T</span> Turnex</div>
+          <p>Gestión de turnos online para tu negocio. Tus clientes reservan solos, vos administrás todo desde un solo lugar.</p>
+        </div>
+        <div class="hl-footer-col">
+          <span class="hl-footer-col-title">Producto</span>
+          <a href="#demo">Demo</a>
+          <a href="#planes">Planes</a>
+          <a href="#como-funciona">Cómo funciona</a>
+        </div>
+        <div class="hl-footer-col">
+          <span class="hl-footer-col-title">Recursos</span>
+          <a href="{{ url_for('public.directory') }}">Directorio de negocios</a>
+          <a href="{{ url_for('public.faq') }}">Preguntas frecuentes</a>
+        </div>
+        <div class="hl-footer-col">
+          <span class="hl-footer-col-title">Legal</span>
+          <a href="{{ url_for('public.terms') }}">Términos y condiciones</a>
+          <a href="{{ url_for('public.privacy') }}">Política de privacidad</a>
+        </div>
+        <div class="hl-footer-col">
+          <span class="hl-footer-col-title">Contacto</span>
+          <a href="mailto:hola@turnex.com">hola@turnex.com</a>
+        </div>
+      </div>
+      <div class="hl-footer-bottom">
+        <span>© {{ current_year }} Turnex. Todos los derechos reservados.</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+document.querySelectorAll('.hl-tab').forEach(function (tab) {
+  tab.addEventListener('click', function () {
+    document.querySelectorAll('.hl-tab').forEach(function (t) { t.classList.remove('is-active'); });
+    document.querySelectorAll('.hl-panel').forEach(function (p) { p.classList.remove('is-active'); });
+    tab.classList.add('is-active');
+    document.getElementById(tab.dataset.panel).classList.add('is-active');
+  });
+});
+document.querySelectorAll('.hl-billing-opt').forEach(function (opt) {
+  opt.addEventListener('click', function () {
+    document.querySelectorAll('.hl-billing-opt').forEach(function (o) { o.classList.remove('is-active'); });
+    opt.classList.add('is-active');
+    var annual = opt.dataset.billing === 'annual';
+    document.querySelectorAll('.hl-price-monthly').forEach(function (el) { el.classList.toggle('d-none', annual); });
+    document.querySelectorAll('.hl-price-annual').forEach(function (el) { el.classList.toggle('d-none', !annual); });
+  });
+});
+</script>
+
+{% endblock %}

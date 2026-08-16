@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Turnex{% endblock %}</title>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{% if company is defined and company %}{{ company.name }} · Turnex{% else %}Turnex{% endif %}">
+  <meta property="og:description" content="{% block og_description %}Reservá tu turno online de forma rápida y sencilla.{% endblock %}">
+  <meta property="og:url" content="{{ request.url }}">
+  {% if company is defined and company and company.logo_url %}
+  <meta property="og:image" content="{{ company.logo_url }}">
+  {% endif %}
+
+  <link href="{{ url_for('static', filename='design.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='admin_styles.css') }}" rel="stylesheet">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  {% set current_company = company if company is defined else None %}
+
+  {% block topnav %}
+  <nav class="pub-nav{% if request.endpoint in ('public.home','public.company_page') %} pub-nav--dark{% endif %}">
+    <div class="container">
+      <div class="pub-nav-inner">
+
+        <a class="pub-brand" href="{% if current_company %}{{ url_for('public.company_page', slug=current_company.slug) }}{% else %}{{ url_for('public.home') }}{% endif %}">
+          {% if current_company and current_company.logo_url %}
+            <img src="{{ current_company.logo_url }}" alt="{{ current_company.name }}" class="pub-brand-logo">
+          {% else %}
+            <div class="pub-brand-icon">{{ (current_company.name[0] if current_company and current_company.name else 'T')|upper }}</div>
+          {% endif %}
+          <div>
+            <span class="pub-brand-name">{{ current_company.name if current_company else 'Turnex' }}</span>
+            {% if current_company and current_company.category %}
+              <span class="pub-brand-sub pub-brand-sub--cat">{{ current_company.category|upper }}</span>
+            {% endif %}
+          </div>
+        </a>
+
+        <div class="pub-nav-links">
+          {% if current_company %}
+            <a href="{{ url_for('public.company_page', slug=current_company.slug) }}#servicios">Servicios</a>
+            <a href="{{ url_for('public.company_page', slug=current_company.slug) }}#equipo">Profesionales</a>
+            <a href="{{ url_for('public.company_page', slug=current_company.slug) }}#nosotros">Nosotros</a>
+            <a href="{{ url_for('public.company_page', slug=current_company.slug) }}#contacto">Contacto</a>
+          {% else %}
+          <a href="{{ url_for('public.home') }}#demo">Demo</a>
+          <a href="{{ url_for('public.home') }}#planes">Planes</a>
+          <div class="pub-nav-dropdown">
+            <button type="button" class="pub-nav-dropdown-btn">
+              Recursos
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="pub-nav-dropdown-menu">
+              <a href="{{ url_for('public.directory') }}">Directorio de negocios</a>
+              <a href="{{ url_for('public.faq') }}">Preguntas frecuentes</a>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="pub-nav-actions">
+          {% if request.endpoint == 'public.home' %}
+            <a class="btn btn-outline-dark btn-sm pub-nav-btn" href="{{ url_for('auth.admin_login') }}">Iniciar sesión</a>
+            <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('onboarding.register') }}">Crear mi negocio →</a>
+          {% elif current_user.is_authenticated and current_user.is_admin %}
+            <a class="btn btn-outline-dark btn-sm" href="{{ url_for('admin.dashboard', slug=current_user.company.slug) }}">Panel</a>
+            <a class="btn btn-outline-secondary btn-sm pub-nav-btn" href="{{ url_for('auth.logout') }}">Salir</a>
+          {% elif current_user.is_authenticated and current_user.is_platform_admin %}
+            <a class="btn btn-outline-dark btn-sm" href="{{ url_for('platform.dashboard') }}">Plataforma</a>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Salir</a>
+          {% elif current_user.is_authenticated %}
+            {% if current_company %}
+            <a class="btn btn-outline-dark btn-sm" href="{{ url_for('public.customer_appointments', slug=current_company.slug) }}">Mis turnos</a>
+            {% endif %}
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Salir</a>
+          {% else %}
+            {% if current_company %}
+              <a class="btn btn-outline-secondary btn-sm pub-nav-btn" href="{{ url_for('auth.customer_login', slug=current_company.slug) }}">Iniciar sesión</a>
+              <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('public.booking_page', slug=current_company.slug) }}">Reservar turno →</a>
+            {% else %}
+              <a class="btn btn-outline-dark btn-sm pub-nav-btn" href="{{ url_for('auth.admin_login') }}">Iniciar sesión</a>
+              <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('onboarding.register') }}">Crear mi negocio →</a>
+            {% endif %}
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </nav>
+  {% endblock %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container pt-3">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert">×</button>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function () {
+      var nav = document.querySelector('.pub-nav--dark');
+      if (!nav) return;
+      var toggle = function () {
+        nav.classList.toggle('is-scrolled', window.scrollY > 30);
+      };
+      toggle();
+      window.addEventListener('scroll', toggle, { passive: true });
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

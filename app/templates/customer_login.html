@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Login cliente{% endblock %}
+{% block topnav %}{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="card shadow-sm mx-auto" style="max-width:500px">
+    <div class="card-body p-4">
+      <h1 class="h4 mb-2">Ingresar a {{ company.name }}</h1>
+      <p class="small text-secondary mb-3">
+        Si el negocio te dio de alta sin contraseña, ingresá tu email y la contraseña que querés usar aquí (mínimo 6 caracteres). Se guarda en el primer ingreso.
+      </p>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input class="form-control" name="email" required value="{{ preset_email or '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contraseña</label>
+          <input class="form-control" type="password" name="password" required autocomplete="current-password">
+        </div>
+        <button class="btn btn-dark w-100">Ingresar</button>
+      </form>
+      <div class="small mt-3 d-flex justify-content-between flex-wrap gap-2">
+        <span>¿No tenés cuenta? <a href="{{ url_for('auth.customer_register', slug=company.slug) }}">Registrate</a></span>
+        <a href="{{ url_for('auth.customer_forgot_password', slug=company.slug) }}">Olvidé mi contraseña</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
