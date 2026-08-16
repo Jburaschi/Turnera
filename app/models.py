@@ -8,14 +8,14 @@ from .extensions import db
 
 employee_services = db.Table(
     'employee_services',
-    db.Column('employee_id', db.Integer, db.ForeignKey('employee.id'), primary_key=True),
-    db.Column('service_id', db.Integer, db.ForeignKey('service.id'), primary_key=True),
+    db.Column('employee_id', db.Integer, db.ForeignKey('employee.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('service_id', db.Integer, db.ForeignKey('service.id', ondelete='CASCADE'), primary_key=True),
 )
 
 employee_schedule_services = db.Table(
     'employee_schedule_service',
     db.Column('schedule_id', db.Integer, db.ForeignKey('employee_schedule.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('service_id', db.Integer, db.ForeignKey('service.id'), primary_key=True),
+    db.Column('service_id', db.Integer, db.ForeignKey('service.id', ondelete='CASCADE'), primary_key=True),
 )
 
 

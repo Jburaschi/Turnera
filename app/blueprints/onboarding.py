@@ -310,6 +310,10 @@ def services():
             errors['services'] = 'Agregá al menos un servicio.'
 
         if not errors:
+            old_services = Service.query.filter_by(company_id=company.id).all()
+            for employee in company.employees:
+                employee.services = [s for s in employee.services if s not in old_services]
+            db.session.flush()
             Service.query.filter_by(company_id=company.id).delete()
             db.session.flush()
             for n, d_val, p_val in rows:

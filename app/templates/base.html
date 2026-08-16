@@ -20,6 +20,32 @@
 <body>
   {% set current_company = company if company is defined else None %}
 
+  {% macro nav_action_buttons() %}
+    {% if request.endpoint == 'public.home' %}
+      <a class="btn btn-outline-dark btn-sm pub-nav-btn" href="{{ url_for('auth.admin_login') }}">Iniciar sesión</a>
+      <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('onboarding.register') }}">Crear mi negocio →</a>
+    {% elif current_user.is_authenticated and current_user.is_admin %}
+      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('admin.dashboard', slug=current_user.company.slug) }}">Panel</a>
+      <a class="btn btn-outline-secondary btn-sm pub-nav-btn" href="{{ url_for('auth.logout') }}">Salir</a>
+    {% elif current_user.is_authenticated and current_user.is_platform_admin %}
+      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('platform.dashboard') }}">Plataforma</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Salir</a>
+    {% elif current_user.is_authenticated %}
+      {% if current_company %}
+      <a class="btn btn-outline-dark btn-sm" href="{{ url_for('public.customer_appointments', slug=current_company.slug) }}">Mis turnos</a>
+      {% endif %}
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Salir</a>
+    {% else %}
+      {% if current_company %}
+        <a class="btn btn-outline-secondary btn-sm pub-nav-btn" href="{{ url_for('auth.customer_login', slug=current_company.slug) }}">Iniciar sesión</a>
+        <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('public.booking_page', slug=current_company.slug) }}">Reservar turno →</a>
+      {% else %}
+        <a class="btn btn-outline-dark btn-sm pub-nav-btn" href="{{ url_for('auth.admin_login') }}">Iniciar sesión</a>
+        <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('onboarding.register') }}">Crear mi negocio →</a>
+      {% endif %}
+    {% endif %}
+  {% endmacro %}
+
   {% block topnav %}
   <nav class="pub-nav{% if request.endpoint in ('public.home','public.company_page') %} pub-nav--dark{% endif %}">
     <div class="container">
@@ -65,29 +91,7 @@
           <button type="button" class="pub-nav-hamburger" id="pub-nav-hamburger" aria-label="Abrir menú" aria-expanded="false">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          {% if request.endpoint == 'public.home' %}
-            <a class="btn btn-outline-dark btn-sm pub-nav-btn" href="{{ url_for('auth.admin_login') }}">Iniciar sesión</a>
-            <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('onboarding.register') }}">Crear mi negocio →</a>
-          {% elif current_user.is_authenticated and current_user.is_admin %}
-            <a class="btn btn-outline-dark btn-sm" href="{{ url_for('admin.dashboard', slug=current_user.company.slug) }}">Panel</a>
-            <a class="btn btn-outline-secondary btn-sm pub-nav-btn" href="{{ url_for('auth.logout') }}">Salir</a>
-          {% elif current_user.is_authenticated and current_user.is_platform_admin %}
-            <a class="btn btn-outline-dark btn-sm" href="{{ url_for('platform.dashboard') }}">Plataforma</a>
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Salir</a>
-          {% elif current_user.is_authenticated %}
-            {% if current_company %}
-            <a class="btn btn-outline-dark btn-sm" href="{{ url_for('public.customer_appointments', slug=current_company.slug) }}">Mis turnos</a>
-            {% endif %}
-            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Salir</a>
-          {% else %}
-            {% if current_company %}
-              <a class="btn btn-outline-secondary btn-sm pub-nav-btn" href="{{ url_for('auth.customer_login', slug=current_company.slug) }}">Iniciar sesión</a>
-              <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('public.booking_page', slug=current_company.slug) }}">Reservar turno →</a>
-            {% else %}
-              <a class="btn btn-outline-dark btn-sm pub-nav-btn" href="{{ url_for('auth.admin_login') }}">Iniciar sesión</a>
-              <a class="btn btn-primary btn-sm pub-nav-btn" href="{{ url_for('onboarding.register') }}">Crear mi negocio →</a>
-            {% endif %}
-          {% endif %}
+          <span class="pub-nav-actions-buttons">{{ nav_action_buttons() }}</span>
         </div>
 
       </div>
@@ -104,6 +108,7 @@
           <a href="{{ url_for('public.directory') }}">Directorio de negocios</a>
           <a href="{{ url_for('public.faq') }}">Preguntas frecuentes</a>
         {% endif %}
+        <div class="pub-nav-mobile-actions">{{ nav_action_buttons() }}</div>
       </div>
     </div>
   </nav>

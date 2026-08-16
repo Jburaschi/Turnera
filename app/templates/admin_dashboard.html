@@ -110,7 +110,7 @@
       </div>
       <div class="admin-topbar-actions">
         <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
-          Ver página pública {{ ic.icon('external', 14) }}
+          <span class="d-none-mobile-text">Ver página pública</span> {{ ic.icon('external', 14) }}
         </a>
         <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}" class="btn btn-primary btn-sm">
           {{ ic.icon('plus', 15) }} Nuevo turno
