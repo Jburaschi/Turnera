@@ -1,19 +1,129 @@
 {% extends 'base.html' %}
-{% block title %}Registro cliente{% endblock %}
+{% import '_icons.html' as ic %}
+{% block title %}Crear cuenta · {{ company.name }}{% endblock %}
 {% block topnav %}{% endblock %}
 {% block content %}
-<div class="container py-5"><div class="card shadow-sm mx-auto" style="max-width:600px"><div class="card-body p-4">
-<h1 class="h4 mb-3">Crear cuenta en {{ company.name }}</h1>
-<form method="post">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<div class="row g-3">
-<div class="col-12"><label class="form-label">Nombre completo</label><input class="form-control" name="full_name" required></div>
-<div class="col-md-6"><label class="form-label">Email</label><input class="form-control" type="email" name="email" required></div>
-<div class="col-md-6"><label class="form-label">Teléfono</label><input class="form-control" name="phone"></div>
-<div class="col-md-6"><label class="form-label">DNI</label><input class="form-control" name="dni"></div>
-<div class="col-md-6"><label class="form-label">Clave</label><input class="form-control" type="password" name="password" required></div>
+<div class="cr-page">
+  <div class="cr-container">
+    <a href="{{ url_for('public.company_page', slug=company.slug) }}" class="cr-back-link">{{ ic.icon('arrow-left', 15) }} Volver a {{ company.name }}</a>
+
+    <div class="cr-stepper">
+      <div class="cr-step is-active" id="cr-step-dot-1"><span>1</span></div>
+      <div class="cr-step-line"></div>
+      <div class="cr-step" id="cr-step-dot-2"><span>2</span></div>
+      <div class="cr-step-line"></div>
+      <div class="cr-step" id="cr-step-dot-3"><span>3</span></div>
+    </div>
+
+    <div class="cr-card">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} rounded-3">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="post" id="cr-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Paso 1: intro + términos -->
+        <div class="cr-panel is-active" id="cr-panel-1">
+          <span class="cr-eyebrow">Bienvenido/a</span>
+          <h1 class="cr-title">Creá tu cuenta en {{ company.name }}</h1>
+          <p class="cr-sub">Con tu cuenta vas a poder reservar más rápido la próxima vez, ver el historial de tus turnos y gestionarlos sin tener que volver a cargar tus datos.</p>
+          <div class="cr-terms-box">
+            <label class="cr-terms-check">
+              <input type="checkbox" name="terms" id="cr-terms-checkbox" required>
+              <span>Leí y acepto los <a href="{{ url_for('public.terms') }}" target="_blank">Términos y Condiciones</a> y la <a href="{{ url_for('public.privacy') }}" target="_blank">Política de Privacidad</a> de Turnex.</span>
+            </label>
+          </div>
+          <button type="button" class="cr-btn-primary" id="cr-next-1">Continuar →</button>
+          <p class="cr-alt-link">¿Ya tenés cuenta? <a href="{{ url_for('auth.customer_login', slug=company.slug) }}">Iniciar sesión</a></p>
+        </div>
+
+        <!-- Paso 2: datos personales -->
+        <div class="cr-panel" id="cr-panel-2">
+          <span class="cr-eyebrow">Paso 2 de 3</span>
+          <h1 class="cr-title">Contanos quién sos</h1>
+          <p class="cr-sub">Con esto identificamos tus turnos.</p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nombre *</label>
+              <div class="input-icon-wrap">{{ ic.icon('user', 16) }}<input class="form-control" name="first_name" id="cr-first-name" placeholder="Tu nombre" required></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Apellido *</label>
+              <div class="input-icon-wrap">{{ ic.icon('user', 16) }}<input class="form-control" name="last_name" placeholder="Tu apellido" required></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fecha de nacimiento <span class="text-secondary fw-normal small">— opcional</span></label>
+              <div class="input-icon-wrap">{{ ic.icon('calendar', 16) }}<input class="form-control" type="date" name="birth_date" max="{{ today }}"></div>
+            </div>
+          </div>
+          <div class="cr-actions">
+            <button type="button" class="cr-btn-outline" id="cr-back-2">← Volver</button>
+            <button type="button" class="cr-btn-primary" id="cr-next-2">Continuar →</button>
+          </div>
+        </div>
+
+        <!-- Paso 3: email + contraseña -->
+        <div class="cr-panel" id="cr-panel-3">
+          <span class="cr-eyebrow">Último paso</span>
+          <h1 class="cr-title">Creá tu acceso</h1>
+          <p class="cr-sub">Con esto vas a poder iniciar sesión la próxima vez.</p>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Email *</label>
+              <div class="input-icon-wrap">{{ ic.icon('mail', 16) }}<input class="form-control" type="email" name="email" placeholder="tu@email.com" required></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Contraseña *</label>
+              <div class="input-icon-wrap">{{ ic.icon('lock', 16) }}<input class="form-control" type="password" name="password" placeholder="Mínimo 6 caracteres" minlength="6" required></div>
+            </div>
+          </div>
+          <p class="cr-privacy-note">{{ ic.icon('lock', 14) }} Tus datos están protegidos y solo se usan para gestionar tus turnos.</p>
+          <div class="cr-actions">
+            <button type="button" class="cr-btn-outline" id="cr-back-3">← Volver</button>
+            <button type="submit" class="cr-btn-primary">Crear mi cuenta →</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
-<button class="btn btn-dark w-100 mt-4">Registrarme</button>
-</form>
-</div></div></div>
+
+<script>
+(function () {
+  const panels = { 1: document.getElementById('cr-panel-1'), 2: document.getElementById('cr-panel-2'), 3: document.getElementById('cr-panel-3') };
+  const dots = { 1: document.getElementById('cr-step-dot-1'), 2: document.getElementById('cr-step-dot-2'), 3: document.getElementById('cr-step-dot-3') };
+
+  function showStep(n) {
+    Object.keys(panels).forEach(k => panels[k].classList.toggle('is-active', Number(k) === n));
+    Object.keys(dots).forEach(k => {
+      dots[k].classList.toggle('is-active', Number(k) === n);
+      dots[k].classList.toggle('is-done', Number(k) < n);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('cr-next-1').addEventListener('click', () => {
+    if (!document.getElementById('cr-terms-checkbox').checked) {
+      alert('Tenés que aceptar los términos y condiciones para continuar.');
+      return;
+    }
+    showStep(2);
+  });
+  document.getElementById('cr-back-2').addEventListener('click', () => showStep(1));
+  document.getElementById('cr-next-2').addEventListener('click', () => {
+    const form = document.getElementById('cr-form');
+    const firstNameInput = form.querySelector('[name="first_name"]');
+    const lastNameInput = form.querySelector('[name="last_name"]');
+    if (!firstNameInput.value.trim() || !lastNameInput.value.trim()) {
+      alert('Completá nombre y apellido para continuar.');
+      return;
+    }
+    showStep(3);
+  });
+  document.getElementById('cr-back-3').addEventListener('click', () => showStep(2));
+})();
+</script>
 {% endblock %}

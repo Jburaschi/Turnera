@@ -151,6 +151,7 @@ class Customer(UserMixin, db.Model):
     email = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(50), nullable=True)
     dni = db.Column(db.String(40), nullable=True)
+    birth_date = db.Column(db.Date, nullable=True)
     tags = db.Column(db.String(255), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)

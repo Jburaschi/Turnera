@@ -94,29 +94,47 @@ def customer_register(slug):
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
-        full_name = request.form.get('full_name', '').strip()
-        if not full_name or not email:
-            flash('Nombre y email son obligatorios.', 'danger')
-            return render_template('customer_register.html', company=company)
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        full_name = f'{first_name} {last_name}'.strip()
+        birth_date_raw = request.form.get('birth_date', '').strip()
+
+        if not first_name or not last_name or not email:
+            flash('Nombre, apellido y email son obligatorios.', 'danger')
+            return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+        if 'terms' not in request.form:
+            flash('Tenés que aceptar los términos y condiciones para continuar.', 'danger')
+            return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
         if len(password) < 6:
             flash('La contraseña debe tener al menos 6 caracteres.', 'danger')
-            return render_template('customer_register.html', company=company)
+            return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
         if Customer.query.filter_by(company_id=company.id, email=email).first():
             flash('Ya existe una cuenta con ese email.', 'warning')
-            return render_template('customer_register.html', company=company)
+            return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+
+        birth_date = None
+        if birth_date_raw:
+            try:
+                birth_date = datetime.strptime(birth_date_raw, '%Y-%m-%d').date()
+                if birth_date > datetime.utcnow().date():
+                    flash('La fecha de nacimiento no puede ser futura.', 'danger')
+                    return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+            except ValueError:
+                flash('Revisá la fecha de nacimiento.', 'danger')
+                return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+
         customer = Customer(
             company=company,
             full_name=full_name,
             email=email,
-            phone=request.form.get('phone', '').strip(),
-            dni=request.form.get('dni', '').strip(),
+            birth_date=birth_date,
         )
         customer.set_password(password)
         db.session.add(customer)
         db.session.commit()
         login_user(customer)
         return redirect(url_for('public.company_page', slug=slug))
-    return render_template('customer_register.html', company=company)
+    return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
 
 
 # ── Recuperación de contraseña — Admin ────────────────────────────────────────

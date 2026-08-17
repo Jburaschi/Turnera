@@ -259,16 +259,26 @@ def staffing():
 
         if not errors:
             company.staffing_mode = mode
+            admin = AdminUser.query.filter_by(company_id=company.id).first()
             if not company.employees:
-                admin = AdminUser.query.filter_by(company_id=company.id).first()
-                owner_name = admin.name if (mode == 'solo' and admin) else f'{company.name} · Equipo'
-                db.session.add(Employee(company_id=company.id, name=owner_name, active=True, color='#3654f0'))
+                if mode == 'solo':
+                    solo_name = request.form.get('solo_professional_name', '').strip() or (admin.name if admin else company.name)
+                    db.session.add(Employee(company_id=company.id, name=solo_name, active=True, color='#3654f0'))
+                else:
+                    db.session.add(Employee(company_id=company.id, name=f'{company.name} · Equipo', active=True, color='#3654f0'))
+            elif mode == 'solo':
+                # Ya existe el empleado (por ejemplo, volviendo a este paso): permitir renombrarlo
+                solo_name = request.form.get('solo_professional_name', '').strip()
+                if solo_name and len(company.employees) == 1:
+                    company.employees[0].name = solo_name
             if company.onboarding_step < 3:
                 company.onboarding_step = 3
             db.session.commit()
             return redirect(url_for('onboarding.services'))
 
-    return render_template('onboarding_staffing.html', errors=errors, company=company, active_step=3)
+    admin = AdminUser.query.filter_by(company_id=company.id).first()
+    default_solo_name = company.employees[0].name if (company.employees and company.staffing_mode == 'solo') else (admin.name if admin else '')
+    return render_template('onboarding_staffing.html', errors=errors, company=company, active_step=3, default_solo_name=default_solo_name)
 
 
 # ── Paso 4: servicios ───────────────────────────────────────────────────

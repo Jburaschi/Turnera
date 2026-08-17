@@ -48,6 +48,8 @@ def run_sqlite_migrations(engine) -> None:
             _add_column(engine, "customer", "notes TEXT")
         if not _column_exists(engine, "customer", "needs_password_setup"):
             _add_column(engine, "customer", "needs_password_setup BOOLEAN DEFAULT 0 NOT NULL")
+        if not _column_exists(engine, "customer", "birth_date"):
+            _add_column(engine, "customer", "birth_date DATE")
 
     if not _table_exists(engine, "employee_schedule_service"):
         with engine.begin() as conn:

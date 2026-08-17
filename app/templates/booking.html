@@ -188,17 +188,16 @@
             <input type="hidden" name="employee_id" id="employee_id">
             <input type="hidden" name="start_dt" id="start_dt">
 
-            {% if company.config.require_customer_login %}
-              {% if not current_user.is_authenticated or current_user.is_admin %}
-                <div class="alert alert-warning">
-                  Esta empresa requiere login del cliente.
-                  <a href="{{ url_for('auth.customer_login', slug=company.slug, next=url_for('public.booking_page', slug=company.slug)) }}">Ingresar</a>
-                  o
-                  <a href="{{ url_for('auth.customer_register', slug=company.slug) }}">registrarse</a>.
-                </div>
-              {% else %}
-                <div class="alert alert-success">Reservás como {{ current_user.full_name }} ({{ current_user.email }})</div>
-              {% endif %}
+            {% set is_logged_customer = current_user.is_authenticated and not current_user.is_admin and current_company and current_user.company_id == current_company.id %}
+            {% if is_logged_customer %}
+              <div class="alert alert-success">Reservás como {{ current_user.full_name }} ({{ current_user.email }})</div>
+            {% elif company.config.require_customer_login %}
+              <div class="alert alert-warning">
+                Esta empresa requiere login del cliente.
+                <a href="{{ url_for('auth.customer_login', slug=company.slug, next=url_for('public.booking_page', slug=company.slug)) }}">Ingresar</a>
+                o
+                <a href="{{ url_for('auth.customer_register', slug=company.slug) }}">registrarse</a>.
+              </div>
             {% else %}
             <div class="row g-3">
               <div class="col-md-6">

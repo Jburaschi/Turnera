@@ -25,6 +25,11 @@
           <span class="ob-choice-check">{{ ic.icon('check', 14) }}</span>
         </label>
 
+        <div class="ob-solo-name-field" id="ob-solo-name-field">
+          <label class="form-label">¿Cómo querés que te vean tus clientes? <span class="text-secondary fw-normal small">— podés cambiarlo después</span></label>
+          <input type="text" class="form-control" name="solo_professional_name" value="{{ default_solo_name }}" placeholder="Ej: tu nombre, o un alias">
+        </div>
+
         <label class="ob-choice-card" data-mode="team">
           <input type="radio" name="staffing_mode" value="team" {% if company.staffing_mode == 'team' %}checked{% endif %}>
           <span class="ob-choice-icon">{{ ic.icon('layout', 22) }}</span>
@@ -37,7 +42,7 @@
 
         <div class="ob-hours-tip" id="ob-staffing-hint">
           {{ ic.icon('sparkle', 16) }}
-          <span id="ob-staffing-hint-text">Perfecto, vamos a crear automáticamente tu perfil como profesional.</span>
+          <span id="ob-staffing-hint-text">Vas a aparecer con el nombre de arriba en tu página pública.</span>
         </div>
 
         <div class="ob-wiz-actions">
@@ -51,17 +56,22 @@
 
 <script>
 const obHintText = document.getElementById('ob-staffing-hint-text');
+const obSoloField = document.getElementById('ob-solo-name-field');
 document.querySelectorAll('input[name="staffing_mode"]').forEach(function (input) {
   input.addEventListener('change', function () {
     document.querySelectorAll('.ob-choice-card').forEach(function (c) { c.classList.remove('is-selected'); });
     this.closest('.ob-choice-card').classList.add('is-selected');
+    obSoloField.classList.toggle('is-visible', this.value === 'solo');
     obHintText.textContent = this.value === 'solo'
-      ? 'Perfecto, vamos a crear automáticamente tu perfil como profesional.'
+      ? 'Vas a aparecer con el nombre de arriba en tu página pública.'
       : 'Vas a poder sumar a tu equipo desde el panel, apenas termines este registro.';
   });
 });
 document.querySelectorAll('.ob-choice-card').forEach(function (card) {
   if (card.querySelector('input').checked) card.classList.add('is-selected');
 });
+if (document.querySelector('input[name="staffing_mode"]:checked').value === 'solo') {
+  obSoloField.classList.add('is-visible');
+}
 </script>
 {% endblock %}

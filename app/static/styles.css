@@ -644,6 +644,46 @@ body {
 .booking-slot-hold span { display: block; font-size: .78rem; color: #16a34a; }
 
 /* ── Páginas legales ──────────────────────────────────────────── */
+/* ── Registro de cliente (3 pasos) ───────────────────────────────── */
+.cr-page { min-height: 100vh; background: #f7f8fa; padding: 3rem 1.5rem 4rem; }
+.cr-container { max-width: 520px; margin: 0 auto; }
+.cr-back-link { display: inline-flex; align-items: center; gap: .4rem; color: #52525b; font-size: .87rem; font-weight: 600; text-decoration: none; margin-bottom: 1.5rem; }
+.cr-back-link:hover { color: var(--c-blue); }
+
+.cr-stepper { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 1.5rem; }
+.cr-step { width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 1.5px solid #e4e7ec; color: #a1a1aa; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .82rem; flex: 0 0 auto; }
+.cr-step.is-active { background: var(--c-blue); border-color: var(--c-blue); color: #fff; }
+.cr-step.is-done { background: #f0f4ff; border-color: #c7d7fe; color: var(--c-blue); }
+.cr-step-line { width: 48px; height: 1.5px; background: #e4e7ec; }
+
+.cr-card { background: #fff; border: 1px solid #e4e7ec; border-radius: 16px; padding: 2rem; }
+.cr-panel { display: none; }
+.cr-panel.is-active { display: block; }
+.cr-eyebrow { display: inline-block; color: var(--c-blue); font-weight: 700; font-size: .74rem; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .6rem; }
+.cr-title { font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; margin: 0 0 .4rem; }
+.cr-sub { color: #6b7280; font-size: .92rem; margin-bottom: 1.5rem; }
+
+.cr-terms-box { background: #f7f8fa; border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1.5rem; }
+.cr-terms-check { display: flex; align-items: flex-start; gap: .65rem; cursor: pointer; font-size: .86rem; color: #3f3f46; line-height: 1.5; }
+.cr-terms-check input { margin-top: .2rem; flex: 0 0 auto; }
+.cr-terms-check a { color: var(--c-blue); font-weight: 600; }
+
+.cr-btn-primary { display: flex; align-items: center; justify-content: center; width: 100%; background: var(--c-blue); color: #fff; font-weight: 700; padding: .85rem; border: none; border-radius: 10px; font-size: .95rem; cursor: pointer; }
+.cr-btn-primary:hover { filter: brightness(.93); }
+.cr-btn-outline { display: flex; align-items: center; justify-content: center; background: #fff; color: #3f3f46; font-weight: 600; padding: .85rem 1.3rem; border: 1.5px solid #e4e7ec; border-radius: 10px; font-size: .9rem; cursor: pointer; white-space: nowrap; }
+.cr-btn-outline:hover { border-color: #c4c4c8; }
+.cr-actions { display: flex; gap: .7rem; margin-top: 1.5rem; }
+.cr-actions .cr-btn-primary { flex: 1; }
+
+.cr-alt-link { text-align: center; margin: 1.2rem 0 0; font-size: .85rem; color: #71717a; }
+.cr-alt-link a { color: var(--c-blue); font-weight: 600; }
+.cr-privacy-note { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: #71717a; margin: 1.1rem 0 0; }
+
+@media (max-width: 480px) {
+  .cr-card { padding: 1.4rem; }
+  .cr-page { padding: 2rem 1rem 3rem; }
+}
+
 .legal-page { max-width: 760px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 .legal-card { background: #fff; }
 .legal-title { font-size: clamp(1.9rem,4vw,2.4rem); font-weight: 800; margin: .6rem 0 .3rem; letter-spacing: -.02em; }
@@ -828,6 +868,8 @@ body {
 .ob-hours-closed-label { color: var(--c-ink-3); font-size: .88rem; padding-top: .4rem; }
 .ob-hours-tip { display: flex; align-items: center; gap: .55rem; background: var(--c-blue-bg); color: var(--c-blue); border-radius: 8px; padding: .7rem .9rem; font-size: .84rem; margin-top: 1.5rem; }
 .ob-choice-card { position: relative; display: flex; align-items: flex-start; gap: 1rem; border: 1.5px solid var(--c-border); border-radius: 12px; padding: 1.1rem 1.2rem; cursor: pointer; margin-bottom: .9rem; transition: border-color .15s, background .15s; }
+.ob-solo-name-field { display: none; background: #f7f8fa; border-radius: 10px; padding: 1rem 1.1rem; margin: -.3rem 0 .9rem; }
+.ob-solo-name-field.is-visible { display: block; }
 .ob-choice-card:hover { border-color: var(--c-border-2); }
 .ob-choice-card input { position: absolute; opacity: 0; }
 .ob-choice-card.is-selected { border-color: var(--c-blue); background: var(--c-blue-bg); }
