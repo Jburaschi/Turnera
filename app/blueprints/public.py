@@ -2,6 +2,7 @@ import secrets
 from datetime import datetime, timedelta
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import current_user
+from sqlalchemy.exc import IntegrityError
 from ..extensions import db, limiter
 from ..models import Appointment, Company, CompanyHours, Employee, Service, SlotHold
 from ..services.availability import get_availability_for_day, get_month_summary, HOLD_MINUTES
@@ -218,13 +219,28 @@ def hold_slot(slug):
         return jsonify({'ok': False, 'reason': 'taken'}), 409
 
     SlotHold.query.filter_by(company_id=company.id, session_key=key).delete()
+    # Limpieza oportunista: si hay un hold vencido de OTRA sesión para este mismo
+    # horario, lo sacamos para no chocar con la restricción unique por nada.
+    SlotHold.query.filter(
+        SlotHold.employee_id == employee.id,
+        SlotHold.start_dt == start_dt,
+        SlotHold.expires_at <= datetime.utcnow(),
+    ).delete()
+    db.session.flush()
+
     expires_at = datetime.utcnow() + timedelta(minutes=HOLD_MINUTES)
     db.session.add(SlotHold(
         company_id=company.id, employee_id=employee.id,
         start_dt=start_dt, end_dt=end_dt,
         session_key=key, expires_at=expires_at,
     ))
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Carrera real: otra sesión ganó el hold de este horario exacto en el
+        # mismo instante. La base de datos es la que lo garantiza, no la app.
+        db.session.rollback()
+        return jsonify({'ok': False, 'reason': 'taken'}), 409
     return jsonify({'ok': True, 'expires_at': expires_at.isoformat() + 'Z', 'hold_minutes': HOLD_MINUTES})
 
 

@@ -55,7 +55,7 @@ def get_candidate_employees(company, service, employee_id=None):
     return candidates
 
 
-def get_employee_slots_for_day(company, employee, service, day, ignore_past=False, exclude_session_key=None):
+def get_employee_slots_for_day(company, employee, service, day, ignore_past=False, exclude_session_key=None, ignore_blocks=False):
     """
     ignore_past=True -> muestra todos los slots sin filtrar por hora actual.
     Usar para turnos manuales y reprogramaciones desde el panel admin.
@@ -63,6 +63,10 @@ def get_employee_slots_for_day(company, employee, service, day, ignore_past=Fals
     exclude_session_key -> si se pasa, los horarios reservados temporalmente (hold)
     por esa misma sesión NO se excluyen (le siguen apareciendo a quien los está
     reservando); los hold de otras sesiones sí bloquean el horario.
+    ignore_blocks=True -> ignora los bloqueos de agenda (vacaciones, capacitaciones,
+    manuales). SOLO debe usarse desde el panel admin para forzar un turno de
+    excepción — nunca desde la reserva pública. Los turnos ya reservados
+    (Appointment) siempre siguen respetándose, eso no se puede forzar.
     """
     weekday = day.weekday()
     schedules = [s for s in employee.schedules if s.weekday == weekday]
@@ -75,7 +79,7 @@ def get_employee_slots_for_day(company, employee, service, day, ignore_past=Fals
         current = datetime.combine(day, schedule.start_time)
         end_boundary = datetime.combine(day, schedule.end_time)
         appointments = _appointments_for_employee(employee.id, current, end_boundary)
-        blocks = _blocks_for_employee(company.id, employee.id, current, end_boundary)
+        blocks = [] if ignore_blocks else _blocks_for_employee(company.id, employee.id, current, end_boundary)
         holds = _active_holds_for_employee(employee.id, current, end_boundary, exclude_session_key)
 
         while current + timedelta(minutes=service.duration_min) <= end_boundary:
@@ -97,10 +101,10 @@ def get_employee_slots_for_day(company, employee, service, day, ignore_past=Fals
     return results
 
 
-def get_availability_for_day(company, service, day, employee_id=None, ignore_past=False, exclude_session_key=None):
+def get_availability_for_day(company, service, day, employee_id=None, ignore_past=False, exclude_session_key=None, ignore_blocks=False):
     slots = []
     for employee in get_candidate_employees(company, service, employee_id):
-        slots.extend(get_employee_slots_for_day(company, employee, service, day, ignore_past=ignore_past, exclude_session_key=exclude_session_key))
+        slots.extend(get_employee_slots_for_day(company, employee, service, day, ignore_past=ignore_past, exclude_session_key=exclude_session_key, ignore_blocks=ignore_blocks))
     slots.sort(key=lambda s: (s['start'], s['employee_name']))
     return slots
 

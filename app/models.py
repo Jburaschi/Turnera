@@ -256,7 +256,11 @@ class UploadedImage(db.Model):
 
 class SlotHold(db.Model):
     """Reserva temporal de un horario mientras el cliente completa sus datos.
-    Evita que dos personas confirmen el mismo turno al mismo tiempo."""
+    Evita que dos personas confirmen el mismo turno al mismo tiempo.
+    La restricción unique(employee_id, start_dt) la hace cumplir la base de datos
+    misma — así, aunque dos pedidos lleguen exactamente al mismo milisegundo,
+    solo uno de los dos puede quedarse con el hold. No es una simple verificación
+    de la app, es una garantía real del motor de base de datos."""
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
@@ -264,6 +268,8 @@ class SlotHold(db.Model):
     end_dt = db.Column(db.DateTime, nullable=False)
     session_key = db.Column(db.String(64), nullable=False, index=True)
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
+
+    __table_args__ = (UniqueConstraint('employee_id', 'start_dt', name='uq_slot_hold_employee_start'),)
 
 
 class BlockedPeriod(db.Model):

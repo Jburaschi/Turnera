@@ -740,7 +740,8 @@ def admin_slots_api(slug):
     employee = Employee.query.filter_by(company_id=company.id, id=employee_id, active=True).first()
     if not service or not employee or service not in employee.services:
         return jsonify([])
-    raw_slots = get_availability_for_day(company, service, day, employee.id, ignore_past=True)
+    ignore_blocks = request.args.get('ignore_blocks') == '1'
+    raw_slots = get_availability_for_day(company, service, day, employee.id, ignore_past=True, ignore_blocks=ignore_blocks)
     seen, slots = set(), []
     for s in raw_slots:
         key = s['start'].isoformat()
@@ -762,7 +763,8 @@ def create_manual_appointment(slug):
     if not raw:
         flash('Seleccioná un horario válido.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='agenda'))
     start_dt=datetime.fromisoformat(raw)
-    slots=get_availability_for_day(company,service,start_dt.date(),employee.id,ignore_past=True)
+    ignore_blocks = request.form.get('ignore_blocks') == '1'
+    slots=get_availability_for_day(company,service,start_dt.date(),employee.id,ignore_past=True,ignore_blocks=ignore_blocks)
     selected=next((s for s in slots if s['start']==start_dt),None)
     if not selected:
         flash('Ese horario no está disponible.','danger')
@@ -770,14 +772,15 @@ def create_manual_appointment(slug):
     customer_id=request.form.get('customer_id',type=int); guest_name=request.form.get('guest_name','').strip()
     if not customer_id and not guest_name:
         flash('Elegí un cliente existente o completá el nombre del invitado.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='agenda'))
-    appointment=Appointment(company=company,service=service,employee=employee,start_dt=selected['start'],end_dt=selected['end'],status='BOOKED',notes=request.form.get('notes','').strip() or None,manage_token=secrets.token_urlsafe(24))
+    override_note = ' (turno forzado, ignorando un bloqueo de agenda)' if ignore_blocks else ''
+    appointment=Appointment(company=company,service=service,employee=employee,start_dt=selected['start'],end_dt=selected['end'],status='BOOKED',notes=(request.form.get('notes','').strip() or None),manage_token=secrets.token_urlsafe(24))
     if customer_id:
         appointment.customer=Customer.query.filter_by(company_id=company.id,id=customer_id).first_or_404()
     else:
         appointment.guest_name=guest_name; appointment.guest_phone=request.form.get('guest_phone','').strip() or None
         appointment.guest_email=request.form.get('guest_email','').strip() or None; appointment.guest_dni=request.form.get('guest_dni','').strip() or None
     db.session.add(appointment); db.session.flush()
-    audit_log.log_created(appointment, notes='Alta manual desde panel')
+    audit_log.log_created(appointment, notes=f'Alta manual desde panel{override_note}')
     db.session.commit()
     ensure_google_event_for_appointment(appointment)
     send_booking_confirmed(appointment,manage_url=url_for('public.manage_appointment',slug=slug,token=appointment.manage_token,_external=True),company_url=url_for('public.company_page',slug=slug,_external=True))

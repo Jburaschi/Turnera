@@ -698,6 +698,10 @@
                 <!-- Paso 2: Horarios disponibles -->
                 <div class="nt-section mb-4" id="nt-slots-section">
                   <div class="nt-section-title">2 · Elegí un horario disponible</div>
+                  <label class="d-flex align-items-center gap-2 mb-2" style="cursor:pointer;">
+                    <input type="checkbox" id="nt-ignore-blocks" name="ignore_blocks" value="1">
+                    <span class="small text-secondary">Forzar turno igual, aunque ese día tenga un bloqueo de agenda (vacaciones, capacitación, etc.)</span>
+                  </label>
                   <div id="nt-slots-state" class="text-secondary small mb-2">
                     Completá prestación, profesional y fecha para ver los horarios.
                   </div>
@@ -1699,7 +1703,8 @@
     selectedSlotLabel = null;
     hideConfirm();
 
-    const url = `${window.TURNEX_ADMIN_SLOTS_URL}?service_id=${svcId}&employee_id=${empId}&day=${day}`;
+    const ignoreBlocks = document.getElementById('nt-ignore-blocks')?.checked ? '1' : '0';
+    const url = `${window.TURNEX_ADMIN_SLOTS_URL}?service_id=${svcId}&employee_id=${empId}&day=${day}&ignore_blocks=${ignoreBlocks}`;
     try {
       const res = await fetch(url);
       const slots = await res.json();
@@ -1732,6 +1737,7 @@
   ntService.addEventListener('change', filterEmployees);
   ntEmployee.addEventListener('change', loadSlots);
   ntDate.addEventListener('change', loadSlots);
+  document.getElementById('nt-ignore-blocks')?.addEventListener('change', loadSlots);
 
   // Autocompletar campos desde cliente existente
   ntCustomer?.addEventListener('change', () => {
