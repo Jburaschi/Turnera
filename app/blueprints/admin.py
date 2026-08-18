@@ -588,48 +588,64 @@ def _save_uploaded_image(file_storage, company_id):
 @owner_required
 def update_company(slug):
     company = get_owned_company_or_404(slug)
-    company.name=request.form.get('name','').strip() or company.name
-    company.category=request.form.get('category','').strip() or company.category
-    logo_file = request.files.get('logo')
-    logo_url = _save_uploaded_image(logo_file, company.id)
-    if logo_url:
-        company.logo_url = logo_url
-    elif 'remove_logo' in request.form:
-        company.logo_url = None
-    cover_url = _save_uploaded_image(request.files.get('cover_photo'), company.id)
-    if cover_url:
-        company.cover_photo_url = cover_url
-    elif 'remove_cover_photo' in request.form:
-        company.cover_photo_url = None
-    company.description=request.form.get('description','').strip() or None
-    company.address=request.form.get('address','').strip() or None
-    company.phone=request.form.get('phone','').strip() or None
-    company.email=request.form.get('email','').strip() or None
-    company.brand_color=request.form.get('brand_color', company.brand_color)
-    company.instagram_url=request.form.get('instagram_url','').strip() or None
-    company.facebook_url=request.form.get('facebook_url','').strip() or None
-    cfg=company.config
-    cfg.require_customer_login=         'require_customer_login'         in request.form
-    cfg.allow_booking_by_availability=  'allow_booking_by_availability'  in request.form
-    cfg.allow_booking_by_employee=      'allow_booking_by_employee'      in request.form
-    cfg.allow_customer_choose_employee= 'allow_customer_choose_employee' in request.form
-    cfg.required_name=  'required_name'  in request.form
-    cfg.required_phone= 'required_phone' in request.form
-    cfg.required_email= 'required_email' in request.form
-    cfg.required_dni=   'required_dni'   in request.form
-    # Cancelation rules
-    try:
-        company.cancelation_limit_hours = int(request.form.get('cancelation_limit_hours', 24))
-    except (ValueError, TypeError):
-        pass
-    company.cancelation_penalty_enabled = 'cancelation_penalty_enabled' in request.form
-    try:
-        company.cancelation_penalty_amount = float(request.form.get('cancelation_penalty_amount', 0) or 0)
-    except (ValueError, TypeError):
-        pass
+    target_section = request.form.get('target_section', 'company')
+
+    if target_section == 'settings':
+        cfg = company.config
+        cfg.require_customer_login=         'require_customer_login'         in request.form
+        cfg.allow_booking_by_availability=  'allow_booking_by_availability'  in request.form
+        cfg.allow_booking_by_employee=      'allow_booking_by_employee'      in request.form
+        cfg.allow_customer_choose_employee= 'allow_customer_choose_employee' in request.form
+        cfg.required_name=  'required_name'  in request.form
+        cfg.required_phone= 'required_phone' in request.form
+        cfg.required_email= 'required_email' in request.form
+        cfg.required_dni=   'required_dni'   in request.form
+        cfg.show_address_public = 'show_address_public' in request.form
+        cfg.show_phone_public   = 'show_phone_public'   in request.form
+        cfg.show_email_public   = 'show_email_public'   in request.form
+        try:
+            company.cancelation_limit_hours = int(request.form.get('cancelation_limit_hours', 24))
+        except (ValueError, TypeError):
+            pass
+        company.cancelation_penalty_enabled = 'cancelation_penalty_enabled' in request.form
+        try:
+            company.cancelation_penalty_amount = float(request.form.get('cancelation_penalty_amount', 0) or 0)
+        except (ValueError, TypeError):
+            pass
+    else:
+        company.name=request.form.get('name','').strip() or company.name
+        company.category=request.form.get('category','').strip() or company.category
+        logo_file = request.files.get('logo')
+        logo_url = _save_uploaded_image(logo_file, company.id)
+        if logo_url:
+            company.logo_url = logo_url
+        elif 'remove_logo' in request.form:
+            company.logo_url = None
+        cover_url = _save_uploaded_image(request.files.get('cover_photo'), company.id)
+        if cover_url:
+            company.cover_photo_url = cover_url
+        elif 'remove_cover_photo' in request.form:
+            company.cover_photo_url = None
+        # Estos campos solo se tocan si realmente vinieron en el form que se envió
+        # (el de logo y el de portada no los incluyen, y no deben borrarlos).
+        if 'description' in request.form:
+            company.description = request.form.get('description', '').strip() or None
+        if 'address' in request.form:
+            company.address = request.form.get('address', '').strip() or None
+        if 'phone' in request.form:
+            company.phone = request.form.get('phone', '').strip() or None
+        if 'email' in request.form:
+            company.email = request.form.get('email', '').strip() or None
+        if 'brand_color' in request.form:
+            company.brand_color = request.form.get('brand_color', company.brand_color)
+        if 'instagram_url' in request.form:
+            company.instagram_url = request.form.get('instagram_url', '').strip() or None
+        if 'facebook_url' in request.form:
+            company.facebook_url = request.form.get('facebook_url', '').strip() or None
+
     db.session.commit()
     flash('Configuración actualizada.', 'success')
-    return redirect(url_for('admin.dashboard', slug=slug, section=request.form.get('target_section','company')))
+    return redirect(url_for('admin.dashboard', slug=slug, section=target_section))
 
 @admin_bp.route('/<slug>/services', methods=['POST'])
 @owner_required

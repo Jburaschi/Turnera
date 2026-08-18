@@ -87,18 +87,19 @@
       <div class="cp-contact-card">
 
         <div class="cp-contact-groups">
+          {% if company.config.show_address_public %}
           <div class="cp-contact-group">
             <span class="cp-contact-group-icon">{{ ic.icon('pin', 17) }}</span>
             <div>
-              <span class="cp-contact-group-label">VISITANOS</span>
-              <strong class="cp-contact-group-value">{{ company.name }}</strong>
+              <span class="cp-contact-group-label">DIRECCIÓN</span>
               {% if company.address %}
-              <span class="cp-contact-group-sub">{{ company.address }}</span>
+              <strong class="cp-contact-group-value">{{ company.address }}</strong>
               {% else %}
-              <span class="cp-contact-group-sub cp-contact-group-sub--empty">Sin dirección cargada</span>
+              <strong class="cp-contact-group-value cp-contact-group-value--empty">Sin dirección cargada</strong>
               {% endif %}
             </div>
           </div>
+          {% endif %}
           <div class="cp-contact-group">
             <span class="cp-contact-group-icon">{{ ic.icon('clock', 17) }}</span>
             <div>
@@ -110,6 +111,7 @@
               {% endif %}
             </div>
           </div>
+          {% if company.config.show_phone_public %}
           <div class="cp-contact-group">
             <span class="cp-contact-group-icon">{{ ic.icon('phone-off', 17) }}</span>
             <div>
@@ -121,6 +123,8 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
+          {% if company.config.show_email_public %}
           <div class="cp-contact-group">
             <span class="cp-contact-group-icon">{{ ic.icon('mail', 17) }}</span>
             <div>
@@ -132,6 +136,7 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
           {% if company.instagram_url or company.facebook_url %}
           <div class="cp-social-row cp-social-row--contact">
             {% if company.instagram_url %}<a href="{{ company.instagram_url }}" target="_blank" rel="noopener" class="cp-social-btn" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>{% endif %}
@@ -140,20 +145,20 @@
           {% endif %}
         </div>
 
-        {% if company.address or company.phone %}
+        {% if (company.config.show_address_public and company.address) or (company.config.show_phone_public and company.phone) %}
         <div class="cp-contact-col cp-contact-actions">
-          {% if company.phone %}
+          {% if company.config.show_phone_public and company.phone %}
           <a href="https://wa.me/{{ company.phone|replace(' ','')|replace('-','')|replace('(','')|replace(')','')|replace('+','') }}" target="_blank" rel="noopener" class="cp-btn-whatsapp">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15L2 22l5.2-1.4A10 10 0 1012 2zm5.7 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.9 2.1c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.6-.7c.2-.3.4-.2.6-.1l1.9.9c.2.1.4.2.4.4.1.2.1.9-.1 1.6z"/></svg>
             WhatsApp
           </a>
           {% endif %}
-          {% if company.address %}
+          {% if company.config.show_address_public and company.address %}
           <a href="https://www.google.com/maps/search/?api=1&query={{ company.address|urlencode }}" target="_blank" rel="noopener" class="cp-btn-outline">
             {{ ic.icon('pin', 15) }} Cómo llegar
           </a>
           {% endif %}
-          {% if company.phone %}
+          {% if company.config.show_phone_public and company.phone %}
           <a href="tel:{{ company.phone }}" class="cp-btn-outline">{{ ic.icon('phone-off', 15) }} Llamar</a>
           {% endif %}
         </div>
@@ -298,9 +303,9 @@
       </div>
       <div>
         <div class="cp-footer-title">Contacto</div>
-        {% if company.address %}<div class="cp-footer-line">{{ company.address }}</div>{% endif %}
-        {% if company.phone %}<div class="cp-footer-line">{{ company.phone }}</div>{% endif %}
-        {% if company.email %}<div class="cp-footer-line">{{ company.email }}</div>{% endif %}
+        {% if company.config.show_address_public and company.address %}<div class="cp-footer-line">{{ company.address }}</div>{% endif %}
+        {% if company.config.show_phone_public and company.phone %}<div class="cp-footer-line">{{ company.phone }}</div>{% endif %}
+        {% if company.config.show_email_public and company.email %}<div class="cp-footer-line">{{ company.email }}</div>{% endif %}
       </div>
     </div>
     <div class="cp-footer-bottom">Powered by <a href="{{ url_for('public.home') }}">Turnex</a></div>

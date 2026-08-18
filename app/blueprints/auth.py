@@ -21,15 +21,34 @@ def admin_login():
         slug = request.form.get('slug', '').strip().lower()
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
-        company = Company.query.filter_by(slug=slug, active=True).first()
-        admin = None
-        if company:
-            admin = AdminUser.query.filter_by(company_id=company.id, email=email, active=True).first()
-        if not admin or not admin.check_password(password):
+
+        if slug:
+            # Compatibilidad: si viene un slug explícito (por ejemplo, desde el
+            # selector de "elegí tu negocio" cuando hay más de una coincidencia).
+            company = Company.query.filter_by(slug=slug, active=True).first()
+            admin = AdminUser.query.filter_by(company_id=company.id, email=email, active=True).first() if company else None
+            if not admin or not admin.check_password(password):
+                flash('Credenciales invalidas.', 'danger')
+                return render_template('admin_login.html')
+            login_user(admin)
+            return redirect(url_for('admin.dashboard', slug=company.slug))
+
+        # Caso normal: alcanza con email y contraseña.
+        candidates = AdminUser.query.filter_by(email=email, active=True).all()
+        matches = [a for a in candidates if a.check_password(password)]
+        if not matches:
             flash('Credenciales invalidas.', 'danger')
             return render_template('admin_login.html')
+        if len(matches) > 1:
+            # Muy poco común: la misma persona administra más de un negocio con
+            # el mismo email. Le mostramos entre cuáles elegir (sin reenviar la
+            # contraseña al HTML) y le pedimos que confirme ingresando de nuevo.
+            companies = [Company.query.get(a.company_id) for a in matches]
+            flash('Tenés más de un negocio con ese email. Elegí a cuál querés entrar.', 'info')
+            return render_template('admin_login.html', choose_company=companies)
+        admin = matches[0]
         login_user(admin)
-        return redirect(url_for('admin.dashboard', slug=company.slug))
+        return redirect(url_for('admin.dashboard', slug=admin.company.slug))
     return render_template('admin_login.html')
 
 

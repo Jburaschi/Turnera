@@ -255,3 +255,9 @@ def run_sqlite_migrations(engine) -> None:
                 )
             """))
             conn.execute(text("CREATE INDEX ix_uploaded_image_company_id ON uploaded_image (company_id)"))
+
+    # company_config: qué datos de contacto se muestran en la página pública
+    if _table_exists(engine, "company_config"):
+        for col in ("show_address_public", "show_phone_public", "show_email_public"):
+            if not _column_exists(engine, "company_config", col):
+                _add_column(engine, "company_config", f"{col} BOOLEAN NOT NULL DEFAULT 1")

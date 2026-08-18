@@ -101,6 +101,9 @@ class CompanyConfig(db.Model):
     required_phone = db.Column(db.Boolean, default=True, nullable=False)
     required_email = db.Column(db.Boolean, default=False, nullable=False)
     required_dni = db.Column(db.Boolean, default=False, nullable=False)
+    show_address_public = db.Column(db.Boolean, default=True, nullable=False)
+    show_phone_public = db.Column(db.Boolean, default=True, nullable=False)
+    show_email_public = db.Column(db.Boolean, default=True, nullable=False)
 
     company = db.relationship('Company', back_populates='config')
 

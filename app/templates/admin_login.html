@@ -18,30 +18,44 @@
 
     <div class="admin-card">
       <div class="admin-card-body">
-        <div class="alert alert-info text-sm mb-3">
-          Demo: slug <strong>pepito</strong> · <strong>admin@pepito.com</strong> · <strong>admin123</strong>
-        </div>
+        {% if choose_company %}
+          <p class="text-sm text-muted mb-3">Elegí a cuál de tus negocios querés entrar. Te vamos a pedir que confirmes tu contraseña de nuevo.</p>
+          <div class="d-flex flex-column gap-2">
+            {% for c in choose_company %}
+            <form method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="slug" value="{{ c.slug }}">
+              <div class="field mb-2">
+                <input class="form-control" type="email" name="email" placeholder="Tu email" required>
+              </div>
+              <div class="field mb-2">
+                <input class="form-control" type="password" name="password" placeholder="Tu contraseña" required>
+              </div>
+              <button class="btn btn-outline-secondary w-100 text-start" style="padding:.7rem 1rem;">
+                <strong>{{ c.name }}</strong>
+              </button>
+            </form>
+            {% endfor %}
+          </div>
+        {% else %}
         <form method="post" class="flex flex-col gap-3">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="field">
-            <label class="form-label">Slug empresa</label>
-            <input class="form-control" name="slug" value="pepito" required autocomplete="organization">
-          </div>
-          <div class="field">
             <label class="form-label">Email</label>
-            <input class="form-control" type="email" name="email" value="admin@pepito.com" required autocomplete="email">
+            <input class="form-control" type="email" name="email" placeholder="tu@negocio.com" required autocomplete="email">
           </div>
           <div class="field">
             <label class="form-label">Contraseña</label>
-            <input class="form-control" type="password" name="password" value="admin123" required autocomplete="current-password">
+            <input class="form-control" type="password" name="password" placeholder="Tu contraseña" required autocomplete="current-password">
           </div>
-          <button class="btn btn-dark w-100 mt-2" style="padding:.75rem;">Ingresar</button>
+          <button class="btn btn-primary w-100 mt-2" style="padding:.75rem;">Ingresar</button>
         </form>
         <hr class="divider mt-3 mb-3">
         <div class="flex gap-2">
           <a href="{{ url_for('auth.admin_forgot_password') }}" class="btn btn-outline-secondary btn-sm w-100">Olvidé mi contraseña</a>
           <a href="{{ url_for('auth.platform_login') }}" class="btn btn-outline-secondary btn-sm w-100">Login plataforma</a>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>

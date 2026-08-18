@@ -325,7 +325,7 @@
                   <span class="rank-badge">{{ loop.index }}</span>
                   <div class="rank-item-body">
                     <div class="rank-name">{{ service.name }}</div>
-                    <div class="rank-meta">{{ service.duration_min }} min · ${{ '%.0f'|format(service.price) }}</div>
+                    <div class="rank-meta">{{ service.duration_min }} min · ${{ '{:,.0f}'.format(service.price).replace(',', '.') }}</div>
                     <div class="rank-bar-wrap"><div class="rank-bar" style="width:{{ (svc_count / max_count * 100) if max_count else 0 }}%"></div></div>
                   </div>
                   <span class="rank-count">{{ svc_count }} turno{{ 's' if svc_count != 1 }}</span>
@@ -1106,7 +1106,7 @@
                   </div>
                 </td>
                 <td>{{ service.duration_min }} min</td>
-                <td class="fw-semibold">${{ '%.0f'|format(service.price) }}</td>
+                <td class="fw-semibold">${{ '{:,.0f}'.format(service.price).replace(',', '.') }}</td>
                 <td>
                   <form method="post" action="{{ url_for('admin.update_service', slug=company.slug, service_id=service.id) }}" onchange="this.submit()">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -1500,6 +1500,23 @@
             {% for name, val, label in f_rows %}
             <div class="setting-row">
               <div class="setting-label">{{ label }}</div>
+              <div class="form-check form-switch"><input class="form-check-input" role="switch" type="checkbox" name="{{ name }}" {% if val %}checked{% endif %} id="cfg_{{ name }}"></div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="admin-card mb-3">
+          <div class="admin-card-header"><h2 class="admin-card-title">Datos visibles en tu página pública</h2></div>
+          <div class="admin-card-body--compact">
+            <p class="text-secondary small px-3 pt-2 mb-1">Elegí qué datos de contacto ve cualquiera que visite tu página, sin necesidad de reservar. Vos seguís viendo todo desde tu panel, esto solo afecta lo público.</p>
+            {% set v_rows = [
+              ('show_address_public', cfg.show_address_public, 'Dirección', company.address or 'No cargaste una dirección todavía'),
+              ('show_phone_public', cfg.show_phone_public, 'Teléfono', company.phone or 'No cargaste un teléfono todavía'),
+              ('show_email_public', cfg.show_email_public, 'Email', company.email or 'No cargaste un email todavía'),
+            ] %}
+            {% for name, val, label, sub in v_rows %}
+            <div class="setting-row">
+              <div><div class="setting-label">{{ label }}</div><div class="setting-sub">{{ sub }}</div></div>
               <div class="form-check form-switch"><input class="form-check-input" role="switch" type="checkbox" name="{{ name }}" {% if val %}checked{% endif %} id="cfg_{{ name }}"></div>
             </div>
             {% endfor %}

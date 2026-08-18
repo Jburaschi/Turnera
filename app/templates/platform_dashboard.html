@@ -65,7 +65,7 @@
       </div>
       <div class="admin-stat-card">
         <span class="admin-stat-label">Cobrado</span>
-        <span class="admin-stat-value">${{ '%.0f'|format(stats.paid_total) }}</span>
+        <span class="admin-stat-value">${{ '{:,.0f}'.format(stats.paid_total).replace(',', '.') }}</span>
       </div>
     </div>
 
