@@ -48,7 +48,7 @@
 
   {% block topnav %}
   <nav class="pub-nav{% if request.endpoint in ('public.home','public.company_page') %} pub-nav--dark{% endif %}">
-    <div class="container">
+    <div class="pub-nav-container">
       <div class="pub-nav-inner">
 
         <a class="pub-brand" href="{% if current_company %}{{ url_for('public.company_page', slug=current_company.slug) }}{% else %}{{ url_for('public.home') }}{% endif %}">
