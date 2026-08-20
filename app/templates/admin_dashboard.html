@@ -833,7 +833,7 @@
             <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" required></div>
             <div class="col-md-4"><label class="form-label">Teléfono</label><input class="form-control" name="phone"></div>
             <div class="col-md-4"><label class="form-label">DNI</label><input class="form-control" name="dni"></div>
-            <div class="col-md-4"><label class="form-label">Contraseña inicial <span class="text-secondary fw-normal small">(opcional)</span></label><input class="form-control" name="password" type="password"></div>
+            <div class="col-md-4"><label class="form-label">Contraseña inicial <span class="text-secondary fw-normal small">(opcional)</span></label><div class="pwd-toggle-wrap"><input class="form-control" name="password" type="password"><button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña"><span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span><span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span></button></div></div>
             <div class="col-md-6"><label class="form-label">Etiquetas</label><input class="form-control" name="tags" placeholder="VIP, alergias..."></div>
             <div class="col-md-6"><label class="form-label">Notas internas</label><input class="form-control" name="notes"></div>
             <div class="col-12"><button class="btn btn-primary">Crear cliente</button></div>
@@ -898,7 +898,7 @@
                     <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ customer.email }}"></div>
                     <div class="col-md-4"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ customer.phone or '' }}"></div>
                     <div class="col-md-4"><label class="form-label">DNI</label><input class="form-control" name="dni" value="{{ customer.dni or '' }}"></div>
-                    <div class="col-md-4"><label class="form-label">Nueva contraseña</label><input class="form-control" name="password"></div>
+                    <div class="col-md-4"><label class="form-label">Nueva contraseña <span class="text-secondary fw-normal small">— dejar en blanco para no cambiarla</span></label><div class="pwd-toggle-wrap"><input class="form-control" type="password" name="password" placeholder="Solo si querés cambiarla"><button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña"><span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span><span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span></button></div></div>
                     <div class="col-md-6"><label class="form-label">Etiquetas</label><input class="form-control" name="tags" value="{{ customer.tags or '' }}"></div>
                     <div class="col-md-6"><label class="form-label">Notas</label><input class="form-control" name="notes" value="{{ customer.notes or '' }}"></div>
                     <div class="col-12"><button class="btn btn-primary btn-sm">Guardar cliente</button></div>

@@ -125,6 +125,11 @@ img,svg { display: block; max-width: 100%; }
 .form-control,.form-select { width: 100%; padding: .58rem .82rem; border: 1.5px solid var(--c-border); border-radius: var(--r-md); font-family: var(--font); font-size: .88rem; color: var(--c-ink); background: #fff; transition: border-color .15s,box-shadow .15s; appearance: none; -webkit-appearance: none; }
 .form-control:focus,.form-select:focus { outline: none; border-color: var(--c-blue); box-shadow: 0 0 0 3px rgba(54,84,240,.1); }
 .form-control::placeholder { color: var(--c-ink-3); }
+
+.pwd-toggle-wrap { position: relative; }
+.pwd-toggle-wrap input { padding-right: 2.6rem; }
+.pwd-toggle-btn { position: absolute; right: .55rem; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border: 0; background: transparent; color: var(--c-ink-3); display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; }
+.pwd-toggle-btn:hover { color: var(--c-ink-2); background: #f4f4f5; }
 .form-control-sm,.form-select-sm { padding: .38rem .68rem; font-size: .82rem; }
 .form-control-color { padding: .3rem; cursor: pointer; height: 38px; }
 .form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .75rem center; padding-right: 2.2rem; cursor: pointer; }

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% import '_icons.html' as ic %}
 {% block title %}Login cliente{% endblock %}
 {% block topnav %}{% endblock %}
 {% block content %}
@@ -17,7 +18,13 @@
         </div>
         <div class="mb-3">
           <label class="form-label">Contraseña</label>
-          <input class="form-control" type="password" name="password" required autocomplete="current-password">
+          <div class="pwd-toggle-wrap">
+            <input class="form-control" type="password" name="password" required autocomplete="current-password">
+            <button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña">
+              <span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span>
+              <span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span>
+            </button>
+          </div>
         </div>
         <button class="btn btn-dark w-100">Ingresar</button>
       </form>

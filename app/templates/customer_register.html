@@ -77,7 +77,7 @@
             </div>
             <div class="col-12">
               <label class="form-label">Contraseña *</label>
-              <div class="input-icon-wrap">{{ ic.icon('lock', 16) }}<input class="form-control" type="password" name="password" placeholder="Mínimo 6 caracteres" minlength="6" required></div>
+              <div class="input-icon-wrap">{{ ic.icon('lock', 16) }}<div class="pwd-toggle-wrap"><input class="form-control" type="password" name="password" placeholder="Mínimo 6 caracteres" minlength="6" required><button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña"><span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span><span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span></button></div></div>
             </div>
           </div>
           <p class="cr-privacy-note">{{ ic.icon('lock', 14) }} Tus datos están protegidos y solo se usan para gestionar tus turnos.</p>

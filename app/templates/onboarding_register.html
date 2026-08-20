@@ -1,7 +1,13 @@
 {% extends 'base.html' %}
 {% import '_icons.html' as ic %}
 {% block title %}Creá tu cuenta · Turnex{% endblock %}
-{% block topnav %}{% endblock %}
+{% block topnav %}
+<div class="ob-bare-topnav">
+  <a href="{{ url_for('public.home') }}" class="ob-bare-brand">
+    <span class="ob-bare-brand-mark">T</span> Turnex
+  </a>
+</div>
+{% endblock %}
 {% block content %}
 <div class="ob-page">
   <div class="container">
@@ -32,9 +38,15 @@
 
           <div class="field">
             <label class="form-label">Contraseña * <span class="text-muted fw-normal text-sm">— mín. 8 caracteres</span></label>
-            <input class="form-control {% if errors.password %}is-invalid{% endif %}"
-                   name="password" type="password" required
-                   autocomplete="new-password" placeholder="········">
+            <div class="pwd-toggle-wrap">
+              <input class="form-control {% if errors.password %}is-invalid{% endif %}"
+                     name="password" type="password" required
+                     autocomplete="new-password" placeholder="········">
+              <button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña">
+                <span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span>
+                <span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span>
+              </button>
+            </div>
             {% if errors.password %}<div class="invalid-feedback">{{ errors.password }}</div>{% endif %}
           </div>
 

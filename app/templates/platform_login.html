@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% import '_icons.html' as ic %}
 {% block title %}Acceso plataforma · Turnex{% endblock %}
 {% block topnav %}{% endblock %}
 {% block content %}
@@ -18,18 +19,21 @@
 
     <div class="admin-card">
       <div class="admin-card-body">
-        <div class="alert alert-info text-sm mb-3">
-          Demo: <strong>owner@turnex.com</strong> · <strong>owner123</strong>
-        </div>
         <form method="post" class="flex flex-col gap-3">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="field">
             <label class="form-label">Email</label>
-            <input class="form-control" type="email" name="email" value="owner@turnex.com" required autocomplete="username">
+            <input class="form-control" type="email" name="email" required autocomplete="username">
           </div>
           <div class="field">
             <label class="form-label">Contraseña</label>
-            <input class="form-control" type="password" name="password" value="owner123" required autocomplete="current-password">
+            <div class="pwd-toggle-wrap">
+              <input class="form-control" type="password" name="password" required autocomplete="current-password">
+              <button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña">
+                <span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span>
+                <span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span>
+              </button>
+            </div>
           </div>
           <button class="btn btn-dark w-100 mt-2" style="padding:.75rem;">Ingresar</button>
         </form>

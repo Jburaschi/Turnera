@@ -103,7 +103,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="col-md-4"><label class="form-label">Nombre</label><input class="form-control" name="name" required></div>
           <div class="col-md-4"><label class="form-label">Email</label><input class="form-control" type="email" name="email" required></div>
-          <div class="col-md-4"><label class="form-label">Contraseña</label><input class="form-control" type="password" name="password" required minlength="8"></div>
+          <div class="col-md-4"><label class="form-label">Contraseña</label><div class="pwd-toggle-wrap"><input class="form-control" type="password" name="password" required minlength="8"><button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña"><span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span><span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span></button></div></div>
           <div class="col-md-4">
             <label class="form-label">Rol</label>
             <select class="form-select" name="role">
@@ -150,7 +150,7 @@
                 <form method="post" action="{{ url_for('admin.update_team_member', slug=company.slug, admin_id=member.id) }}" class="row g-3">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <div class="col-md-4"><label class="form-label">Nombre</label><input class="form-control" name="name" value="{{ member.name }}"></div>
-                  <div class="col-md-4"><label class="form-label">Nueva contraseña</label><input class="form-control" type="password" name="password" placeholder="Solo si querés cambiarla"></div>
+                  <div class="col-md-4"><label class="form-label">Nueva contraseña</label><div class="pwd-toggle-wrap"><input class="form-control" type="password" name="password" placeholder="Solo si querés cambiarla"><button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña"><span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span><span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span></button></div></div>
                   <div class="col-md-4"><label class="form-label">Rol</label>
                     <select class="form-select" name="role">
                       <option value="admin" {% if member.role=='admin' %}selected{% endif %}>Admin</option>

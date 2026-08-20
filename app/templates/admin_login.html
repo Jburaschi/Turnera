@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% import '_icons.html' as ic %}
 {% block title %}Acceso empresa · Turnex{% endblock %}
 {% block topnav %}{% endblock %}
 {% block content %}
@@ -29,7 +30,13 @@
                 <input class="form-control" type="email" name="email" placeholder="Tu email" required>
               </div>
               <div class="field mb-2">
-                <input class="form-control" type="password" name="password" placeholder="Tu contraseña" required>
+                <div class="pwd-toggle-wrap">
+                  <input class="form-control" type="password" name="password" placeholder="Tu contraseña" required>
+                  <button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña">
+                    <span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span>
+                    <span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span>
+                  </button>
+                </div>
               </div>
               <button class="btn btn-outline-secondary w-100 text-start" style="padding:.7rem 1rem;">
                 <strong>{{ c.name }}</strong>
@@ -46,7 +53,13 @@
           </div>
           <div class="field">
             <label class="form-label">Contraseña</label>
-            <input class="form-control" type="password" name="password" placeholder="Tu contraseña" required autocomplete="current-password">
+            <div class="pwd-toggle-wrap">
+              <input class="form-control" type="password" name="password" placeholder="Tu contraseña" required autocomplete="current-password">
+              <button type="button" class="pwd-toggle-btn" aria-label="Mostrar contraseña">
+                <span class="pwd-icon-eye">{{ ic.icon('eye', 16) }}</span>
+                <span class="pwd-icon-eye-off d-none">{{ ic.icon('eye-off', 16) }}</span>
+              </button>
+            </div>
           </div>
           <button class="btn btn-primary w-100 mt-2" style="padding:.75rem;">Ingresar</button>
         </form>

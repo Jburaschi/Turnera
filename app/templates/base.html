@@ -158,6 +158,18 @@
         });
       });
     })();
+
+    // Mostrar/ocultar contraseña — aplica a cualquier campo envuelto en .pwd-toggle-wrap
+    document.querySelectorAll('.pwd-toggle-btn').forEach(function (btn) {
+      const input = btn.closest('.pwd-toggle-wrap').querySelector('input');
+      btn.addEventListener('click', function () {
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        btn.setAttribute('aria-label', showing ? 'Mostrar contraseña' : 'Ocultar contraseña');
+        btn.querySelector('.pwd-icon-eye').classList.toggle('d-none', !showing);
+        btn.querySelector('.pwd-icon-eye-off').classList.toggle('d-none', showing);
+      });
+    });
   </script>
   {% block scripts %}{% endblock %}
 </body>
