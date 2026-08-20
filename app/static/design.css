@@ -51,7 +51,7 @@ img,svg { display: block; max-width: 100%; }
 
 /* Container */
 .container { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
-.pub-nav-container { width: 100%; padding: 0 clamp(1.5rem, 4vw, 3.5rem); }
+.pub-nav-container { width: 100%; padding: 0 1.5rem; }
 
 /* Navbar */
 .pub-nav { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,.97); backdrop-filter: blur(10px); border-bottom: 1px solid var(--c-border); transition: background .2s, border-color .2s; }
