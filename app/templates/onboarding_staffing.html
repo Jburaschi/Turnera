@@ -16,7 +16,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <label class="ob-choice-card" data-mode="solo">
-          <input type="radio" name="staffing_mode" value="solo" {% if company.staffing_mode == 'solo' or not company.staffing_mode %}checked{% endif %}>
+          <input type="radio" name="staffing_mode" value="solo" {% if company.staffing_mode == 'solo' %}checked{% endif %}>
           <span class="ob-choice-icon">{{ ic.icon('heart', 22) }}</span>
           <span class="ob-choice-body">
             <strong>Atiendo yo solo</strong>
@@ -42,7 +42,7 @@
 
         <div class="ob-hours-tip" id="ob-staffing-hint">
           {{ ic.icon('sparkle', 16) }}
-          <span id="ob-staffing-hint-text">Vas a aparecer con el nombre de arriba en tu página pública.</span>
+          <span id="ob-staffing-hint-text">Elegí una opción para continuar.</span>
         </div>
 
         <div class="ob-wiz-actions">
@@ -70,7 +70,8 @@ document.querySelectorAll('input[name="staffing_mode"]').forEach(function (input
 document.querySelectorAll('.ob-choice-card').forEach(function (card) {
   if (card.querySelector('input').checked) card.classList.add('is-selected');
 });
-if (document.querySelector('input[name="staffing_mode"]:checked').value === 'solo') {
+const obChecked = document.querySelector('input[name="staffing_mode"]:checked');
+if (obChecked && obChecked.value === 'solo') {
   obSoloField.classList.add('is-visible');
 }
 </script>

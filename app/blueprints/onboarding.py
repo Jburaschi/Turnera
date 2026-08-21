@@ -277,7 +277,7 @@ def staffing():
             return redirect(url_for('onboarding.services'))
 
     admin = AdminUser.query.filter_by(company_id=company.id).first()
-    default_solo_name = company.employees[0].name if (company.employees and company.staffing_mode == 'solo') else (admin.name if admin else '')
+    default_solo_name = company.employees[0].name if (company.employees and company.staffing_mode == 'solo') else ''
     return render_template('onboarding_staffing.html', errors=errors, company=company, active_step=3, default_solo_name=default_solo_name)
 
 
