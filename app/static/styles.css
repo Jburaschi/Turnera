@@ -748,7 +748,7 @@ body {
 .nt-confirm-summary { flex: 1; font-size: .88rem; color: #15803d; font-weight: 600; }
 
 /* ── ONBOARDING ─────────────────────────────────────────── */
-.ob-bare-topnav { display: flex; align-items: center; justify-content: space-between; min-height: 60px; padding: 0 1.5rem; border-bottom: 1px solid var(--c-border); background: #fff; }
+.ob-bare-topnav { display: flex; align-items: center; justify-content: space-between; padding: .55rem 1.5rem; border-bottom: 1px solid var(--c-border); background: #fff; }
 .ob-bare-brand { display: inline-flex; align-items: center; gap: .55rem; font-weight: 800; font-size: 1.05rem; color: var(--c-ink); text-decoration: none; letter-spacing: -.01em; }
 .ob-bare-brand:hover { color: var(--c-ink); }
 .ob-bare-brand-mark { width: 38px; height: 38px; border-radius: 50%; background: var(--c-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 800; flex: 0 0 38px; }
@@ -796,7 +796,7 @@ body {
 
 /* Wizard */
 .ob-wizard { min-height: 100vh; background: #f7f8fa; }
-.ob-wiz-header { background: #fff; border-bottom: 1px solid #e4e7ec; padding: 0 1.5rem; min-height: 60px; display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; position: sticky; top: 0; z-index: 50; }
+.ob-wiz-header { background: #fff; border-bottom: 1px solid #e4e7ec; padding: .55rem 1.5rem; display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; position: sticky; top: 0; z-index: 50; }
 .ob-wiz-brand { font-weight: 800; color: #18181b; font-size: 1.05rem; letter-spacing: -.01em; flex: 0 0 auto; }
 .ob-wiz-steps { display: flex; align-items: center; gap: 0; flex: 1; justify-content: center; overflow-x: auto; }
 .ob-wiz-step { display: flex; align-items: center; gap: .45rem; }

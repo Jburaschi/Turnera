@@ -67,7 +67,7 @@ img,svg { display: block; max-width: 100%; }
 .pub-nav--dark .btn-outline-dark { border-color: rgba(255,255,255,.25); color: rgba(255,255,255,.85); background: transparent; }
 .pub-nav--dark .btn-outline-secondary:hover,
 .pub-nav--dark .btn-outline-dark:hover { border-color: rgba(255,255,255,.5); color: #fff; background: rgba(255,255,255,.06); }
-.pub-nav-inner { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; min-height: 60px; }
+.pub-nav-inner { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; padding: .55rem 0; }
 .pub-nav-inner .pub-brand { justify-self: start; }
 .pub-nav-inner .pub-nav-links { justify-self: center; }
 .pub-nav-inner .pub-nav-actions { justify-self: end; }
