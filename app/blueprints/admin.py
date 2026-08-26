@@ -164,6 +164,31 @@ def replace_employee_schedules(employee, company, blocks):
             if svc and svc in employee.services:
                 sch.limited_services.append(svc)
 
+def find_appointments_outside_schedule(employee, blocks):
+    """Turnos futuros ya reservados que, con el horario NUEVO que se está por
+    guardar, quedarían fuera de cualquier franja (el dueño cambió el horario
+    y ese turno viejo ya no entra). No se tocan ni se cancelan solos —
+    solo se devuelven para avisarle al dueño."""
+    now = datetime.utcnow()
+    future = Appointment.query.filter(
+        Appointment.employee_id == employee.id,
+        Appointment.status == 'BOOKED',
+        Appointment.start_dt >= now,
+    ).order_by(Appointment.start_dt).all()
+
+    orphaned = []
+    for ap in future:
+        wd = ap.start_dt.weekday()
+        ap_start_t = ap.start_dt.time()
+        ap_end_t = ap.end_dt.time()
+        covered = any(
+            b_wd == wd and b_start <= ap_start_t and ap_end_t <= b_end
+            for b_wd, b_start, b_end, _sids in blocks
+        )
+        if not covered:
+            orphaned.append(ap)
+    return orphaned
+
 def month_range(day):
     ms = day.replace(day=1)
     return ms, ms.replace(year=ms.year+1, month=1) if ms.month == 12 else ms.replace(month=ms.month+1)
@@ -725,7 +750,14 @@ def update_employee(slug, employee_id):
     blocks=parse_employee_schedule_blocks(company)
     if not blocks:
         flash('Agregá al menos una franja horaria.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
-    replace_employee_schedules(employee,company,blocks); db.session.commit(); flash('Profesional actualizado.','success')
+    orphaned = find_appointments_outside_schedule(employee, blocks)
+    replace_employee_schedules(employee,company,blocks); db.session.commit()
+    if orphaned:
+        detalle = '; '.join(f'{ap.customer_display_name} el {ap.start_dt.strftime("%d/%m")} a las {ap.start_dt.strftime("%H:%M")}' for ap in orphaned[:5])
+        extra = f' y {len(orphaned) - 5} más' if len(orphaned) > 5 else ''
+        flash(f'Horario actualizado. Ojo: {len(orphaned)} turno(s) ya reservado(s) de {employee.name} quedaron fuera del horario nuevo y no se cancelaron solos — revisalos vos: {detalle}{extra}.', 'warning')
+    else:
+        flash('Profesional actualizado.','success')
     return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
 
 @admin_bp.route('/<slug>/employees/<int:employee_id>/delete', methods=['POST'])

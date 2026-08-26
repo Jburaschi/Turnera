@@ -834,7 +834,16 @@ body {
 .ob-char-count { text-align: right; font-size: .74rem; color: var(--c-ink-3); margin-top: .25rem; }
 
 /* Servicios (paso 3) */
+.ob-service-row-wrap { margin-bottom: .6rem; }
+.ob-service-row-wrap .ob-service-row { margin-bottom: 0; border-radius: 10px 10px 0 0; border-bottom: 0; }
 .ob-service-row { display: flex; align-items: center; gap: .6rem; background: #fff; border: 1px solid var(--c-border); border-radius: 10px; padding: .65rem .8rem; margin-bottom: .6rem; }
+.ob-service-staff-picker { background: #f7f8fa; border: 1px solid var(--c-border); border-top: 0; border-radius: 0 0 10px 10px; padding: .7rem .8rem .8rem 2.6rem; }
+.ob-service-staff-label { display: block; font-size: .76rem; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .45rem; }
+.ob-service-staff-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.ob-staff-chip { display: inline-flex; align-items: center; gap: .35rem; padding: .32rem .7rem; border-radius: 999px; border: 1.5px solid var(--c-border); background: #fff; font-size: .8rem; color: #71717a; cursor: pointer; user-select: none; }
+.ob-staff-chip input { display: none; }
+.ob-staff-chip.is-checked { background: var(--c-blue-bg); border-color: var(--c-blue-muted); color: var(--c-blue); font-weight: 600; }
+.ob-staff-chip:hover { border-color: #c7d7fe; }
 .ob-service-col-labels { display: flex; align-items: center; gap: .6rem; padding: 0 .8rem; margin-bottom: .5rem; }
 .ob-service-col-labels span { font-size: .72rem; font-weight: 700; color: var(--c-ink-3); text-transform: uppercase; letter-spacing: .04em; }
 .ob-service-col-labels span:nth-child(1) { flex: 0 0 16px; }
@@ -871,10 +880,22 @@ body {
 .ob-hours-add-range:hover { border-color: var(--c-blue); color: var(--c-blue); }
 .ob-hours-remove-range { border: 0; background: transparent; color: var(--c-ink-3); cursor: pointer; padding: .3rem; }
 .ob-hours-closed-label { color: var(--c-ink-3); font-size: .88rem; padding-top: .4rem; }
+.ob-hours-emp-tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.3rem; border-bottom: 1px solid var(--c-border); padding-bottom: .9rem; }
+.ob-hours-emp-tab { padding: .5rem 1rem; border-radius: 999px; border: 1.5px solid var(--c-border); background: #fff; font-size: .85rem; font-weight: 600; color: #71717a; cursor: pointer; }
+.ob-hours-emp-tab:hover { border-color: #c7d7fe; }
+.ob-hours-emp-tab.is-active { background: var(--c-blue); border-color: var(--c-blue); color: #fff; }
+.ob-hours-copy-btn { display: inline-flex; align-items: center; gap: .4rem; background: transparent; border: 1.5px dashed var(--c-border-2); color: var(--c-blue); font-size: .8rem; font-weight: 600; padding: .45rem .8rem; border-radius: 8px; cursor: pointer; margin-bottom: 1.1rem; }
+.ob-hours-copy-btn:hover { background: var(--c-blue-bg); }
+
 .ob-hours-tip { display: flex; align-items: center; gap: .55rem; background: var(--c-blue-bg); color: var(--c-blue); border-radius: 8px; padding: .7rem .9rem; font-size: .84rem; margin-top: 1.5rem; }
 .ob-choice-card { position: relative; display: flex; align-items: flex-start; gap: 1rem; border: 1.5px solid var(--c-border); border-radius: 12px; padding: 1.1rem 1.2rem; cursor: pointer; margin-bottom: .9rem; transition: border-color .15s, background .15s; }
 .ob-solo-name-field { display: none; background: #f7f8fa; border-radius: 10px; padding: 1rem 1.1rem; margin: -.3rem 0 .9rem; }
 .ob-solo-name-field.is-visible { display: block; }
+.ob-team-names-field { display: none; background: #f7f8fa; border-radius: 10px; padding: 1rem 1.1rem; margin: -.3rem 0 .9rem; }
+.ob-team-names-field.is-visible { display: block; }
+.ob-team-name-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .6rem; }
+.ob-team-name-row:last-of-type { margin-bottom: 0; }
+#ob-add-team-name { margin-top: .8rem; background: #fff; }
 .ob-choice-card:hover { border-color: var(--c-border-2); }
 .ob-choice-card input { position: absolute; opacity: 0; }
 .ob-choice-card.is-selected { border-color: var(--c-blue); background: var(--c-blue-bg); }

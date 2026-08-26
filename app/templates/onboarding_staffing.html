@@ -40,6 +40,30 @@
           <span class="ob-choice-check">{{ ic.icon('check', 14) }}</span>
         </label>
 
+        <div class="ob-team-names-field" id="ob-team-names-field">
+          <label class="form-label">Nombre de cada profesional <span class="text-secondary fw-normal small">— podés sumar más después</span></label>
+          <div id="ob-team-name-rows">
+            {% if team_names %}
+              {% for n in team_names %}
+              <div class="ob-team-name-row">
+                <input type="text" class="form-control" name="team_professional_name[]" value="{{ n }}" placeholder="Ej: Camila Ruiz">
+                <button type="button" class="ob-service-remove" onclick="obRemoveTeamRow(this)" title="Quitar">{{ ic.icon('trash', 16) }}</button>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="ob-team-name-row">
+                <input type="text" class="form-control" name="team_professional_name[]" placeholder="Ej: Camila Ruiz">
+                <button type="button" class="ob-service-remove" onclick="obRemoveTeamRow(this)" title="Quitar">{{ ic.icon('trash', 16) }}</button>
+              </div>
+              <div class="ob-team-name-row">
+                <input type="text" class="form-control" name="team_professional_name[]" placeholder="Ej: Juan Pérez">
+                <button type="button" class="ob-service-remove" onclick="obRemoveTeamRow(this)" title="Quitar">{{ ic.icon('trash', 16) }}</button>
+              </div>
+            {% endif %}
+          </div>
+          <button type="button" class="ob-add-row-btn" id="ob-add-team-name">{{ ic.icon('plus', 16) }} Agregar profesional</button>
+        </div>
+
         <div class="ob-hours-tip" id="ob-staffing-hint">
           {{ ic.icon('sparkle', 16) }}
           <span id="ob-staffing-hint-text">Elegí una opción para continuar.</span>
@@ -57,14 +81,16 @@
 <script>
 const obHintText = document.getElementById('ob-staffing-hint-text');
 const obSoloField = document.getElementById('ob-solo-name-field');
+const obTeamField = document.getElementById('ob-team-names-field');
 document.querySelectorAll('input[name="staffing_mode"]').forEach(function (input) {
   input.addEventListener('change', function () {
     document.querySelectorAll('.ob-choice-card').forEach(function (c) { c.classList.remove('is-selected'); });
     this.closest('.ob-choice-card').classList.add('is-selected');
     obSoloField.classList.toggle('is-visible', this.value === 'solo');
+    obTeamField.classList.toggle('is-visible', this.value === 'team');
     obHintText.textContent = this.value === 'solo'
       ? 'Vas a aparecer con el nombre de arriba en tu página pública.'
-      : 'Vas a poder sumar a tu equipo desde el panel, apenas termines este registro.';
+      : 'Después vas a poder asignarle servicios y horarios a cada uno desde el panel.';
   });
 });
 document.querySelectorAll('.ob-choice-card').forEach(function (card) {
@@ -73,6 +99,26 @@ document.querySelectorAll('.ob-choice-card').forEach(function (card) {
 const obChecked = document.querySelector('input[name="staffing_mode"]:checked');
 if (obChecked && obChecked.value === 'solo') {
   obSoloField.classList.add('is-visible');
+} else if (obChecked && obChecked.value === 'team') {
+  obTeamField.classList.add('is-visible');
+}
+
+document.getElementById('ob-add-team-name').addEventListener('click', function () {
+  const row = document.createElement('div');
+  row.className = 'ob-team-name-row';
+  row.innerHTML = '<input type="text" class="form-control" name="team_professional_name[]" placeholder="Ej: María Gómez">' +
+    '<button type="button" class="ob-service-remove" onclick="obRemoveTeamRow(this)" title="Quitar">' +
+    document.querySelector('#ob-team-name-rows .ob-service-remove').innerHTML + '</button>';
+  document.getElementById('ob-team-name-rows').appendChild(row);
+});
+
+function obRemoveTeamRow(btn) {
+  const rows = document.getElementById('ob-team-name-rows');
+  if (rows.children.length > 1) {
+    btn.closest('.ob-team-name-row').remove();
+  } else {
+    btn.closest('.ob-team-name-row').querySelector('input').value = '';
+  }
 }
 </script>
 {% endblock %}

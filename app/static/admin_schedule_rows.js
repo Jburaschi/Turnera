@@ -4,13 +4,31 @@
       const wd = row.querySelector('[data-field="weekday"]');
       const st = row.querySelector('[data-field="start"]');
       const en = row.querySelector('[data-field="end"]');
-      const sv = row.querySelector('[data-field="services"]');
       if (wd) wd.name = 'block_' + idx + '_weekday';
       if (st) st.name = 'block_' + idx + '_start';
       if (en) en.name = 'block_' + idx + '_end';
-      if (sv) sv.name = 'block_' + idx + '_service_ids';
+      row.querySelectorAll('.schedule-service-chip input[type="checkbox"]').forEach((cb) => {
+        cb.name = 'block_' + idx + '_service_ids';
+      });
     });
   }
+
+  document.addEventListener('change', function (e) {
+    const cb = e.target.closest('.schedule-service-chip input[type="checkbox"]');
+    if (!cb) return;
+    const chip = cb.closest('.schedule-service-chip');
+    const group = cb.closest('.schedule-service-chips');
+    const checkedInGroup = group.querySelectorAll('input[type="checkbox"]:checked');
+    if (checkedInGroup.length === 0) {
+      // No dejamos que quede sin ninguna tildada: 0 tildadas se interpreta
+      // igual que "todas" en el motor de disponibilidad, y generaría el
+      // resultado opuesto al que la persona quiso.
+      cb.checked = true;
+      window.alert('Tiene que quedar al menos una prestación tildada en esta franja.');
+      return;
+    }
+    chip.classList.toggle('is-checked', cb.checked);
+  });
 
   document.addEventListener('click', function (e) {
     const addBtn = e.target.closest('.schedule-add-row');

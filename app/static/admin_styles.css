@@ -195,6 +195,12 @@
 .admin-stat-card--accent .admin-stat-label { color: rgba(255,255,255,.38); }
 .admin-stat-card--accent .admin-stat-value { color: #fff; }
 
+.schedule-service-chips { display: flex; flex-wrap: wrap; gap: .4rem; max-width: 260px; }
+.schedule-service-chip { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .65rem; border-radius: 999px; border: 1.5px solid #e4e7ec; background: #fff; font-size: .78rem; color: #71717a; cursor: pointer; user-select: none; transition: all .12s; }
+.schedule-service-chip input { display: none; }
+.schedule-service-chip.is-checked { background: #f0f4ff; border-color: #3654f0; color: #3654f0; font-weight: 600; }
+.schedule-service-chip:hover { border-color: #c7d7fe; }
+
 .admin-card { background: #fff; border: 1px solid #e4e7ec; border-radius: 10px; overflow: hidden; margin-bottom: .85rem; }
 .admin-card-header { display: flex; align-items: center; justify-content: space-between; padding: .78rem 1.05rem; border-bottom: 1px solid #f7f8fa; gap: .7rem; flex-wrap: wrap; }
 .admin-card-title { font-size: .91rem; font-weight: 700; color: #18181b; margin: 0; }

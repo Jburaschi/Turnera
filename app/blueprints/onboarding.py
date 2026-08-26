@@ -74,6 +74,20 @@ def _unique_slug(base: str, company_id=None) -> str:
         i += 1
 
 
+def _remove_employees_safely(employees):
+    """Borra empleados limpiando antes sus asociaciones (servicios, horarios),
+    para no chocar con las restricciones de llave foránea de la base
+    (mismo problema que ya resolvimos en el paso de Servicios)."""
+    for emp in employees:
+        emp.services = []
+    db.session.flush()
+    for emp in employees:
+        EmployeeSchedule.query.filter_by(employee_id=emp.id).delete()
+    db.session.flush()
+    for emp in employees:
+        db.session.delete(emp)
+
+
 def _current_company():
     if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
         return None
@@ -96,13 +110,6 @@ def _sync_employee_services(company):
     for employee in company.employees:
         employee.services = services
 
-
-def _sync_employee_schedules(company, rows):
-    """Aplica los mismos horarios semanales a todos los empleados del negocio."""
-    for employee in company.employees:
-        EmployeeSchedule.query.filter_by(employee_id=employee.id).delete()
-        for weekday, start_t, end_t in rows:
-            db.session.add(EmployeeSchedule(employee_id=employee.id, weekday=weekday, start_time=start_t, end_time=end_t))
 
 
 def _save_logo(file_storage, company_id) -> str | None:
@@ -260,17 +267,28 @@ def staffing():
         if not errors:
             company.staffing_mode = mode
             admin = AdminUser.query.filter_by(company_id=company.id).first()
-            if not company.employees:
-                if mode == 'solo':
-                    solo_name = request.form.get('solo_professional_name', '').strip() or (admin.name if admin else company.name)
+            existing = list(company.employees)
+
+            if mode == 'solo':
+                solo_name = request.form.get('solo_professional_name', '').strip() or (admin.name if admin else company.name)
+                if not existing:
                     db.session.add(Employee(company_id=company.id, name=solo_name, active=True, color='#3654f0'))
                 else:
-                    db.session.add(Employee(company_id=company.id, name=f'{company.name} · Equipo', active=True, color='#3654f0'))
-            elif mode == 'solo':
-                # Ya existe el empleado (por ejemplo, volviendo a este paso): permitir renombrarlo
-                solo_name = request.form.get('solo_professional_name', '').strip()
-                if solo_name and len(company.employees) == 1:
-                    company.employees[0].name = solo_name
+                    # Si venía de "varios profesionales", nos quedamos con uno solo (el primero).
+                    existing[0].name = solo_name
+                    _remove_employees_safely(existing[1:])
+            else:
+                raw_names = [n.strip() for n in request.form.getlist('team_professional_name[]') if n.strip()]
+                if not raw_names:
+                    raw_names = [f'{company.name} · Equipo']
+                for i, name in enumerate(raw_names):
+                    if i < len(existing):
+                        existing[i].name = name
+                    else:
+                        db.session.add(Employee(company_id=company.id, name=name, active=True, color='#3654f0'))
+                if len(raw_names) < len(existing):
+                    _remove_employees_safely(existing[len(raw_names):])
+
             if company.onboarding_step < 3:
                 company.onboarding_step = 3
             db.session.commit()
@@ -278,7 +296,9 @@ def staffing():
 
     admin = AdminUser.query.filter_by(company_id=company.id).first()
     default_solo_name = company.employees[0].name if (company.employees and company.staffing_mode == 'solo') else ''
-    return render_template('onboarding_staffing.html', errors=errors, company=company, active_step=3, default_solo_name=default_solo_name)
+    team_names = [e.name for e in company.employees] if company.staffing_mode == 'team' else []
+    return render_template('onboarding_staffing.html', errors=errors, company=company, active_step=3,
+                            default_solo_name=default_solo_name, team_names=team_names)
 
 
 # ── Paso 4: servicios ───────────────────────────────────────────────────
@@ -291,14 +311,16 @@ def services():
         return redirect(url_for('onboarding.staffing'))
 
     errors: dict = {}
+    employees = list(company.employees)
 
     if request.method == 'POST':
-        names     = request.form.getlist('service_name[]')
-        durations = request.form.getlist('service_duration[]')
-        prices    = request.form.getlist('service_price[]')
+        names      = request.form.getlist('service_name[]')
+        durations  = request.form.getlist('service_duration[]')
+        prices     = request.form.getlist('service_price[]')
+        row_tokens = request.form.getlist('row_token[]')
 
         rows = []
-        for n, d, p in zip(names, durations, prices):
+        for n, d, p, token in zip(names, durations, prices, row_tokens):
             n = n.strip()
             if not n:
                 continue
@@ -314,7 +336,9 @@ def services():
             if p_val < 0:
                 errors['services'] = 'El precio no puede ser negativo.'
                 break
-            rows.append((n, d_val, p_val))
+            raw_emp_ids = request.form.getlist(f'employees_for_row_{token}[]')
+            emp_ids = {int(x) for x in raw_emp_ids if x.isdigit()}
+            rows.append((n, d_val, p_val, emp_ids))
 
         if not rows and not errors:
             errors['services'] = 'Agregá al menos un servicio.'
@@ -326,20 +350,24 @@ def services():
             db.session.flush()
             Service.query.filter_by(company_id=company.id).delete()
             db.session.flush()
-            for n, d_val, p_val in rows:
-                db.session.add(Service(
-                    company_id=company.id, name=n,
-                    duration_min=d_val, price=p_val, active=True,
-                ))
+            valid_employee_ids = {e.id for e in employees}
+            for n, d_val, p_val, emp_ids in rows:
+                service = Service(company_id=company.id, name=n, duration_min=d_val, price=p_val, active=True)
+                if len(employees) > 1:
+                    picked = emp_ids & valid_employee_ids
+                    # Si no marcó a nadie por error, no lo dejamos sin ningún profesional
+                    service.employees = [e for e in employees if e.id in picked] or list(employees)
+                db.session.add(service)
             db.session.flush()
-            _sync_employee_services(company)
+            if len(employees) <= 1:
+                _sync_employee_services(company)
             if company.onboarding_step < 4:
                 company.onboarding_step = 4
             db.session.commit()
             return redirect(url_for('onboarding.hours'))
 
     services_list = Service.query.filter_by(company_id=company.id).order_by(Service.id).all()
-    return render_template('onboarding_services.html', errors=errors, services=services_list, company=company, active_step=4)
+    return render_template('onboarding_services.html', errors=errors, services=services_list, employees=employees, company=company, active_step=4)
 
 
 # ── Paso 5: horarios ─────────────────────────────────────────────────────
@@ -352,43 +380,66 @@ def hours():
         return redirect(url_for('onboarding.services'))
 
     errors: dict = {}
+    employees = list(company.employees)
 
     if request.method == 'POST':
-        rows = []
-        for day_idx in range(7):
-            if request.form.get(f'day_open_{day_idx}') != 'on':
-                continue
-            starts = request.form.getlist(f'start_{day_idx}[]')
-            ends   = request.form.getlist(f'end_{day_idx}[]')
-            for s, e in zip(starts, ends):
-                if not s or not e:
+        rows_by_employee: dict = {}
+        any_rows = False
+        for emp in employees:
+            rows = []
+            for day_idx in range(7):
+                if request.form.get(f'emp_{emp.id}_day_open_{day_idx}') != 'on':
                     continue
-                try:
-                    sh, sm = (int(x) for x in s.split(':'))
-                    eh, em = (int(x) for x in e.split(':'))
-                    rows.append((day_idx, time(sh, sm), time(eh, em)))
-                except (ValueError, IndexError):
-                    errors['hours'] = 'Revisá los horarios ingresados.'
+                starts = request.form.getlist(f'emp_{emp.id}_start_{day_idx}[]')
+                ends   = request.form.getlist(f'emp_{emp.id}_end_{day_idx}[]')
+                for s, e in zip(starts, ends):
+                    if not s or not e:
+                        continue
+                    try:
+                        sh, sm = (int(x) for x in s.split(':'))
+                        eh, em_ = (int(x) for x in e.split(':'))
+                        rows.append((day_idx, time(sh, sm), time(eh, em_)))
+                    except (ValueError, IndexError):
+                        errors['hours'] = 'Revisá los horarios ingresados.'
+            rows_by_employee[emp.id] = rows
+            if rows:
+                any_rows = True
 
-        if not rows and not errors:
-            errors['hours'] = 'Activá al menos un día de atención.'
+        if not any_rows and not errors:
+            errors['hours'] = 'Activá al menos un día de atención para algún profesional.'
 
         if not errors:
-            CompanyHours.query.filter_by(company_id=company.id).delete()
-            for day_idx, start_t, end_t in rows:
-                db.session.add(CompanyHours(company_id=company.id, weekday=day_idx, start_time=start_t, end_time=end_t))
+            for emp in employees:
+                EmployeeSchedule.query.filter_by(employee_id=emp.id).delete()
             db.session.flush()
-            _sync_employee_schedules(company, rows)
+            for emp in employees:
+                for day_idx, start_t, end_t in rows_by_employee[emp.id]:
+                    db.session.add(EmployeeSchedule(employee_id=emp.id, weekday=day_idx, start_time=start_t, end_time=end_t))
+
+            # CompanyHours (texto de horarios que se muestra en la página pública):
+            # unión de los horarios de todos los profesionales, para que diga
+            # "cuándo hay alguien disponible", aunque cada uno trabaje distinto.
+            CompanyHours.query.filter_by(company_id=company.id).delete()
+            union_rows = set()
+            for rows in rows_by_employee.values():
+                union_rows.update(rows)
+            for day_idx, start_t, end_t in union_rows:
+                db.session.add(CompanyHours(company_id=company.id, weekday=day_idx, start_time=start_t, end_time=end_t))
+
             if company.onboarding_step < 5:
                 company.onboarding_step = 5
             db.session.commit()
             return redirect(url_for('onboarding.publish'))
 
-    existing: dict = {}
-    for h in CompanyHours.query.filter_by(company_id=company.id).all():
-        existing.setdefault(h.weekday, []).append(h)
+    existing_by_employee: dict = {}
+    for emp in employees:
+        existing: dict = {}
+        for h in EmployeeSchedule.query.filter_by(employee_id=emp.id).all():
+            existing.setdefault(h.weekday, []).append(h)
+        existing_by_employee[emp.id] = existing
 
-    return render_template('onboarding_hours.html', errors=errors, weekdays=WEEKDAYS, existing=existing, company=company, active_step=5)
+    return render_template('onboarding_hours.html', errors=errors, weekdays=WEEKDAYS, employees=employees,
+                            existing_by_employee=existing_by_employee, company=company, active_step=5)
 
 
 # ── Paso 6: checklist + publicar ─────────────────────────────────────────

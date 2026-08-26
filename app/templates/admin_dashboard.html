@@ -21,10 +21,15 @@
   <td><input class="form-control form-control-sm" type="time" name="block_{{ block_index }}_start" value="{{ start_t }}" data-field="start"></td>
   <td><input class="form-control form-control-sm" type="time" name="block_{{ block_index }}_end" value="{{ end_t }}" data-field="end"></td>
   <td>
-    <select class="form-select form-select-sm schedule-service-multi" name="block_{{ block_index }}_service_ids" multiple size="3" data-field="services">
-      {% for service in company.services %}<option value="{{ service.id }}" {% if limited_ids and service.id in limited_ids %}selected{% endif %}>{{ service.name }}</option>{% endfor %}
-    </select>
-    <div class="small text-secondary lh-sm">Vacío: todas las prestaciones del profesional.</div>
+    <div class="schedule-service-chips">
+      {% for service in company.services %}
+      <label class="schedule-service-chip {% if not limited_ids %}is-checked{% elif service.id in limited_ids %}is-checked{% endif %}">
+        <input type="checkbox" name="block_{{ block_index }}_service_ids" value="{{ service.id }}" {% if not limited_ids or service.id in limited_ids %}checked{% endif %}>
+        {{ service.name }}
+      </label>
+      {% endfor %}
+    </div>
+    <div class="small text-secondary lh-sm mt-1">Todas tildadas = disponible para cualquier prestación en esta franja.</div>
   </td>
   <td class="align-top"><button type="button" class="btn btn-sm btn-outline-danger schedule-row-remove" title="Quitar fila">×</button></td>
 </tr>

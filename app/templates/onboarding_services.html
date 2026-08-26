@@ -17,6 +17,7 @@
       {% if errors.services %}<div class="alert alert-danger">{{ errors.services }}</div>{% endif %}
 
       {% set palette = ['#3654f0','#16a34a','#f59e0b','#ec4899','#8b5cf6','#0ea5e9'] %}
+      {% set multi_staff = employees|length > 1 %}
       <form method="post" novalidate id="ob-services-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -31,29 +32,64 @@
         <div id="ob-service-rows">
           {% if services %}
             {% for s in services %}
-            <div class="ob-service-row">
-              <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
-              <span class="ob-service-dot" style="background:{{ palette[loop.index0 % palette|length] }}"></span>
-              <input class="form-control" name="service_name[]" value="{{ s.name }}" placeholder="Ej: Corte de pelo" required>
-              <span class="ob-service-duration-wrap">
-                <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="{{ s.duration_min }}" list="ob-duration-presets" placeholder="30">
-                <span class="ob-service-duration-suffix">min</span>
-              </span>
-              <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" value="{{ '%.0f'|format(s.price) }}" placeholder="0"></span>
-              <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
+            {% set row_token = 's' ~ s.id %}
+            <div class="ob-service-row-wrap">
+              <div class="ob-service-row">
+                <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
+                <span class="ob-service-dot" style="background:{{ palette[loop.index0 % palette|length] }}"></span>
+                <input class="form-control" name="service_name[]" value="{{ s.name }}" placeholder="Ej: Corte de pelo" required>
+                <span class="ob-service-duration-wrap">
+                  <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="{{ s.duration_min }}" list="ob-duration-presets" placeholder="30">
+                  <span class="ob-service-duration-suffix">min</span>
+                </span>
+                <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" value="{{ '%.0f'|format(s.price) }}" placeholder="0"></span>
+                <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row-wrap').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
+              </div>
+              <input type="hidden" name="row_token[]" value="{{ row_token }}">
+              {% if multi_staff %}
+              {% set assigned_ids = s.employees|map(attribute='id')|list %}
+              <div class="ob-service-staff-picker">
+                <span class="ob-service-staff-label">¿Quién hace este servicio?</span>
+                <div class="ob-service-staff-chips">
+                  {% for emp in employees %}
+                  <label class="ob-staff-chip {% if not assigned_ids or emp.id in assigned_ids %}is-checked{% endif %}">
+                    <input type="checkbox" name="employees_for_row_{{ row_token }}[]" value="{{ emp.id }}" {% if not assigned_ids or emp.id in assigned_ids %}checked{% endif %}>
+                    {{ emp.name }}
+                  </label>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
             </div>
             {% endfor %}
           {% else %}
-            <div class="ob-service-row">
-              <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
-              <span class="ob-service-dot" style="background:{{ palette[0] }}"></span>
-              <input class="form-control" name="service_name[]" placeholder="Ej: Corte de pelo" required>
-              <span class="ob-service-duration-wrap">
-                <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="30" list="ob-duration-presets" placeholder="30">
-                <span class="ob-service-duration-suffix">min</span>
-              </span>
-              <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" placeholder="0"></span>
-              <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
+            {% set row_token = 'new0' %}
+            <div class="ob-service-row-wrap">
+              <div class="ob-service-row">
+                <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
+                <span class="ob-service-dot" style="background:{{ palette[0] }}"></span>
+                <input class="form-control" name="service_name[]" placeholder="Ej: Corte de pelo" required>
+                <span class="ob-service-duration-wrap">
+                  <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="30" list="ob-duration-presets" placeholder="30">
+                  <span class="ob-service-duration-suffix">min</span>
+                </span>
+                <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" placeholder="0"></span>
+                <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row-wrap').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
+              </div>
+              <input type="hidden" name="row_token[]" value="{{ row_token }}">
+              {% if multi_staff %}
+              <div class="ob-service-staff-picker">
+                <span class="ob-service-staff-label">¿Quién hace este servicio?</span>
+                <div class="ob-service-staff-chips">
+                  {% for emp in employees %}
+                  <label class="ob-staff-chip is-checked">
+                    <input type="checkbox" name="employees_for_row_{{ row_token }}[]" value="{{ emp.id }}" checked>
+                    {{ emp.name }}
+                  </label>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
             </div>
           {% endif %}
         </div>
@@ -80,24 +116,50 @@
 </div>
 
 <template id="ob-service-row-template">
-  <div class="ob-service-row">
-    <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
-    <span class="ob-service-dot" style="background:#3654f0"></span>
-    <input class="form-control" name="service_name[]" placeholder="Ej: Corte de pelo" required>
-    <span class="ob-service-duration-wrap">
-      <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="30" list="ob-duration-presets" placeholder="30">
-      <span class="ob-service-duration-suffix">min</span>
-    </span>
-    <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" placeholder="0"></span>
-    <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
+  <div class="ob-service-row-wrap">
+    <div class="ob-service-row">
+      <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
+      <span class="ob-service-dot" style="background:#3654f0"></span>
+      <input class="form-control" name="service_name[]" placeholder="Ej: Corte de pelo" required>
+      <span class="ob-service-duration-wrap">
+        <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="30" list="ob-duration-presets" placeholder="30">
+        <span class="ob-service-duration-suffix">min</span>
+      </span>
+      <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" placeholder="0"></span>
+      <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row-wrap').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
+    </div>
+    <input type="hidden" name="row_token[]" value="__TOKEN__">
+    {% if multi_staff %}
+    <div class="ob-service-staff-picker">
+      <span class="ob-service-staff-label">¿Quién hace este servicio?</span>
+      <div class="ob-service-staff-chips">
+        {% for emp in employees %}
+        <label class="ob-staff-chip is-checked">
+          <input type="checkbox" name="employees_for_row___TOKEN__[]" value="{{ emp.id }}" checked>
+          {{ emp.name }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 </template>
 
 <script>
+let obNewRowCounter = {{ services|length if services else 1 }};
 document.getElementById('ob-add-service').addEventListener('click', () => {
   const tpl = document.getElementById('ob-service-row-template');
-  const clone = tpl.content.cloneNode(true);
-  document.getElementById('ob-service-rows').appendChild(clone);
+  const token = 'new' + (obNewRowCounter++);
+  const html = tpl.innerHTML.split('__TOKEN__').join(token);
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html;
+  document.getElementById('ob-service-rows').appendChild(wrapper.firstElementChild);
+});
+
+document.addEventListener('change', function (e) {
+  const cb = e.target.closest('.ob-staff-chip input[type="checkbox"]');
+  if (!cb) return;
+  cb.closest('.ob-staff-chip').classList.toggle('is-checked', cb.checked);
 });
 </script>
 {% endblock %}
