@@ -32,65 +32,14 @@
         <div id="ob-service-rows">
           {% if services %}
             {% for s in services %}
-            {% set row_token = 's' ~ s.id %}
-            <div class="ob-service-row-wrap">
-              <div class="ob-service-row">
-                <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
-                <span class="ob-service-dot" style="background:{{ palette[loop.index0 % palette|length] }}"></span>
-                <input class="form-control" name="service_name[]" value="{{ s.name }}" placeholder="Ej: Corte de pelo" required>
-                <span class="ob-service-duration-wrap">
-                  <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="{{ s.duration_min }}" list="ob-duration-presets" placeholder="30">
-                  <span class="ob-service-duration-suffix">min</span>
-                </span>
-                <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" value="{{ '%.0f'|format(s.price) }}" placeholder="0"></span>
-                <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row-wrap').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
-              </div>
-              <input type="hidden" name="row_token[]" value="{{ row_token }}">
-              {% if multi_staff %}
+              {% set row_token = 's' ~ s.id %}
               {% set assigned_ids = s.employees|map(attribute='id')|list %}
-              <div class="ob-service-staff-picker">
-                <span class="ob-service-staff-label">¿Quién hace este servicio?</span>
-                <div class="ob-service-staff-chips">
-                  {% for emp in employees %}
-                  <label class="ob-staff-chip {% if not assigned_ids or emp.id in assigned_ids %}is-checked{% endif %}">
-                    <input type="checkbox" name="employees_for_row_{{ row_token }}[]" value="{{ emp.id }}" {% if not assigned_ids or emp.id in assigned_ids %}checked{% endif %}>
-                    {{ emp.name }}
-                  </label>
-                  {% endfor %}
-                </div>
-              </div>
-              {% endif %}
-            </div>
+              {% include '_ob_service_row.html' %}
             {% endfor %}
           {% else %}
             {% set row_token = 'new0' %}
-            <div class="ob-service-row-wrap">
-              <div class="ob-service-row">
-                <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
-                <span class="ob-service-dot" style="background:{{ palette[0] }}"></span>
-                <input class="form-control" name="service_name[]" placeholder="Ej: Corte de pelo" required>
-                <span class="ob-service-duration-wrap">
-                  <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="30" list="ob-duration-presets" placeholder="30">
-                  <span class="ob-service-duration-suffix">min</span>
-                </span>
-                <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" placeholder="0"></span>
-                <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row-wrap').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
-              </div>
-              <input type="hidden" name="row_token[]" value="{{ row_token }}">
-              {% if multi_staff %}
-              <div class="ob-service-staff-picker">
-                <span class="ob-service-staff-label">¿Quién hace este servicio?</span>
-                <div class="ob-service-staff-chips">
-                  {% for emp in employees %}
-                  <label class="ob-staff-chip is-checked">
-                    <input type="checkbox" name="employees_for_row_{{ row_token }}[]" value="{{ emp.id }}" checked>
-                    {{ emp.name }}
-                  </label>
-                  {% endfor %}
-                </div>
-              </div>
-              {% endif %}
-            </div>
+            {% set assigned_ids = [] %}
+            {% include '_ob_service_row.html' %}
           {% endif %}
         </div>
 
@@ -115,51 +64,85 @@
   </div>
 </div>
 
+{% set row_token = '__TOKEN__' %}
+{% set assigned_ids = [] %}
 <template id="ob-service-row-template">
-  <div class="ob-service-row-wrap">
-    <div class="ob-service-row">
-      <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
-      <span class="ob-service-dot" style="background:#3654f0"></span>
-      <input class="form-control" name="service_name[]" placeholder="Ej: Corte de pelo" required>
-      <span class="ob-service-duration-wrap">
-        <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="30" list="ob-duration-presets" placeholder="30">
-        <span class="ob-service-duration-suffix">min</span>
-      </span>
-      <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" placeholder="0"></span>
-      <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row-wrap').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
-    </div>
-    <input type="hidden" name="row_token[]" value="__TOKEN__">
-    {% if multi_staff %}
-    <div class="ob-service-staff-picker">
-      <span class="ob-service-staff-label">¿Quién hace este servicio?</span>
-      <div class="ob-service-staff-chips">
-        {% for emp in employees %}
-        <label class="ob-staff-chip is-checked">
-          <input type="checkbox" name="employees_for_row___TOKEN__[]" value="{{ emp.id }}" checked>
-          {{ emp.name }}
-        </label>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-  </div>
+  {% include '_ob_service_row.html' %}
 </template>
 
 <script>
 let obNewRowCounter = {{ services|length if services else 1 }};
+const obEmployeeNames = {{ (employees|map(attribute='name')|list)|tojson }};
+const obEmployeeIds = {{ (employees|map(attribute='id')|list)|tojson }};
+
+function obSummaryText(rowEl) {
+  const total = obEmployeeIds.length;
+  const checked = Array.from(rowEl.querySelectorAll('.ob-staff-chip input:checked'));
+  if (checked.length === 0 || checked.length === total) return 'Todos los profesionales';
+  const names = checked.map(cb => cb.closest('.ob-staff-chip').dataset.name);
+  if (names.length <= 2) return names.join(', ');
+  return names[0] + ' +' + (names.length - 1) + ' más';
+}
+
+function obUpdateSummary(rowEl) {
+  const summary = rowEl.querySelector('.ob-service-staff-summary-text');
+  if (summary) summary.textContent = obSummaryText(rowEl);
+}
+
+function obWireStaffPicker(rowEl) {
+  const toggle = rowEl.querySelector('.ob-service-staff-summary');
+  const panel = rowEl.querySelector('.ob-service-staff-chips-panel');
+  if (!toggle || !panel) return;
+
+  toggle.addEventListener('click', () => {
+    const isOpen = panel.classList.toggle('is-open');
+    toggle.classList.toggle('is-open', isOpen);
+    if (isOpen) {
+      document.querySelectorAll('.ob-service-staff-chips-panel.is-open').forEach(p => {
+        if (p !== panel) { p.classList.remove('is-open'); p.closest('.ob-service-staff-picker').querySelector('.ob-service-staff-summary').classList.remove('is-open'); }
+      });
+    }
+  });
+
+  panel.querySelector('.ob-staff-select-all')?.addEventListener('click', () => {
+    panel.querySelectorAll('.ob-staff-chip input').forEach(cb => { cb.checked = true; cb.closest('.ob-staff-chip').classList.add('is-checked'); });
+    obUpdateSummary(rowEl);
+  });
+
+  panel.querySelector('.ob-service-staff-done')?.addEventListener('click', () => {
+    panel.classList.remove('is-open');
+    toggle.classList.remove('is-open');
+  });
+
+  panel.querySelectorAll('.ob-staff-chip input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('.ob-staff-chip').classList.toggle('is-checked', cb.checked);
+      obUpdateSummary(rowEl);
+    });
+  });
+}
+
+document.querySelectorAll('.ob-service-row-wrap').forEach(obWireStaffPicker);
+
+document.addEventListener('click', function (e) {
+  document.querySelectorAll('.ob-service-staff-chips-panel.is-open').forEach(panel => {
+    const picker = panel.closest('.ob-service-staff-picker');
+    if (!picker.contains(e.target)) {
+      panel.classList.remove('is-open');
+      picker.querySelector('.ob-service-staff-summary').classList.remove('is-open');
+    }
+  });
+});
+
 document.getElementById('ob-add-service').addEventListener('click', () => {
   const tpl = document.getElementById('ob-service-row-template');
   const token = 'new' + (obNewRowCounter++);
   const html = tpl.innerHTML.split('__TOKEN__').join(token);
   const wrapper = document.createElement('div');
   wrapper.innerHTML = html;
-  document.getElementById('ob-service-rows').appendChild(wrapper.firstElementChild);
-});
-
-document.addEventListener('change', function (e) {
-  const cb = e.target.closest('.ob-staff-chip input[type="checkbox"]');
-  if (!cb) return;
-  cb.closest('.ob-staff-chip').classList.toggle('is-checked', cb.checked);
+  const newRow = wrapper.firstElementChild;
+  document.getElementById('ob-service-rows').appendChild(newRow);
+  obWireStaffPicker(newRow);
 });
 </script>
 {% endblock %}

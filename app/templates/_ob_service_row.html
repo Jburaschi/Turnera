@@ -1,0 +1,49 @@
+{% import '_icons.html' as ic %}
+<div class="ob-service-row-wrap">
+  <div class="ob-service-row">
+    <span class="ob-service-grip">{{ ic.icon('grip', 16) }}</span>
+    <span class="ob-service-dot" style="background:{{ palette[loop.index0 % palette|length] if loop is defined else palette[0] }}"></span>
+    <input class="form-control" name="service_name[]" value="{{ s.name if s is defined else '' }}" placeholder="Ej: Corte de pelo" required>
+    <span class="ob-service-duration-wrap">
+      <input class="form-control" type="number" min="5" max="480" step="5" name="service_duration[]" value="{{ s.duration_min if s is defined else 30 }}" list="ob-duration-presets" placeholder="30">
+      <span class="ob-service-duration-suffix">min</span>
+    </span>
+    <span class="ob-service-price-wrap"><span>$</span><input class="form-control" type="number" min="0" step="100" name="service_price[]" value="{{ '%.0f'|format(s.price) if s is defined else '' }}" placeholder="0"></span>
+    <button type="button" class="ob-service-remove" onclick="this.closest('.ob-service-row-wrap').remove()" title="Eliminar servicio">{{ ic.icon('trash', 16) }}</button>
+  </div>
+  <input type="hidden" name="row_token[]" value="{{ row_token }}">
+
+  {% if multi_staff %}
+  <div class="ob-service-staff-picker">
+    <button type="button" class="ob-service-staff-summary">
+      <span class="ob-service-staff-summary-icon">{{ ic.icon('user', 14) }}</span>
+      {% set assigned_names = employees|selectattr('id', 'in', assigned_ids)|map(attribute='name')|list if assigned_ids else [] %}
+      <span class="ob-service-staff-summary-text">
+        {%- if not assigned_ids or assigned_names|length == employees|length -%}
+          Todos los profesionales
+        {%- elif assigned_names|length <= 2 -%}
+          {{ assigned_names|join(', ') }}
+        {%- else -%}
+          {{ assigned_names[0] }} +{{ assigned_names|length - 1 }} más
+        {%- endif -%}
+      </span>
+      <span class="ob-service-staff-summary-edit">Editar {{ ic.icon('chevron-down', 13) }}</span>
+    </button>
+    <div class="ob-service-staff-chips-panel">
+      <div class="ob-service-staff-panel-head">
+        <span>¿Quién hace este servicio?</span>
+        <button type="button" class="ob-staff-select-all">Marcar todos</button>
+      </div>
+      <div class="ob-service-staff-chips">
+        {% for emp in employees %}
+        <label class="ob-staff-chip {% if not assigned_ids or emp.id in assigned_ids %}is-checked{% endif %}" data-name="{{ emp.name }}">
+          <input type="checkbox" name="employees_for_row_{{ row_token }}[]" value="{{ emp.id }}" {% if not assigned_ids or emp.id in assigned_ids %}checked{% endif %}>
+          {{ emp.name }}
+        </label>
+        {% endfor %}
+      </div>
+      <button type="button" class="ob-service-staff-done">Listo</button>
+    </div>
+  </div>
+  {% endif %}
+</div>
