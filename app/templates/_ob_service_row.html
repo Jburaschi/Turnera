@@ -19,6 +19,8 @@
       <span class="ob-service-staff-summary-icon">{{ ic.icon('user', 14) }}</span>
       {% set assigned_names = employees|selectattr('id', 'in', assigned_ids)|map(attribute='name')|list if assigned_ids else [] %}
       <span class="ob-service-staff-summary-text">
+        <span class="ob-service-staff-summary-prefix">Lo atienden:</span>
+        <span class="ob-service-staff-summary-value">
         {%- if not assigned_ids or assigned_names|length == employees|length -%}
           Todos los profesionales
         {%- elif assigned_names|length <= 2 -%}
@@ -26,6 +28,7 @@
         {%- else -%}
           {{ assigned_names[0] }} +{{ assigned_names|length - 1 }} más
         {%- endif -%}
+        </span>
       </span>
       <span class="ob-service-staff-summary-edit">Editar {{ ic.icon('chevron-down', 13) }}</span>
     </button>

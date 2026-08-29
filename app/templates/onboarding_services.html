@@ -50,11 +50,6 @@
 
         <button type="button" class="ob-add-row-btn" id="ob-add-service">{{ ic.icon('plus', 16) }} Agregar servicio</button>
 
-        <div class="ob-hours-tip">
-          {{ ic.icon('sparkle', 16) }}
-          La duración es un valor libre en minutos (podés elegir una sugerencia o escribir la que quieras) — se usa para armar los horarios disponibles en la reserva.
-        </div>
-
         <div class="ob-wiz-actions">
           <a class="ob-btn-outline" href="{{ url_for('onboarding.business') }}">← Volver</a>
           <button type="submit" class="ob-submit-btn">Continuar →</button>
@@ -85,7 +80,7 @@ function obSummaryText(rowEl) {
 }
 
 function obUpdateSummary(rowEl) {
-  const summary = rowEl.querySelector('.ob-service-staff-summary-text');
+  const summary = rowEl.querySelector('.ob-service-staff-summary-value');
   if (summary) summary.textContent = obSummaryText(rowEl);
 }
 

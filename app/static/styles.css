@@ -841,6 +841,7 @@ body {
 .ob-service-staff-summary { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .55rem .8rem .55rem 2.6rem; background: none; border: 0; text-align: left; cursor: pointer; font-size: .82rem; }
 .ob-service-staff-summary-icon { color: #a1a1aa; flex: 0 0 auto; display: flex; }
 .ob-service-staff-summary-text { flex: 1; color: #3f3f46; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ob-service-staff-summary-prefix { color: #a1a1aa; font-weight: 500; margin-right: .3rem; }
 .ob-service-staff-summary-edit { display: inline-flex; align-items: center; gap: .25rem; color: var(--c-blue); font-weight: 600; font-size: .78rem; flex: 0 0 auto; }
 .ob-service-staff-summary-edit svg { transition: transform .15s; }
 .ob-service-staff-summary.is-open .ob-service-staff-summary-edit svg { transform: rotate(180deg); }
@@ -888,7 +889,13 @@ body {
 .ob-hours-day-toggle { display: flex; align-items: center; gap: .7rem; width: 150px; flex: 0 0 150px; padding-top: .35rem; }
 .ob-hours-day-name { font-weight: 600; font-size: .92rem; }
 .ob-hours-ranges { flex: 1; display: flex; flex-direction: column; gap: .5rem; }
-.ob-hours-range-row { display: flex; align-items: center; gap: .5rem; }
+.ob-hours-range-row { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .4rem; }
+.ob-hours-range-times { display: flex; align-items: center; gap: .5rem; }
+.ob-hours-range-services { display: flex; flex-wrap: wrap; gap: .35rem; padding-left: 0; }
+
+.ob-hours-vary-toggle { display: flex; align-items: center; gap: .55rem; background: #f7f8fa; border-radius: 8px; padding: .65rem .9rem; margin-bottom: .3rem; cursor: pointer; font-size: .86rem; font-weight: 600; color: #3f3f46; }
+.ob-hours-vary-toggle input { width: 34px; height: 20px; flex: 0 0 auto; }
+.ob-hours-vary-hint { font-size: .78rem; color: #a1a1aa; margin: -.1rem 0 1rem; }
 .ob-hours-range-row input[type="time"] { width: 118px; }
 .ob-hours-sep { color: var(--c-ink-3); font-size: .85rem; }
 .ob-hours-add-range { flex: 0 0 auto; border: 1.5px solid var(--c-border); background: #fff; color: var(--c-ink-2); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }

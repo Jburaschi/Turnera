@@ -32,8 +32,18 @@
         {% for emp in employees %}
         <div class="ob-hours-emp-panel {% if not loop.first %}d-none{% endif %}" data-emp-panel="{{ emp.id }}">
           {% if employees|length > 1 and loop.first %}
-          <button type="button" class="ob-hours-copy-btn" id="ob-copy-to-all" data-source="{{ emp.id }}">{{ ic.icon('layout', 14) }} Copiar este horario a todos los profesionales</button>
+          <button type="button" class="ob-hours-copy-btn" id="ob-copy-to-all" data-source="{{ emp.id }}">{{ ic.icon('layout', 14) }} Todos los profesionales atienden en el mismo horario</button>
           {% endif %}
+
+          {% set emp_services = emp.services %}
+          {% if emp_services|length > 1 %}
+          <label class="ob-hours-vary-toggle">
+            <input type="checkbox" role="switch" class="form-check-input ob-vary-switch" name="emp_{{ emp.id }}_vary_by_time" data-emp="{{ emp.id }}" {% if vary_by_time_by_employee.get(emp.id) %}checked{% endif %}>
+            <span>¿Atendés distintos servicios según el horario?</span>
+          </label>
+          <p class="ob-hours-vary-hint">Por ejemplo: tintura a la mañana, corte de pelo a la tarde. Si no aplica, dejalo apagado — vas a ofrecer todos tus servicios en todo tu horario.</p>
+          {% endif %}
+
           {% set existing = existing_by_employee.get(emp.id, {}) %}
           {% for day_name in weekdays %}
             {% set day_idx = loop.index0 %}
@@ -50,30 +60,73 @@
               <div class="ob-hours-ranges" id="ob-ranges-{{ emp.id }}-{{ day_idx }}" style="{% if not is_open %}display:none;{% endif %}">
                 {% if day_rows %}
                   {% for r in day_rows %}
+                  {% set range_token = 'r' ~ r.id %}
+                  {% set limited_ids = r.limited_services|map(attribute='id')|list if r.limited_services else [] %}
                   <div class="ob-hours-range-row">
-                    <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="{{ r.start_time.strftime('%H:%M') }}">
-                    <span class="ob-hours-sep">a</span>
-                    <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="{{ r.end_time.strftime('%H:%M') }}">
-                    {% if loop.first %}
-                    <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ emp.id }}, {{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
-                    {% else %}
-                    <button type="button" class="ob-hours-remove-range" onclick="this.closest('.ob-hours-range-row').remove()">{{ ic.icon('trash', 15) }}</button>
+                    <div class="ob-hours-range-times">
+                      <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="{{ r.start_time.strftime('%H:%M') }}">
+                      <span class="ob-hours-sep">a</span>
+                      <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="{{ r.end_time.strftime('%H:%M') }}">
+                      <input type="hidden" name="emp_{{ emp.id }}_range_token_{{ day_idx }}[]" value="{{ range_token }}">
+                      {% if loop.first %}
+                      <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ emp.id }}, {{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
+                      {% else %}
+                      <button type="button" class="ob-hours-remove-range" onclick="this.closest('.ob-hours-range-row').remove()">{{ ic.icon('trash', 15) }}</button>
+                      {% endif %}
+                    </div>
+                    {% if emp_services|length > 1 %}
+                    <div class="ob-hours-range-services" data-emp="{{ emp.id }}">
+                      {% for svc in emp_services %}
+                      <label class="schedule-service-chip {% if not limited_ids or svc.id in limited_ids %}is-checked{% endif %}">
+                        <input type="checkbox" name="emp_{{ emp.id }}_services_for_{{ range_token }}[]" value="{{ svc.id }}" {% if not limited_ids or svc.id in limited_ids %}checked{% endif %}>
+                        {{ svc.name }}
+                      </label>
+                      {% endfor %}
+                    </div>
                     {% endif %}
                   </div>
                   {% endfor %}
                 {% elif not existing %}
+                  {% set range_token = 'new-' ~ emp.id ~ '-' ~ day_idx ~ '-0' %}
                   <div class="ob-hours-range-row">
-                    <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="{% if day_idx == 5 %}10:00{% else %}09:00{% endif %}">
-                    <span class="ob-hours-sep">a</span>
-                    <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="{% if day_idx == 5 %}14:00{% else %}20:00{% endif %}">
-                    <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ emp.id }}, {{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
+                    <div class="ob-hours-range-times">
+                      <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="{% if day_idx == 5 %}10:00{% else %}09:00{% endif %}">
+                      <span class="ob-hours-sep">a</span>
+                      <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="{% if day_idx == 5 %}14:00{% else %}20:00{% endif %}">
+                      <input type="hidden" name="emp_{{ emp.id }}_range_token_{{ day_idx }}[]" value="{{ range_token }}">
+                      <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ emp.id }}, {{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
+                    </div>
+                    {% if emp_services|length > 1 %}
+                    <div class="ob-hours-range-services" data-emp="{{ emp.id }}">
+                      {% for svc in emp_services %}
+                      <label class="schedule-service-chip is-checked">
+                        <input type="checkbox" name="emp_{{ emp.id }}_services_for_{{ range_token }}[]" value="{{ svc.id }}" checked>
+                        {{ svc.name }}
+                      </label>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
                   </div>
                 {% else %}
+                  {% set range_token = 'new-' ~ emp.id ~ '-' ~ day_idx ~ '-0' %}
                   <div class="ob-hours-range-row">
-                    <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="09:00">
-                    <span class="ob-hours-sep">a</span>
-                    <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="20:00">
-                    <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ emp.id }}, {{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
+                    <div class="ob-hours-range-times">
+                      <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="09:00">
+                      <span class="ob-hours-sep">a</span>
+                      <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="20:00">
+                      <input type="hidden" name="emp_{{ emp.id }}_range_token_{{ day_idx }}[]" value="{{ range_token }}">
+                      <button type="button" class="ob-hours-add-range" onclick="obAddRange({{ emp.id }}, {{ day_idx }})">{{ ic.icon('plus', 16) }}</button>
+                    </div>
+                    {% if emp_services|length > 1 %}
+                    <div class="ob-hours-range-services" data-emp="{{ emp.id }}">
+                      {% for svc in emp_services %}
+                      <label class="schedule-service-chip is-checked">
+                        <input type="checkbox" name="emp_{{ emp.id }}_services_for_{{ range_token }}[]" value="{{ svc.id }}" checked>
+                        {{ svc.name }}
+                      </label>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
                   </div>
                 {% endif %}
               </div>
@@ -99,14 +152,18 @@
 
 <template id="ob-range-row-template">
   <div class="ob-hours-range-row">
-    <input type="time" class="form-control" name="start_X[]" value="09:00">
-    <span class="ob-hours-sep">a</span>
-    <input type="time" class="form-control" name="end_X[]" value="18:00">
-    <button type="button" class="ob-hours-remove-range" onclick="this.closest('.ob-hours-range-row').remove()">{{ ic.icon('trash', 15) }}</button>
+    <div class="ob-hours-range-times">
+      <input type="time" class="form-control" name="start_X[]" value="09:00">
+      <span class="ob-hours-sep">a</span>
+      <input type="time" class="form-control" name="end_X[]" value="18:00">
+      <input type="hidden" name="token_X[]" value="__TOKEN__">
+      <button type="button" class="ob-hours-remove-range" onclick="this.closest('.ob-hours-range-row').remove()">{{ ic.icon('trash', 15) }}</button>
+    </div>
   </div>
 </template>
 
 <script>
+let obRangeCounter = 1000;
 document.querySelectorAll('.ob-day-switch').forEach(function (sw) {
   sw.addEventListener('change', function () {
     var day = sw.dataset.day, emp = sw.dataset.emp;
@@ -116,11 +173,54 @@ document.querySelectorAll('.ob-day-switch').forEach(function (sw) {
 });
 function obAddRange(empId, dayIdx) {
   var tpl = document.getElementById('ob-range-row-template');
+  var token = 'new' + (obRangeCounter++);
   var clone = tpl.content.cloneNode(true);
   clone.querySelectorAll('input[name="start_X[]"]').forEach(function (el) { el.name = 'emp_' + empId + '_start_' + dayIdx + '[]'; });
   clone.querySelectorAll('input[name="end_X[]"]').forEach(function (el) { el.name = 'emp_' + empId + '_end_' + dayIdx + '[]'; });
+  clone.querySelectorAll('input[name="token_X[]"]').forEach(function (el) { el.name = 'emp_' + empId + '_range_token_' + dayIdx + '[]'; el.value = token; });
+  // Si este profesional afina por horario, esta franja nueva también necesita sus chips (arranca con todos tildados).
+  var varyChecked = document.querySelector('.ob-vary-switch[data-emp="' + empId + '"]');
+  if (varyChecked && varyChecked.checked) {
+    var source = document.querySelector('.ob-hours-range-services[data-emp="' + empId + '"]');
+    if (source) {
+      var chipsDiv = document.createElement('div');
+      chipsDiv.className = 'ob-hours-range-services';
+      chipsDiv.dataset.emp = empId;
+      source.querySelectorAll('.schedule-service-chip').forEach(function (chip) {
+        var newChip = chip.cloneNode(true);
+        var input = newChip.querySelector('input');
+        input.name = 'emp_' + empId + '_services_for_' + token + '[]';
+        input.checked = true;
+        newChip.classList.add('is-checked');
+        chipsDiv.appendChild(newChip);
+      });
+      clone.querySelector('.ob-hours-range-row').appendChild(chipsDiv);
+    }
+  }
   document.getElementById('ob-ranges-' + empId + '-' + dayIdx).appendChild(clone);
 }
+
+// Mostrar/ocultar los chips de servicio por franja, según el interruptor de "¿atendés distintos servicios según el horario?"
+document.querySelectorAll('.ob-vary-switch').forEach(function (sw) {
+  sw.addEventListener('change', function () {
+    var empId = sw.dataset.emp;
+    var panel = sw.closest('.ob-hours-emp-panel');
+    panel.querySelectorAll('.ob-hours-range-services').forEach(function (el) {
+      el.style.display = sw.checked ? '' : 'none';
+    });
+  });
+  // Estado inicial
+  var panel = sw.closest('.ob-hours-emp-panel');
+  panel.querySelectorAll('.ob-hours-range-services').forEach(function (el) {
+    el.style.display = sw.checked ? '' : 'none';
+  });
+});
+
+document.addEventListener('change', function (e) {
+  var cb = e.target.closest('.schedule-service-chip input[type="checkbox"]');
+  if (!cb) return;
+  cb.closest('.schedule-service-chip').classList.toggle('is-checked', cb.checked);
+});
 
 // Pestañas por profesional
 document.querySelectorAll('.ob-hours-emp-tab').forEach(function (tab) {
@@ -147,6 +247,8 @@ if (obCopyBtn) {
       panel.querySelectorAll('.ob-hours-day').forEach(function (d) { d.remove(); });
       sourcePanel.querySelectorAll('.ob-hours-day').forEach(function (sourceDay) {
         var clone = sourceDay.cloneNode(true);
+        // Los chips de servicio no se copian entre profesionales (cada uno puede tener servicios distintos asignados)
+        clone.querySelectorAll('.ob-hours-range-services').forEach(function (el) { el.remove(); });
         clone.querySelectorAll('[name]').forEach(function (el) {
           el.name = el.name.replace('emp_' + sourceId + '_', 'emp_' + targetId + '_');
         });

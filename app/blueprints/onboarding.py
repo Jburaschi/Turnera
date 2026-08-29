@@ -384,23 +384,36 @@ def hours():
 
     if request.method == 'POST':
         rows_by_employee: dict = {}
+        vary_by_employee: dict = {}
         any_rows = False
         for emp in employees:
+            vary = request.form.get(f'emp_{emp.id}_vary_by_time') == 'on'
+            vary_by_employee[emp.id] = vary
+            emp_service_ids = {s.id for s in emp.services}
             rows = []
             for day_idx in range(7):
                 if request.form.get(f'emp_{emp.id}_day_open_{day_idx}') != 'on':
                     continue
                 starts = request.form.getlist(f'emp_{emp.id}_start_{day_idx}[]')
                 ends   = request.form.getlist(f'emp_{emp.id}_end_{day_idx}[]')
-                for s, e in zip(starts, ends):
+                tokens = request.form.getlist(f'emp_{emp.id}_range_token_{day_idx}[]')
+                for i, (s, e) in enumerate(zip(starts, ends)):
                     if not s or not e:
                         continue
                     try:
                         sh, sm = (int(x) for x in s.split(':'))
                         eh, em_ = (int(x) for x in e.split(':'))
-                        rows.append((day_idx, time(sh, sm), time(eh, em_)))
                     except (ValueError, IndexError):
                         errors['hours'] = 'Revisá los horarios ingresados.'
+                        continue
+                    limited_ids = set()
+                    if vary and i < len(tokens):
+                        raw = request.form.getlist(f'emp_{emp.id}_services_for_{tokens[i]}[]')
+                        picked = {int(x) for x in raw if x.isdigit()} & emp_service_ids
+                        # Si por error queda sin ninguna tildada, no restringimos (mejor mostrar de más que romper la franja)
+                        if picked and picked != emp_service_ids:
+                            limited_ids = picked
+                    rows.append((day_idx, time(sh, sm), time(eh, em_), limited_ids))
             rows_by_employee[emp.id] = rows
             if rows:
                 any_rows = True
@@ -410,11 +423,19 @@ def hours():
 
         if not errors:
             for emp in employees:
+                for sch in list(emp.schedules):
+                    sch.limited_services.clear()
                 EmployeeSchedule.query.filter_by(employee_id=emp.id).delete()
             db.session.flush()
             for emp in employees:
-                for day_idx, start_t, end_t in rows_by_employee[emp.id]:
-                    db.session.add(EmployeeSchedule(employee_id=emp.id, weekday=day_idx, start_time=start_t, end_time=end_t))
+                for day_idx, start_t, end_t, limited_ids in rows_by_employee[emp.id]:
+                    sch = EmployeeSchedule(employee_id=emp.id, weekday=day_idx, start_time=start_t, end_time=end_t)
+                    db.session.add(sch)
+                    if limited_ids:
+                        db.session.flush()
+                        for svc in emp.services:
+                            if svc.id in limited_ids:
+                                sch.limited_services.append(svc)
 
             # CompanyHours (texto de horarios que se muestra en la página pública):
             # unión de los horarios de todos los profesionales, para que diga
@@ -422,7 +443,8 @@ def hours():
             CompanyHours.query.filter_by(company_id=company.id).delete()
             union_rows = set()
             for rows in rows_by_employee.values():
-                union_rows.update(rows)
+                for day_idx, start_t, end_t, _limited in rows:
+                    union_rows.add((day_idx, start_t, end_t))
             for day_idx, start_t, end_t in union_rows:
                 db.session.add(CompanyHours(company_id=company.id, weekday=day_idx, start_time=start_t, end_time=end_t))
 
@@ -432,14 +454,20 @@ def hours():
             return redirect(url_for('onboarding.publish'))
 
     existing_by_employee: dict = {}
+    vary_by_time_by_employee: dict = {}
     for emp in employees:
         existing: dict = {}
+        any_limited = False
         for h in EmployeeSchedule.query.filter_by(employee_id=emp.id).all():
             existing.setdefault(h.weekday, []).append(h)
+            if h.limited_services:
+                any_limited = True
         existing_by_employee[emp.id] = existing
+        vary_by_time_by_employee[emp.id] = any_limited
 
     return render_template('onboarding_hours.html', errors=errors, weekdays=WEEKDAYS, employees=employees,
-                            existing_by_employee=existing_by_employee, company=company, active_step=5)
+                            existing_by_employee=existing_by_employee, vary_by_time_by_employee=vary_by_time_by_employee,
+                            company=company, active_step=5)
 
 
 # ── Paso 6: checklist + publicar ─────────────────────────────────────────
