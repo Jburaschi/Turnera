@@ -893,9 +893,40 @@ body {
 .ob-hours-range-times { display: flex; align-items: center; gap: .5rem; }
 .ob-hours-range-services { display: flex; flex-wrap: wrap; gap: .35rem; padding-left: 0; }
 
-.ob-hours-vary-toggle { display: flex; align-items: center; gap: .55rem; background: #f7f8fa; border-radius: 8px; padding: .65rem .9rem; margin-bottom: .3rem; cursor: pointer; font-size: .86rem; font-weight: 600; color: #3f3f46; }
-.ob-hours-vary-toggle input { width: 34px; height: 20px; flex: 0 0 auto; }
-.ob-hours-vary-hint { font-size: .78rem; color: #a1a1aa; margin: -.1rem 0 1rem; }
+.ob-vary-question { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: #f7f8fa; border-radius: 10px; padding: .8rem 1rem; margin-bottom: 1.3rem; }
+.ob-vary-question-text strong { display: block; font-size: .88rem; color: #18181b; }
+.ob-vary-question-text p { margin: .15rem 0 0; font-size: .78rem; color: #a1a1aa; }
+.ob-vary-yesno { display: flex; flex: 0 0 auto; border: 1.5px solid var(--c-border); border-radius: 999px; overflow: hidden; }
+.ob-vary-btn { border: 0; background: #fff; color: #71717a; font-size: .82rem; font-weight: 700; padding: .45rem 1.1rem; cursor: pointer; }
+.ob-vary-btn--no { border-right: 1.5px solid var(--c-border); }
+.ob-vary-btn.is-selected { background: var(--c-blue); color: #fff; }
+.ob-vary-btn--no.is-selected { background: #52525b; }
+
+/* ── Selector "¿Cómo querés organizar los horarios?" ─────────────── */
+.ob-mode-picker { background: #f7f8fa; border-radius: 12px; padding: 1.1rem 1.2rem; margin-bottom: 1.5rem; transition: opacity .18s, transform .18s; }
+.ob-mode-picker.is-collapsing { opacity: 0; transform: scale(.97); }
+.ob-mode-picker-head strong { display: block; font-size: .95rem; color: #18181b; margin-bottom: .2rem; }
+.ob-mode-picker-head p { margin: 0 0 1rem; font-size: .8rem; color: #71717a; }
+.ob-mode-picker-cards { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.ob-mode-card { display: flex; align-items: flex-start; gap: .8rem; background: #fff; border: 1.5px solid var(--c-border); border-radius: 10px; padding: 1rem 1.1rem; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.ob-mode-card:hover { border-color: #c7d7fe; }
+.ob-mode-card.is-selected { border-color: var(--c-blue); box-shadow: 0 0 0 3px rgba(54,84,240,.08); }
+.ob-mode-card input { position: absolute; opacity: 0; pointer-events: none; }
+.ob-mode-card-icon { width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; background: #eef1ff; color: #a1a1aa; display: flex; align-items: center; justify-content: center; }
+.ob-mode-card.is-selected .ob-mode-card-icon { color: var(--c-blue); }
+.ob-mode-card-body strong { display: block; font-size: .87rem; color: #18181b; margin-bottom: .15rem; }
+.ob-mode-card-body p { margin: 0; font-size: .78rem; color: #a1a1aa; }
+
+.ob-mode-picker-compact { display: flex; align-items: center; gap: .6rem; background: #f0f4ff; border: 1px solid #c7d7fe; border-radius: 10px; padding: .7rem 1rem; margin-bottom: 1.5rem; font-size: .85rem; font-weight: 600; color: #3654f0; }
+.ob-mode-picker-compact-icon { display: flex; flex: 0 0 auto; }
+.ob-mode-picker-compact span:not(.ob-mode-picker-compact-icon) { flex: 1; }
+#ob-mode-compact-change { border: 0; background: none; color: #3654f0; font-size: .8rem; font-weight: 700; text-decoration: underline; cursor: pointer; flex: 0 0 auto; }
+
+@media (max-width: 640px) {
+  .ob-mode-picker-cards { grid-template-columns: 1fr; }
+  .ob-vary-question { flex-direction: column; align-items: flex-start; }
+}
+
 .ob-hours-range-row input[type="time"] { width: 118px; }
 .ob-hours-sep { color: var(--c-ink-3); font-size: .85rem; }
 .ob-hours-add-range { flex: 0 0 auto; border: 1.5px solid var(--c-border); background: #fff; color: var(--c-ink-2); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }

@@ -18,11 +18,44 @@
 
       {% if errors.hours %}<div class="alert alert-danger">{{ errors.hours }}</div>{% endif %}
 
-      <form method="post" novalidate>
+      <form method="post" novalidate id="ob-hours-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="schedule_mode" id="ob-schedule-mode" value="{% if employees|length > 1 %}same{% else %}individual{% endif %}">
 
         {% if employees|length > 1 %}
-        <div class="ob-hours-emp-tabs" role="tablist">
+        <div class="ob-mode-picker" id="ob-mode-picker">
+          <div class="ob-mode-picker-head">
+            <strong>¿Cómo querés organizar los horarios?</strong>
+            <p>Esta configuración define si los profesionales comparten el mismo horario o cada uno tiene el suyo.</p>
+          </div>
+          <div class="ob-mode-picker-cards">
+            <label class="ob-mode-card is-selected" data-mode="same">
+              <input type="radio" name="ob_mode_radio" value="same" checked>
+              <span class="ob-mode-card-icon">{{ ic.icon('layout', 20) }}</span>
+              <span class="ob-mode-card-body">
+                <strong>Todos los profesionales tienen el mismo horario</strong>
+                <p>Se aplica un único horario para todo el equipo.</p>
+              </span>
+            </label>
+            <label class="ob-mode-card" data-mode="individual">
+              <input type="radio" name="ob_mode_radio" value="individual">
+              <span class="ob-mode-card-icon">{{ ic.icon('user', 20) }}</span>
+              <span class="ob-mode-card-body">
+                <strong>Cada profesional tiene su propio horario</strong>
+                <p>Podés configurar horarios diferentes para cada uno.</p>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="ob-mode-picker-compact d-none" id="ob-mode-picker-compact">
+          <span class="ob-mode-picker-compact-icon" id="ob-mode-compact-icon">{{ ic.icon('layout', 16) }}</span>
+          <span id="ob-mode-compact-text">Todos los profesionales tienen el mismo horario</span>
+          <button type="button" id="ob-mode-compact-change">Cambiar</button>
+        </div>
+        {% endif %}
+
+        {% if employees|length > 1 %}
+        <div class="ob-hours-emp-tabs d-none" id="ob-hours-emp-tabs" role="tablist">
           {% for emp in employees %}
           <button type="button" class="ob-hours-emp-tab {% if loop.first %}is-active{% endif %}" data-emp-tab="{{ emp.id }}">{{ emp.name }}</button>
           {% endfor %}
@@ -31,17 +64,20 @@
 
         {% for emp in employees %}
         <div class="ob-hours-emp-panel {% if not loop.first %}d-none{% endif %}" data-emp-panel="{{ emp.id }}">
-          {% if employees|length > 1 and loop.first %}
-          <button type="button" class="ob-hours-copy-btn" id="ob-copy-to-all" data-source="{{ emp.id }}">{{ ic.icon('layout', 14) }} Todos los profesionales atienden en el mismo horario</button>
-          {% endif %}
 
           {% set emp_services = emp.services %}
           {% if emp_services|length > 1 %}
-          <label class="ob-hours-vary-toggle">
-            <input type="checkbox" role="switch" class="form-check-input ob-vary-switch" name="emp_{{ emp.id }}_vary_by_time" data-emp="{{ emp.id }}" {% if vary_by_time_by_employee.get(emp.id) %}checked{% endif %}>
-            <span>¿Atendés distintos servicios según el horario?</span>
-          </label>
-          <p class="ob-hours-vary-hint">Por ejemplo: tintura a la mañana, corte de pelo a la tarde. Si no aplica, dejalo apagado — vas a ofrecer todos tus servicios en todo tu horario.</p>
+          <div class="ob-vary-question">
+            <div class="ob-vary-question-text">
+              <strong>¿Atendés distintos servicios según el horario?</strong>
+              <p>Por ejemplo: tintura a la mañana, corte de pelo a la tarde.</p>
+            </div>
+            <div class="ob-vary-yesno">
+              <input type="checkbox" class="ob-vary-switch d-none" name="emp_{{ emp.id }}_vary_by_time" data-emp="{{ emp.id }}" {% if vary_by_time_by_employee.get(emp.id) %}checked{% endif %}>
+              <button type="button" class="ob-vary-btn ob-vary-btn--no {% if not vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="0">No</button>
+              <button type="button" class="ob-vary-btn ob-vary-btn--yes {% if vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="1">Sí</button>
+            </div>
+          </div>
           {% endif %}
 
           {% set existing = existing_by_employee.get(emp.id, {}) %}
@@ -216,6 +252,18 @@ document.querySelectorAll('.ob-vary-switch').forEach(function (sw) {
   });
 });
 
+// Botones Sí/No que reemplazan al checkbox visualmente
+document.querySelectorAll('.ob-vary-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var empId = btn.dataset.emp;
+    var checkbox = document.querySelector('.ob-vary-switch[data-emp="' + empId + '"]');
+    var group = btn.closest('.ob-vary-yesno');
+    checkbox.checked = btn.dataset.value === '1';
+    group.querySelectorAll('.ob-vary-btn').forEach(function (b) { b.classList.toggle('is-selected', b === btn); });
+    checkbox.dispatchEvent(new Event('change'));
+  });
+});
+
 document.addEventListener('change', function (e) {
   var cb = e.target.closest('.schedule-service-chip input[type="checkbox"]');
   if (!cb) return;
@@ -234,32 +282,78 @@ document.querySelectorAll('.ob-hours-emp-tab').forEach(function (tab) {
   });
 });
 
-// Copiar el horario del primer profesional a todos los demás
-var obCopyBtn = document.getElementById('ob-copy-to-all');
-if (obCopyBtn) {
-  obCopyBtn.addEventListener('click', function () {
-    if (!window.confirm('Esto va a reemplazar el horario que ya tenían cargado los demás profesionales. ¿Continuar?')) return;
-    var sourceId = obCopyBtn.getAttribute('data-source');
-    var sourcePanel = document.querySelector('.ob-hours-emp-panel[data-emp-panel="' + sourceId + '"]');
-    document.querySelectorAll('.ob-hours-emp-panel').forEach(function (panel) {
-      var targetId = panel.getAttribute('data-emp-panel');
-      if (targetId === sourceId) return;
-      panel.querySelectorAll('.ob-hours-day').forEach(function (d) { d.remove(); });
-      sourcePanel.querySelectorAll('.ob-hours-day').forEach(function (sourceDay) {
-        var clone = sourceDay.cloneNode(true);
-        // Los chips de servicio no se copian entre profesionales (cada uno puede tener servicios distintos asignados)
-        clone.querySelectorAll('.ob-hours-range-services').forEach(function (el) { el.remove(); });
-        clone.querySelectorAll('[name]').forEach(function (el) {
-          el.name = el.name.replace('emp_' + sourceId + '_', 'emp_' + targetId + '_');
-        });
-        clone.querySelectorAll('[id]').forEach(function (el) {
-          el.id = el.id.replace('-' + sourceId + '-', '-' + targetId + '-');
-        });
-        clone.querySelectorAll('.ob-day-switch').forEach(function (sw) { sw.dataset.emp = targetId; });
-        panel.insertBefore(clone, panel.querySelector('.ob-hours-tip') || null);
+// Sincroniza el horario del primer profesional a todos los demás (usado
+// automáticamente al enviar el formulario cuando el modo es "mismo horario").
+function obSyncAllFromFirst() {
+  var panels = document.querySelectorAll('.ob-hours-emp-panel');
+  if (panels.length < 2) return;
+  var sourcePanel = panels[0];
+  var sourceId = sourcePanel.getAttribute('data-emp-panel');
+  panels.forEach(function (panel) {
+    var targetId = panel.getAttribute('data-emp-panel');
+    if (targetId === sourceId) return;
+    panel.querySelectorAll('.ob-hours-day').forEach(function (d) { d.remove(); });
+    sourcePanel.querySelectorAll('.ob-hours-day').forEach(function (sourceDay) {
+      var clone = sourceDay.cloneNode(true);
+      // Los chips de servicio no se copian entre profesionales (cada uno puede tener servicios distintos asignados)
+      clone.querySelectorAll('.ob-hours-range-services').forEach(function (el) { el.remove(); });
+      clone.querySelectorAll('[name]').forEach(function (el) {
+        el.name = el.name.replace('emp_' + sourceId + '_', 'emp_' + targetId + '_');
       });
+      clone.querySelectorAll('[id]').forEach(function (el) {
+        el.id = el.id.replace('-' + sourceId + '-', '-' + targetId + '-');
+      });
+      clone.querySelectorAll('.ob-day-switch').forEach(function (sw) { sw.dataset.emp = targetId; });
+      panel.appendChild(clone);
     });
   });
 }
+
+document.getElementById('ob-hours-form')?.addEventListener('submit', function () {
+  if (document.getElementById('ob-schedule-mode')?.value === 'same') {
+    obSyncAllFromFirst();
+  }
+});
+
+// Selector "¿Cómo querés organizar los horarios?" — se achica al elegir
+(function () {
+  var picker = document.getElementById('ob-mode-picker');
+  var compact = document.getElementById('ob-mode-picker-compact');
+  var compactText = document.getElementById('ob-mode-compact-text');
+  var compactIcon = document.getElementById('ob-mode-compact-icon');
+  var modeInput = document.getElementById('ob-schedule-mode');
+  var tabsBar = document.getElementById('ob-hours-emp-tabs');
+  if (!picker) return;
+
+  function applyMode(mode, cardEl) {
+    modeInput.value = mode;
+    document.querySelectorAll('.ob-mode-card').forEach(function (c) { c.classList.remove('is-selected'); });
+    cardEl.classList.add('is-selected');
+    compactText.textContent = cardEl.querySelector('strong').textContent;
+    compactIcon.innerHTML = cardEl.querySelector('.ob-mode-card-icon').innerHTML;
+    tabsBar.classList.toggle('d-none', mode === 'same');
+    if (mode === 'individual') {
+      // Al pasar a "cada uno el suyo", mostramos el profesional activo (la primera pestaña)
+      document.querySelectorAll('.ob-hours-emp-panel').forEach(function (p, i) { p.classList.toggle('d-none', i !== 0); });
+      document.querySelectorAll('.ob-hours-emp-tab').forEach(function (t, i) { t.classList.toggle('is-active', i === 0); });
+    }
+    picker.classList.add('is-collapsing');
+    setTimeout(function () {
+      picker.classList.add('d-none');
+      compact.classList.remove('d-none');
+    }, 180);
+  }
+
+  document.querySelectorAll('.ob-mode-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      applyMode(card.getAttribute('data-mode'), card);
+    });
+  });
+
+  document.getElementById('ob-mode-compact-change')?.addEventListener('click', function () {
+    compact.classList.add('d-none');
+    picker.classList.remove('d-none', 'is-collapsing');
+  });
+})();
 </script>
 {% endblock %}
