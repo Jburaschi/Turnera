@@ -82,14 +82,14 @@
           </div>
           <div class="ob-mode-picker-cards ob-vary-cards">
             <input type="checkbox" class="ob-vary-switch d-none" name="emp_{{ emp.id }}_vary_by_time" data-emp="{{ emp.id }}" {% if vary_by_time_by_employee.get(emp.id) %}checked{% endif %}>
-            <label class="ob-mode-card ob-vary-card {% if not vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="0">
+            <label class="ob-vary-card {% if not vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="0">
               <span class="ob-mode-card-icon">{{ ic.icon('tag', 20) }}</span>
               <span class="ob-mode-card-body">
                 <strong>No, todos los servicios</strong>
                 <p>Ofrezco todos mis servicios durante todo mi horario de atención.</p>
               </span>
             </label>
-            <label class="ob-mode-card ob-vary-card {% if vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="1">
+            <label class="ob-vary-card {% if vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="1">
               <span class="ob-mode-card-icon">{{ ic.icon('clock', 20) }}</span>
               <span class="ob-mode-card-body">
                 <strong>Sí, según el horario</strong>
