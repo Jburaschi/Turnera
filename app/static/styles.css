@@ -893,10 +893,10 @@ body {
 .ob-hours-add-range-link { display: inline-flex; align-items: center; gap: .3rem; border: 0; background: transparent; color: var(--c-blue); font-size: .8rem; font-weight: 600; cursor: pointer; padding: .3rem .2rem; white-space: nowrap; }
 .ob-hours-add-range-link:hover { text-decoration: underline; }
 .ob-hours-closed-label { color: var(--c-ink-3); font-size: .84rem; flex: 1; }
-.ob-hours-day-chevron { flex: 0 0 auto; border: 0; background: transparent; color: var(--c-ink-3); width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; transition: transform .15s; }
-.ob-hours-day-chevron:hover:not(:disabled) { background: #f4f4f5; color: var(--c-ink-2); }
-.ob-hours-day-chevron:disabled { cursor: default; opacity: .3; }
-.ob-hours-day-chevron.invisible { visibility: hidden; }
+.ob-hours-day-chevron { flex: 0 0 auto; border: 0; background: transparent; color: var(--c-ink-2); width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; transition: transform .15s; }
+.ob-hours-day-chevron:hover:not(:disabled) { background: #f4f4f5; color: var(--c-ink); }
+.ob-hours-day-chevron:disabled { cursor: default; }
+.ob-hours-day-chevron.is-empty { opacity: .35; }
 .ob-hours-day-chevron.is-open { transform: rotate(180deg); }
 .ob-hours-day-body { padding: 0 0 1rem 78px; display: flex; flex-direction: column; gap: .6rem; }
 
@@ -915,7 +915,17 @@ body {
 .ob-vary-btn--no.is-selected { background: #52525b; }
 
 /* ── Selector "¿Cómo querés organizar los horarios?" ─────────────── */
-.ob-mode-picker { background: #f7f8fa; border-radius: 12px; padding: 1.1rem 1.2rem; margin-bottom: 1.5rem; transition: opacity .18s, transform .18s; }
+.ob-hours-header { display: flex; align-items: center; gap: .9rem; margin-bottom: 1.4rem; }
+.ob-hours-header-icon { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%; background: var(--c-blue-bg); color: var(--c-blue); display: flex; align-items: center; justify-content: center; }
+
+.ob-hours-section { background: #fff; border: 1px solid var(--c-border); border-radius: 12px; padding: 1.2rem 1.3rem; margin-bottom: 1.2rem; }
+
+.ob-hours-info-banner { display: flex; align-items: center; gap: .55rem; background: var(--c-blue-bg); color: var(--c-blue); border-radius: 8px; padding: .65rem .9rem; font-size: .82rem; margin-top: .9rem; }
+.ob-hours-info-banner svg { flex: 0 0 auto; }
+
+.ob-vary-cards { position: relative; }
+
+.ob-mode-picker { transition: opacity .18s, transform .18s; }
 .ob-mode-picker.is-collapsing { opacity: 0; transform: scale(.97); }
 .ob-mode-picker-head strong { display: block; font-size: .95rem; color: #18181b; margin-bottom: .2rem; }
 .ob-mode-picker-head p { margin: 0 0 1rem; font-size: .8rem; color: #71717a; }

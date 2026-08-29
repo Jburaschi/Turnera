@@ -7,14 +7,19 @@
   <div class="ob-wiz-container ob-wiz-card--wide">
     <div class="ob-wiz-card">
 
-      <h2 class="ob-wiz-card-title">Definí los horarios de atención</h2>
-      <p class="ob-wiz-card-sub">
-        {% if employees|length > 1 %}
-          Cada profesional puede tener sus propios horarios.
-        {% else %}
-          Estos serán los horarios para tus servicios.
-        {% endif %}
-      </p>
+      <div class="ob-hours-header">
+        <span class="ob-hours-header-icon">{{ ic.icon('calendar', 22) }}</span>
+        <div>
+          <h2 class="ob-wiz-card-title" style="margin-bottom:.15rem;">Definí los horarios de atención</h2>
+          <p class="ob-wiz-card-sub" style="margin-bottom:0;">
+            {% if employees|length > 1 %}
+              Organizá los horarios de tu negocio y la disponibilidad de servicios.
+            {% else %}
+              Estos serán los horarios para tus servicios.
+            {% endif %}
+          </p>
+        </div>
+      </div>
 
       {% if errors.hours %}<div class="alert alert-danger">{{ errors.hours }}</div>{% endif %}
 
@@ -23,10 +28,11 @@
         <input type="hidden" name="schedule_mode" id="ob-schedule-mode" value="{% if employees|length > 1 %}same{% else %}individual{% endif %}">
 
         {% if employees|length > 1 %}
+        <div class="ob-hours-section">
         <div class="ob-mode-picker" id="ob-mode-picker">
           <div class="ob-mode-picker-head">
-            <strong>¿Cómo querés organizar los horarios?</strong>
-            <p>Esta configuración define si los profesionales comparten el mismo horario o cada uno tiene el suyo.</p>
+            <strong>1. ¿Cómo querés organizar los horarios?</strong>
+            <p>Elegí si todos los profesionales comparten el mismo horario o si cada uno tiene el suyo.</p>
           </div>
           <div class="ob-mode-picker-cards">
             <label class="ob-mode-card is-selected" data-mode="same">
@@ -34,7 +40,7 @@
               <span class="ob-mode-card-icon">{{ ic.icon('layout', 20) }}</span>
               <span class="ob-mode-card-body">
                 <strong>Todos los profesionales tienen el mismo horario</strong>
-                <p>Se aplica un único horario para todo el equipo.</p>
+                <p>Se aplicará un único horario para todo el equipo.</p>
               </span>
             </label>
             <label class="ob-mode-card" data-mode="individual">
@@ -52,6 +58,7 @@
           <span id="ob-mode-compact-text">Todos los profesionales tienen el mismo horario</span>
           <button type="button" id="ob-mode-compact-change">Cambiar</button>
         </div>
+        </div>
         {% endif %}
 
         {% if employees|length > 1 %}
@@ -67,18 +74,42 @@
 
           {% set emp_services = emp.services %}
           {% if emp_services|length > 1 %}
-          <div class="ob-vary-question">
-            <div class="ob-vary-question-text">
-              <strong>¿Atendés distintos servicios según el horario?</strong>
-              <p>Por ejemplo: tintura a la mañana, corte de pelo a la tarde.</p>
-            </div>
-            <div class="ob-vary-yesno">
-              <input type="checkbox" class="ob-vary-switch d-none" name="emp_{{ emp.id }}_vary_by_time" data-emp="{{ emp.id }}" {% if vary_by_time_by_employee.get(emp.id) %}checked{% endif %}>
-              <button type="button" class="ob-vary-btn ob-vary-btn--no {% if not vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="0">No</button>
-              <button type="button" class="ob-vary-btn ob-vary-btn--yes {% if vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="1">Sí</button>
-            </div>
+          <div class="ob-hours-section">
+          <div class="ob-mode-picker-head">
+            <strong>2. ¿Los servicios cambian según el horario?</strong>
+            <p>Indicá si ofrecés los mismos servicios durante todo el día o si cambian por franja horaria.</p>
+          </div>
+          <div class="ob-mode-picker-cards ob-vary-cards">
+            <input type="checkbox" class="ob-vary-switch d-none" name="emp_{{ emp.id }}_vary_by_time" data-emp="{{ emp.id }}" {% if vary_by_time_by_employee.get(emp.id) %}checked{% endif %}>
+            <label class="ob-mode-card ob-vary-card {% if not vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="0">
+              <span class="ob-mode-card-icon">{{ ic.icon('tag', 20) }}</span>
+              <span class="ob-mode-card-body">
+                <strong>No, todos los servicios</strong>
+                <p>Ofrezco todos mis servicios durante todo mi horario de atención.</p>
+              </span>
+            </label>
+            <label class="ob-mode-card ob-vary-card {% if vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="1">
+              <span class="ob-mode-card-icon">{{ ic.icon('clock', 20) }}</span>
+              <span class="ob-mode-card-body">
+                <strong>Sí, según el horario</strong>
+                <p>Elegiré qué servicios ofrezco en cada franja horaria.</p>
+              </span>
+            </label>
+          </div>
+          <div class="ob-hours-info-banner">
+            {{ ic.icon('info', 15) }}
+            Si elegís "No", todos tus servicios estarán disponibles durante todo tu horario de atención.
+          </div>
           </div>
           {% endif %}
+
+          <div class="ob-hours-section">
+          <div class="ob-mode-picker-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;">
+            <div>
+              <strong>{{ '3. ' if emp_services|length > 1 else '' }}Horarios de atención</strong>
+              <p>Definí los días y franjas horarias en los que atendés.</p>
+            </div>
+          </div>
 
           {% set existing = existing_by_employee.get(emp.id, {}) %}
           {% for day_name in weekdays %}
@@ -113,7 +144,7 @@
                 <span class="ob-hours-closed-label" id="ob-closed-{{ emp.id }}-{{ day_idx }}" style="{% if is_open %}display:none;{% endif %}">No atiende</span>
 
                 {% set has_extra = norm_rows|length > 1 or emp_services|length > 1 %}
-                <button type="button" class="ob-hours-day-chevron {% if not has_extra %}invisible{% endif %}" data-day-toggle="{{ emp.id }}-{{ day_idx }}" {% if not is_open or not has_extra %}disabled{% endif %}>
+                <button type="button" class="ob-hours-day-chevron {% if not has_extra %}is-empty{% endif %}" data-day-toggle="{{ emp.id }}-{{ day_idx }}" {% if not is_open or not has_extra %}disabled{% endif %} title="{% if has_extra %}Ver más opciones{% else %}Nada más para configurar este día{% endif %}">
                   {{ ic.icon('chevron-down', 16) }}
                 </button>
               </div>
@@ -159,6 +190,7 @@
               </div>
             </div>
           {% endfor %}
+          </div>
         </div>
         {% endfor %}
 
@@ -277,14 +309,14 @@ document.querySelectorAll('.ob-vary-switch').forEach(function (sw) {
   });
 });
 
-// Botones Sí/No que reemplazan al checkbox visualmente
-document.querySelectorAll('.ob-vary-btn').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    var empId = btn.dataset.emp;
+// Cards de "¿los servicios cambian según el horario?" que reemplazan al checkbox visualmente
+document.querySelectorAll('.ob-vary-card').forEach(function (card) {
+  card.addEventListener('click', function () {
+    var empId = card.dataset.emp;
     var checkbox = document.querySelector('.ob-vary-switch[data-emp="' + empId + '"]');
-    var group = btn.closest('.ob-vary-yesno');
-    checkbox.checked = btn.dataset.value === '1';
-    group.querySelectorAll('.ob-vary-btn').forEach(function (b) { b.classList.toggle('is-selected', b === btn); });
+    var group = card.closest('.ob-vary-cards');
+    checkbox.checked = card.dataset.value === '1';
+    group.querySelectorAll('.ob-vary-card').forEach(function (c) { c.classList.toggle('is-selected', c === card); });
     checkbox.dispatchEvent(new Event('change'));
   });
 });
