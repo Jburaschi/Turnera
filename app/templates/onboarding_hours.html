@@ -69,12 +69,13 @@
         </div>
         {% endif %}
 
+        <div id="ob-panels-wrapper" class="{% if employees|length > 1 and not has_existing_data %}d-none{% endif %}">
         {% for emp in employees %}
         <div class="ob-hours-emp-panel {% if not loop.first %}d-none{% endif %}" data-emp-panel="{{ emp.id }}">
 
           {% set emp_services = emp.services %}
           {% if emp_services|length > 1 %}
-          <div class="ob-hours-section">
+          <div class="ob-hours-section" id="ob-vary-section-{{ emp.id }}">
           <div class="ob-mode-picker-head">
             <strong>2. ¿Los servicios cambian según el horario?</strong>
             <p>Indicá si ofrecés los mismos servicios durante todo el día o si cambian por franja horaria.</p>
@@ -101,9 +102,14 @@
             Si elegís "No", todos tus servicios estarán disponibles durante todo tu horario de atención.
           </div>
           </div>
+          <div class="ob-mode-picker-compact d-none" id="ob-vary-compact-{{ emp.id }}">
+            <span class="ob-mode-picker-compact-icon" id="ob-vary-compact-icon-{{ emp.id }}">{{ ic.icon('tag', 16) }}</span>
+            <span id="ob-vary-compact-text-{{ emp.id }}">No, todos los servicios</span>
+            <button type="button" class="ob-vary-compact-change" data-emp="{{ emp.id }}">Cambiar</button>
+          </div>
           {% endif %}
 
-          <div class="ob-hours-section">
+          <div class="ob-hours-section {% if emp_services|length > 1 and not has_existing_data %}d-none{% endif %}" id="ob-days-section-{{ emp.id }}">
           <div class="ob-mode-picker-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;">
             <div>
               <strong>{{ '3. ' if emp_services|length > 1 else '' }}Horarios de atención</strong>
@@ -193,6 +199,7 @@
           </div>
         </div>
         {% endfor %}
+        </div>
 
         <div class="ob-hours-tip">
           {{ ic.icon('sparkle', 16) }}
@@ -318,6 +325,32 @@ document.querySelectorAll('.ob-vary-card').forEach(function (card) {
     checkbox.checked = card.dataset.value === '1';
     group.querySelectorAll('.ob-vary-card').forEach(function (c) { c.classList.toggle('is-selected', c === card); });
     checkbox.dispatchEvent(new Event('change'));
+
+    // Achicar la sección 2 y revelar la sección de días de este profesional
+    var section = document.getElementById('ob-vary-section-' + empId);
+    var compactBar = document.getElementById('ob-vary-compact-' + empId);
+    var compactText = document.getElementById('ob-vary-compact-text-' + empId);
+    var compactIcon = document.getElementById('ob-vary-compact-icon-' + empId);
+    var daysSection = document.getElementById('ob-days-section-' + empId);
+    if (section && compactBar) {
+      compactText.textContent = card.querySelector('strong').textContent;
+      compactIcon.innerHTML = card.querySelector('.ob-mode-card-icon').innerHTML;
+      section.classList.add('is-collapsing');
+      setTimeout(function () {
+        section.classList.add('d-none');
+        compactBar.classList.remove('d-none');
+        daysSection?.classList.remove('d-none');
+      }, 180);
+    }
+  });
+});
+
+document.querySelectorAll('.ob-vary-compact-change').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var empId = btn.dataset.emp;
+    document.getElementById('ob-vary-compact-' + empId)?.classList.add('d-none');
+    var section = document.getElementById('ob-vary-section-' + empId);
+    section?.classList.remove('d-none', 'is-collapsing');
   });
 });
 
@@ -398,6 +431,7 @@ document.getElementById('ob-hours-form')?.addEventListener('submit', function ()
     setTimeout(function () {
       picker.classList.add('d-none');
       compact.classList.remove('d-none');
+      document.getElementById('ob-panels-wrapper')?.classList.remove('d-none');
     }, 180);
   }
 

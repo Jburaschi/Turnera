@@ -465,9 +465,11 @@ def hours():
         existing_by_employee[emp.id] = existing
         vary_by_time_by_employee[emp.id] = any_limited
 
+    has_existing_data = any(existing_by_employee.values())
+
     return render_template('onboarding_hours.html', errors=errors, weekdays=WEEKDAYS, employees=employees,
                             existing_by_employee=existing_by_employee, vary_by_time_by_employee=vary_by_time_by_employee,
-                            company=company, active_step=5)
+                            has_existing_data=has_existing_data, company=company, active_step=5)
 
 
 # ── Paso 6: checklist + publicar ─────────────────────────────────────────
