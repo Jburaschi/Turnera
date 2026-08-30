@@ -3,214 +3,209 @@
 {% block title %}Horarios · Turnex{% endblock %}
 {% block topnav %}{% include '_wizard_header.html' %}{% endblock %}
 {% block content %}
+{% set has_mode_step = employees|length > 1 %}
+{% set max_services = (employees|map(attribute='services')|map('length')|list)|max if employees else 0 %}
+{% set has_services_step = max_services > 1 %}
 <div class="ob-wizard">
   <div class="ob-wiz-container ob-wiz-card--wide">
     <div class="ob-wiz-card">
 
-      <div class="ob-hours-header">
-        <span class="ob-hours-header-icon">{{ ic.icon('calendar', 22) }}</span>
-        <div>
-          <h2 class="ob-wiz-card-title" style="margin-bottom:.15rem;">Definí los horarios de atención</h2>
-          <p class="ob-wiz-card-sub" style="margin-bottom:0;">
-            {% if employees|length > 1 %}
-              Organizá los horarios de tu negocio y la disponibilidad de servicios.
-            {% else %}
-              Estos serán los horarios para tus servicios.
-            {% endif %}
-          </p>
-        </div>
-      </div>
-
-      {% if errors.hours %}<div class="alert alert-danger">{{ errors.hours }}</div>{% endif %}
-
-      <form method="post" novalidate id="ob-hours-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="schedule_mode" id="ob-schedule-mode" value="{% if employees|length > 1 %}same{% else %}individual{% endif %}">
-
-        {% if employees|length > 1 %}
-        <div class="ob-hours-section">
-        <div class="ob-mode-picker" id="ob-mode-picker">
-          <div class="ob-mode-picker-head">
-            <strong>1. ¿Cómo querés organizar los horarios?</strong>
-            <p>Elegí si todos los profesionales comparten el mismo horario o si cada uno tiene el suyo.</p>
-          </div>
-          <div class="ob-mode-picker-cards">
-            <label class="ob-mode-card is-selected" data-mode="same">
-              <input type="radio" name="ob_mode_radio" value="same" checked>
-              <span class="ob-mode-card-icon">{{ ic.icon('layout', 20) }}</span>
-              <span class="ob-mode-card-body">
-                <strong>Todos los profesionales tienen el mismo horario</strong>
-                <p>Se aplicará un único horario para todo el equipo.</p>
-              </span>
-            </label>
-            <label class="ob-mode-card" data-mode="individual">
-              <input type="radio" name="ob_mode_radio" value="individual">
-              <span class="ob-mode-card-icon">{{ ic.icon('user', 20) }}</span>
-              <span class="ob-mode-card-body">
-                <strong>Cada profesional tiene su propio horario</strong>
-                <p>Podés configurar horarios diferentes para cada uno.</p>
-              </span>
-            </label>
-          </div>
-        </div>
-        <div class="ob-mode-picker-compact d-none" id="ob-mode-picker-compact">
-          <span class="ob-mode-picker-compact-icon" id="ob-mode-compact-icon">{{ ic.icon('layout', 16) }}</span>
-          <span id="ob-mode-compact-text">Todos los profesionales tienen el mismo horario</span>
-          <button type="button" id="ob-mode-compact-change">Cambiar</button>
-        </div>
-        </div>
-        {% endif %}
-
-        {% if employees|length > 1 %}
-        <div class="ob-hours-emp-tabs d-none" id="ob-hours-emp-tabs" role="tablist">
-          {% for emp in employees %}
-          <button type="button" class="ob-hours-emp-tab {% if loop.first %}is-active{% endif %}" data-emp-tab="{{ emp.id }}">{{ emp.name }}</button>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        <div id="ob-panels-wrapper" class="{% if employees|length > 1 and not has_existing_data %}d-none{% endif %}">
-        {% for emp in employees %}
-        <div class="ob-hours-emp-panel {% if not loop.first %}d-none{% endif %}" data-emp-panel="{{ emp.id }}">
-
-          {% set emp_services = emp.services %}
-          {% if emp_services|length > 1 %}
-          <div class="ob-hours-section" id="ob-vary-section-{{ emp.id }}">
-          <div class="ob-mode-picker-head">
-            <strong>2. ¿Los servicios cambian según el horario?</strong>
-            <p>Indicá si ofrecés los mismos servicios durante todo el día o si cambian por franja horaria.</p>
-          </div>
-          <div class="ob-mode-picker-cards ob-vary-cards">
-            <input type="checkbox" class="ob-vary-switch d-none" name="emp_{{ emp.id }}_vary_by_time" data-emp="{{ emp.id }}" {% if vary_by_time_by_employee.get(emp.id) %}checked{% endif %}>
-            <label class="ob-vary-card {% if not vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="0">
-              <span class="ob-mode-card-icon">{{ ic.icon('tag', 20) }}</span>
-              <span class="ob-mode-card-body">
-                <strong>No, todos los servicios</strong>
-                <p>Ofrezco todos mis servicios durante todo mi horario de atención.</p>
-              </span>
-            </label>
-            <label class="ob-vary-card {% if vary_by_time_by_employee.get(emp.id) %}is-selected{% endif %}" data-emp="{{ emp.id }}" data-value="1">
-              <span class="ob-mode-card-icon">{{ ic.icon('clock', 20) }}</span>
-              <span class="ob-mode-card-body">
-                <strong>Sí, según el horario</strong>
-                <p>Elegiré qué servicios ofrezco en cada franja horaria.</p>
-              </span>
-            </label>
-          </div>
+      <div class="ob-hours-layout">
+        <div class="ob-hours-side">
+          <span class="ob-hours-header-icon">{{ ic.icon('calendar', 22) }}</span>
+          <h2 class="ob-wiz-card-title" style="margin:.9rem 0 .2rem;font-size:1.3rem;">Definí los horarios de atención</h2>
+          <p class="ob-hours-side-sub">Organizá los horarios de tu negocio y la disponibilidad de servicios.</p>
           <div class="ob-hours-info-banner">
             {{ ic.icon('info', 15) }}
-            Si elegís "No", todos tus servicios estarán disponibles durante todo tu horario de atención.
+            Vas a poder ajustar estos horarios desde el panel, en Profesionales.
           </div>
-          </div>
-          <div class="ob-mode-picker-compact d-none" id="ob-vary-compact-{{ emp.id }}">
-            <span class="ob-mode-picker-compact-icon" id="ob-vary-compact-icon-{{ emp.id }}">{{ ic.icon('tag', 16) }}</span>
-            <span id="ob-vary-compact-text-{{ emp.id }}">No, todos los servicios</span>
-            <button type="button" class="ob-vary-compact-change" data-emp="{{ emp.id }}">Cambiar</button>
-          </div>
+        </div>
+
+        <div class="ob-hours-main">
+          {% if errors.hours %}<div class="alert alert-danger">{{ errors.hours }}</div>{% endif %}
+
+          {% if has_mode_step or has_services_step %}
+          <div class="ob-mini-stepper" id="ob-mini-stepper"></div>
           {% endif %}
 
-          <div class="ob-hours-section {% if emp_services|length > 1 and not has_existing_data %}d-none{% endif %}" id="ob-days-section-{{ emp.id }}">
-          <div class="ob-mode-picker-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;">
-            <div>
-              <strong>{{ '3. ' if emp_services|length > 1 else '' }}Horarios de atención</strong>
-              <p>Definí los días y franjas horarias en los que atendés.</p>
-            </div>
-          </div>
+          <form method="post" novalidate id="ob-hours-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="schedule_mode" id="ob-schedule-mode" value="{% if employees|length > 1 %}same{% else %}individual{% endif %}">
+            <input type="hidden" id="ob-services-vary" value="0">
 
-          {% set existing = existing_by_employee.get(emp.id, {}) %}
-          {% for day_name in weekdays %}
-            {% set day_idx = loop.index0 %}
-            {% set day_rows = existing.get(day_idx, []) %}
-            {% set is_open = day_rows or (not existing and day_idx < 5) or (not existing and day_idx == 5) %}
-            {# Normalizamos a una lista simple de (start, end, token, limited_ids), venga de datos ya guardados o de un default sensato #}
-            {% if day_rows %}
-              {% set norm_rows = [] %}
-              {% for r in day_rows %}
-                {% set _ = norm_rows.append((r.start_time.strftime('%H:%M'), r.end_time.strftime('%H:%M'), 'r' ~ r.id, r.limited_services|map(attribute='id')|list if r.limited_services else [])) %}
-              {% endfor %}
-            {% else %}
-              {% set default_start = '10:00' if day_idx == 5 else '09:00' %}
-              {% set default_end = '14:00' if day_idx == 5 else '20:00' %}
-              {% set norm_rows = [(default_start, default_end, 'new-' ~ emp.id ~ '-' ~ day_idx ~ '-0', [])] %}
-            {% endif %}
-            <div class="ob-hours-day">
-              <div class="ob-hours-day-row">
-                <input type="checkbox" role="switch" class="form-check-input ob-day-switch"
-                       name="emp_{{ emp.id }}_day_open_{{ day_idx }}" data-day="{{ day_idx }}" data-emp="{{ emp.id }}"
-                       {% if is_open %}checked{% endif %}>
-                <span class="ob-hours-day-name">{{ day_name }}</span>
-
-                <div class="ob-hours-day-row-content" id="ob-daycontent-{{ emp.id }}-{{ day_idx }}" style="{% if not is_open %}display:none;{% endif %}">
-                  <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="{{ norm_rows[0][0] }}">
-                  <span class="ob-hours-sep">-</span>
-                  <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="{{ norm_rows[0][1] }}">
-                  <input type="hidden" name="emp_{{ emp.id }}_range_token_{{ day_idx }}[]" value="{{ norm_rows[0][2] }}">
-                  <button type="button" class="ob-hours-add-range-link" onclick="obAddRange({{ emp.id }}, {{ day_idx }})">{{ ic.icon('plus', 14) }} Agregar franja</button>
-                </div>
-                <span class="ob-hours-closed-label" id="ob-closed-{{ emp.id }}-{{ day_idx }}" style="{% if is_open %}display:none;{% endif %}">No atiende</span>
-
-                {% set has_extra = norm_rows|length > 1 or emp_services|length > 1 %}
-                <button type="button" class="ob-hours-day-chevron {% if not has_extra %}is-empty{% endif %}" data-day-toggle="{{ emp.id }}-{{ day_idx }}" {% if not is_open or not has_extra %}disabled{% endif %} title="{% if has_extra %}Ver más opciones{% else %}Nada más para configurar este día{% endif %}">
-                  {{ ic.icon('chevron-down', 16) }}
-                </button>
+            {% if has_mode_step %}
+            <div class="ob-mini-panel" data-mini-step="mode">
+              <strong class="ob-mini-panel-title">¿Cómo querés organizar los horarios?</strong>
+              <p class="ob-mini-panel-sub">Elegí si todos los profesionales comparten el mismo horario o si cada uno tiene el suyo.</p>
+              <div class="ob-mode-picker-cards">
+                <label class="ob-mode-card" data-mode="same">
+                  <input type="radio" name="ob_mode_radio" value="same">
+                  <span class="ob-mode-card-icon">{{ ic.icon('layout', 20) }}</span>
+                  <span class="ob-mode-card-body">
+                    <strong>Todos los profesionales tienen el mismo horario</strong>
+                    <p>Se aplicará un único horario para todo el equipo.</p>
+                  </span>
+                  <span class="ob-mode-card-check">{{ ic.icon('check', 13) }}</span>
+                </label>
+                <label class="ob-mode-card" data-mode="individual">
+                  <input type="radio" name="ob_mode_radio" value="individual">
+                  <span class="ob-mode-card-icon">{{ ic.icon('user', 20) }}</span>
+                  <span class="ob-mode-card-body">
+                    <strong>Cada profesional tiene su propio horario</strong>
+                    <p>Podés configurar horarios diferentes para cada uno.</p>
+                  </span>
+                  <span class="ob-mode-card-check">{{ ic.icon('check', 13) }}</span>
+                </label>
               </div>
+              <div class="ob-mini-actions">
+                <a class="ob-btn-outline" href="{{ url_for('onboarding.services') }}">← Volver</a>
+                <button type="button" class="ob-submit-btn ob-mini-next" data-next disabled>Continuar →</button>
+              </div>
+            </div>
+            {% endif %}
 
-              <div class="ob-hours-day-body d-none" id="ob-daybody-{{ emp.id }}-{{ day_idx }}">
-                {% if emp_services|length > 1 %}
-                <div class="ob-hours-range-services" data-emp="{{ emp.id }}">
-                  {% set limited_ids = norm_rows[0][3] %}
-                  {% for svc in emp_services %}
-                  <label class="schedule-service-chip {% if not limited_ids or svc.id in limited_ids %}is-checked{% endif %}">
-                    <input type="checkbox" name="emp_{{ emp.id }}_services_for_{{ norm_rows[0][2] }}[]" value="{{ svc.id }}" {% if not limited_ids or svc.id in limited_ids %}checked{% endif %}>
-                    {{ svc.name }}
-                  </label>
+            {% if has_services_step %}
+            <div class="ob-mini-panel" data-mini-step="services">
+              <strong class="ob-mini-panel-title">¿Los servicios cambian según el horario?</strong>
+              <p class="ob-mini-panel-sub">Elegí si ofrecés los mismos servicios durante todo el día o si cambian según la franja horaria.</p>
+              <div class="ob-mode-picker-cards">
+                <label class="ob-mode-card" data-vary="0">
+                  <input type="radio" name="ob_vary_radio" value="0">
+                  <span class="ob-mode-card-icon">{{ ic.icon('tag', 20) }}</span>
+                  <span class="ob-mode-card-body">
+                    <strong>No, todos los servicios</strong>
+                    <p>Todos los servicios están disponibles durante todo el horario de atención.</p>
+                  </span>
+                  <span class="ob-mode-card-check">{{ ic.icon('check', 13) }}</span>
+                </label>
+                <label class="ob-mode-card" data-vary="1">
+                  <input type="radio" name="ob_vary_radio" value="1">
+                  <span class="ob-mode-card-icon">{{ ic.icon('clock', 20) }}</span>
+                  <span class="ob-mode-card-body">
+                    <strong>Sí, según el horario</strong>
+                    <p>Vas a elegir qué servicios ofrecer en cada franja horaria.</p>
+                  </span>
+                  <span class="ob-mode-card-check">{{ ic.icon('check', 13) }}</span>
+                </label>
+              </div>
+              <div class="ob-mini-actions">
+                <button type="button" class="ob-btn-outline" data-prev>← Volver</button>
+                <button type="button" class="ob-submit-btn ob-mini-next" data-next disabled>Continuar →</button>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="ob-mini-panel" data-mini-step="review">
+              <strong class="ob-mini-panel-title">Revisá y guardá los horarios</strong>
+              <p class="ob-mini-panel-sub">Definí los días y franjas horarias en los que atendés.</p>
+
+              {% if employees|length > 1 %}
+              <div class="ob-hours-emp-tabs-wrap" id="ob-hours-emp-tabs-wrap">
+                <span class="ob-hours-emp-tabs-label">Configurá el horario de cada profesional</span>
+                <div class="ob-hours-emp-tabs" id="ob-hours-emp-tabs" role="tablist">
+                  {% for emp in employees %}
+                  <button type="button" class="ob-hours-emp-tab {% if loop.first %}is-active{% endif %}" data-emp-tab="{{ emp.id }}">{{ emp.name }}</button>
                   {% endfor %}
                 </div>
-                {% endif %}
+              </div>
+              {% endif %}
 
-                <div class="ob-hours-extra-ranges" id="ob-ranges-{{ emp.id }}-{{ day_idx }}">
-                  {% for start_v, end_v, token, limited_ids in norm_rows %}
-                    {% if not loop.first %}
-                    <div class="ob-hours-range-row">
-                      <div class="ob-hours-range-times">
-                        <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="{{ start_v }}">
-                        <span class="ob-hours-sep">a</span>
-                        <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="{{ end_v }}">
-                        <input type="hidden" name="emp_{{ emp.id }}_range_token_{{ day_idx }}[]" value="{{ token }}">
-                        <button type="button" class="ob-hours-remove-range" onclick="this.closest('.ob-hours-range-row').remove()">{{ ic.icon('trash', 15) }}</button>
+              <div id="ob-panels-wrapper">
+              {% for emp in employees %}
+              <div class="ob-hours-emp-panel {% if not loop.first %}d-none{% endif %}" data-emp-panel="{{ emp.id }}">
+                {% set emp_services = emp.services %}
+                <input type="checkbox" class="ob-vary-switch d-none" name="emp_{{ emp.id }}_vary_by_time" data-emp="{{ emp.id }}" {% if vary_by_time_by_employee.get(emp.id) %}checked{% endif %}>
+
+                {% set existing = existing_by_employee.get(emp.id, {}) %}
+                {% for day_name in weekdays %}
+                  {% set day_idx = loop.index0 %}
+                  {% set day_rows = existing.get(day_idx, []) %}
+                  {% set is_open = day_rows or (not existing and day_idx < 5) or (not existing and day_idx == 5) %}
+                  {% if day_rows %}
+                    {% set norm_rows = [] %}
+                    {% for r in day_rows %}
+                      {% set _ = norm_rows.append((r.start_time.strftime('%H:%M'), r.end_time.strftime('%H:%M'), 'r' ~ r.id, r.limited_services|map(attribute='id')|list if r.limited_services else [])) %}
+                    {% endfor %}
+                  {% else %}
+                    {% set default_start = '10:00' if day_idx == 5 else '09:00' %}
+                    {% set default_end = '14:00' if day_idx == 5 else '20:00' %}
+                    {% set norm_rows = [(default_start, default_end, 'new-' ~ emp.id ~ '-' ~ day_idx ~ '-0', [])] %}
+                  {% endif %}
+                  <div class="ob-hours-day">
+                    <div class="ob-hours-day-row">
+                      <input type="checkbox" role="switch" class="form-check-input ob-day-switch"
+                             name="emp_{{ emp.id }}_day_open_{{ day_idx }}" data-day="{{ day_idx }}" data-emp="{{ emp.id }}"
+                             {% if is_open %}checked{% endif %}>
+                      <span class="ob-hours-day-name">{{ day_name }}</span>
+
+                      <div class="ob-hours-day-row-content" id="ob-daycontent-{{ emp.id }}-{{ day_idx }}" style="{% if not is_open %}display:none;{% endif %}">
+                        <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="{{ norm_rows[0][0] }}">
+                        <span class="ob-hours-sep">-</span>
+                        <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="{{ norm_rows[0][1] }}">
+                        <input type="hidden" name="emp_{{ emp.id }}_range_token_{{ day_idx }}[]" value="{{ norm_rows[0][2] }}">
+                        <button type="button" class="ob-hours-add-range-link" onclick="obAddRange({{ emp.id }}, {{ day_idx }})">{{ ic.icon('plus', 14) }} Agregar franja</button>
                       </div>
+                      <span class="ob-hours-closed-label" id="ob-closed-{{ emp.id }}-{{ day_idx }}" style="{% if is_open %}display:none;{% endif %}">No atiende</span>
+
+                      {% set has_extra = norm_rows|length > 1 or emp_services|length > 1 %}
+                      <button type="button" class="ob-hours-day-chevron {% if not has_extra %}is-empty{% endif %}" data-day-toggle="{{ emp.id }}-{{ day_idx }}" {% if not is_open or not has_extra %}disabled{% endif %} title="{% if has_extra %}Ver más opciones{% else %}Nada más para configurar este día{% endif %}">
+                        {{ ic.icon('chevron-down', 16) }}
+                      </button>
+                    </div>
+
+                    <div class="ob-hours-day-body d-none" id="ob-daybody-{{ emp.id }}-{{ day_idx }}">
                       {% if emp_services|length > 1 %}
                       <div class="ob-hours-range-services" data-emp="{{ emp.id }}">
+                        {% set limited_ids = norm_rows[0][3] %}
                         {% for svc in emp_services %}
                         <label class="schedule-service-chip {% if not limited_ids or svc.id in limited_ids %}is-checked{% endif %}">
-                          <input type="checkbox" name="emp_{{ emp.id }}_services_for_{{ token }}[]" value="{{ svc.id }}" {% if not limited_ids or svc.id in limited_ids %}checked{% endif %}>
+                          <input type="checkbox" name="emp_{{ emp.id }}_services_for_{{ norm_rows[0][2] }}[]" value="{{ svc.id }}" {% if not limited_ids or svc.id in limited_ids %}checked{% endif %}>
                           {{ svc.name }}
                         </label>
                         {% endfor %}
                       </div>
                       {% endif %}
+
+                      <div class="ob-hours-extra-ranges" id="ob-ranges-{{ emp.id }}-{{ day_idx }}">
+                        {% for start_v, end_v, token, limited_ids in norm_rows %}
+                          {% if not loop.first %}
+                          <div class="ob-hours-range-row">
+                            <div class="ob-hours-range-times">
+                              <input type="time" class="form-control" name="emp_{{ emp.id }}_start_{{ day_idx }}[]" value="{{ start_v }}">
+                              <span class="ob-hours-sep">a</span>
+                              <input type="time" class="form-control" name="emp_{{ emp.id }}_end_{{ day_idx }}[]" value="{{ end_v }}">
+                              <input type="hidden" name="emp_{{ emp.id }}_range_token_{{ day_idx }}[]" value="{{ token }}">
+                              <button type="button" class="ob-hours-remove-range" onclick="this.closest('.ob-hours-range-row').remove()">{{ ic.icon('trash', 15) }}</button>
+                            </div>
+                            {% if emp_services|length > 1 %}
+                            <div class="ob-hours-range-services" data-emp="{{ emp.id }}">
+                              {% for svc in emp_services %}
+                              <label class="schedule-service-chip {% if not limited_ids or svc.id in limited_ids %}is-checked{% endif %}">
+                                <input type="checkbox" name="emp_{{ emp.id }}_services_for_{{ token }}[]" value="{{ svc.id }}" {% if not limited_ids or svc.id in limited_ids %}checked{% endif %}>
+                                {{ svc.name }}
+                              </label>
+                              {% endfor %}
+                            </div>
+                            {% endif %}
+                          </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
                     </div>
-                    {% endif %}
-                  {% endfor %}
-                </div>
+                  </div>
+                {% endfor %}
+              </div>
+              {% endfor %}
+              </div>
+
+              <div class="ob-mini-actions">
+                <button type="button" class="ob-btn-outline" data-prev>← Volver</button>
+                <button type="submit" class="ob-submit-btn">Guardar y continuar →</button>
               </div>
             </div>
-          {% endfor %}
-          </div>
+          </form>
         </div>
-        {% endfor %}
-        </div>
-
-        <div class="ob-hours-tip">
-          {{ ic.icon('sparkle', 16) }}
-          Vas a poder ajustar estos horarios cuando quieras desde el panel, en Profesionales.
-        </div>
-
-        <div class="ob-wiz-actions">
-          <a class="ob-btn-outline" href="{{ url_for('onboarding.services') }}">← Volver</a>
-          <button type="submit" class="ob-submit-btn">Continuar →</button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
@@ -235,7 +230,7 @@ document.querySelectorAll('.ob-day-switch').forEach(function (sw) {
     document.getElementById('ob-daycontent-' + emp + '-' + day).style.display = sw.checked ? '' : 'none';
     document.getElementById('ob-closed-' + emp + '-' + day).style.display = sw.checked ? 'none' : '';
     var chevron = document.querySelector('[data-day-toggle="' + emp + '-' + day + '"]');
-    if (chevron && !chevron.classList.contains('invisible')) {
+    if (chevron && !chevron.classList.contains('is-empty')) {
       chevron.disabled = !sw.checked;
     }
     if (!sw.checked) {
@@ -245,7 +240,6 @@ document.querySelectorAll('.ob-day-switch').forEach(function (sw) {
   });
 });
 
-// Flechita: abre/cierra el detalle (franjas extra + chips de servicio) de cada día
 document.querySelectorAll('.ob-hours-day-chevron').forEach(function (btn) {
   btn.addEventListener('click', function () {
     var key = btn.getAttribute('data-day-toggle');
@@ -258,7 +252,7 @@ document.querySelectorAll('.ob-hours-day-chevron').forEach(function (btn) {
 function obEnableChevron(empId, dayIdx) {
   var chevron = document.querySelector('[data-day-toggle="' + empId + '-' + dayIdx + '"]');
   if (!chevron) return;
-  chevron.classList.remove('invisible');
+  chevron.classList.remove('is-empty');
   chevron.disabled = false;
   var body = document.getElementById('ob-daybody-' + empId + '-' + dayIdx);
   body.classList.remove('d-none');
@@ -272,7 +266,6 @@ function obAddRange(empId, dayIdx) {
   clone.querySelectorAll('input[name="start_X[]"]').forEach(function (el) { el.name = 'emp_' + empId + '_start_' + dayIdx + '[]'; });
   clone.querySelectorAll('input[name="end_X[]"]').forEach(function (el) { el.name = 'emp_' + empId + '_end_' + dayIdx + '[]'; });
   clone.querySelectorAll('input[name="token_X[]"]').forEach(function (el) { el.name = 'emp_' + empId + '_range_token_' + dayIdx + '[]'; el.value = token; });
-  // Si este profesional afina por horario, esta franja nueva también necesita sus chips (arranca con todos tildados).
   var varyChecked = document.querySelector('.ob-vary-switch[data-emp="' + empId + '"]');
   if (varyChecked && varyChecked.checked) {
     var source = document.querySelector('.ob-hours-range-services[data-emp="' + empId + '"]');
@@ -295,10 +288,8 @@ function obAddRange(empId, dayIdx) {
   obEnableChevron(empId, dayIdx);
 }
 
-// Mostrar/ocultar los chips de servicio por franja, según el interruptor de "¿atendés distintos servicios según el horario?"
 document.querySelectorAll('.ob-vary-switch').forEach(function (sw) {
   sw.addEventListener('change', function () {
-    var empId = sw.dataset.emp;
     var panel = sw.closest('.ob-hours-emp-panel');
     panel.querySelectorAll('.ob-hours-range-services').forEach(function (el) {
       el.style.display = sw.checked ? '' : 'none';
@@ -309,48 +300,9 @@ document.querySelectorAll('.ob-vary-switch').forEach(function (sw) {
       });
     }
   });
-  // Estado inicial
   var panel = sw.closest('.ob-hours-emp-panel');
   panel.querySelectorAll('.ob-hours-range-services').forEach(function (el) {
     el.style.display = sw.checked ? '' : 'none';
-  });
-});
-
-// Cards de "¿los servicios cambian según el horario?" que reemplazan al checkbox visualmente
-document.querySelectorAll('.ob-vary-card').forEach(function (card) {
-  card.addEventListener('click', function () {
-    var empId = card.dataset.emp;
-    var checkbox = document.querySelector('.ob-vary-switch[data-emp="' + empId + '"]');
-    var group = card.closest('.ob-vary-cards');
-    checkbox.checked = card.dataset.value === '1';
-    group.querySelectorAll('.ob-vary-card').forEach(function (c) { c.classList.toggle('is-selected', c === card); });
-    checkbox.dispatchEvent(new Event('change'));
-
-    // Achicar la sección 2 y revelar la sección de días de este profesional
-    var section = document.getElementById('ob-vary-section-' + empId);
-    var compactBar = document.getElementById('ob-vary-compact-' + empId);
-    var compactText = document.getElementById('ob-vary-compact-text-' + empId);
-    var compactIcon = document.getElementById('ob-vary-compact-icon-' + empId);
-    var daysSection = document.getElementById('ob-days-section-' + empId);
-    if (section && compactBar) {
-      compactText.textContent = card.querySelector('strong').textContent;
-      compactIcon.innerHTML = card.querySelector('.ob-mode-card-icon').innerHTML;
-      section.classList.add('is-collapsing');
-      setTimeout(function () {
-        section.classList.add('d-none');
-        compactBar.classList.remove('d-none');
-        daysSection?.classList.remove('d-none');
-      }, 180);
-    }
-  });
-});
-
-document.querySelectorAll('.ob-vary-compact-change').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    var empId = btn.dataset.emp;
-    document.getElementById('ob-vary-compact-' + empId)?.classList.add('d-none');
-    var section = document.getElementById('ob-vary-section-' + empId);
-    section?.classList.remove('d-none', 'is-collapsing');
   });
 });
 
@@ -360,7 +312,6 @@ document.addEventListener('change', function (e) {
   cb.closest('.schedule-service-chip').classList.toggle('is-checked', cb.checked);
 });
 
-// Pestañas por profesional
 document.querySelectorAll('.ob-hours-emp-tab').forEach(function (tab) {
   tab.addEventListener('click', function () {
     var empId = tab.getAttribute('data-emp-tab');
@@ -372,8 +323,6 @@ document.querySelectorAll('.ob-hours-emp-tab').forEach(function (tab) {
   });
 });
 
-// Sincroniza el horario del primer profesional a todos los demás (usado
-// automáticamente al enviar el formulario cuando el modo es "mismo horario").
 function obSyncAllFromFirst() {
   var panels = document.querySelectorAll('.ob-hours-emp-panel');
   if (panels.length < 2) return;
@@ -385,7 +334,6 @@ function obSyncAllFromFirst() {
     panel.querySelectorAll('.ob-hours-day').forEach(function (d) { d.remove(); });
     sourcePanel.querySelectorAll('.ob-hours-day').forEach(function (sourceDay) {
       var clone = sourceDay.cloneNode(true);
-      // Los chips de servicio no se copian entre profesionales (cada uno puede tener servicios distintos asignados)
       clone.querySelectorAll('.ob-hours-range-services').forEach(function (el) { el.remove(); });
       clone.querySelectorAll('[name]').forEach(function (el) {
         el.name = el.name.replace('emp_' + sourceId + '_', 'emp_' + targetId + '_');
@@ -405,46 +353,91 @@ document.getElementById('ob-hours-form')?.addEventListener('submit', function ()
   }
 });
 
-// Selector "¿Cómo querés organizar los horarios?" — se achica al elegir
+// ── Mini-wizard de 3 pasos (Tipo de horario / Servicios / Revisar y guardar) ──
 (function () {
-  var picker = document.getElementById('ob-mode-picker');
-  var compact = document.getElementById('ob-mode-picker-compact');
-  var compactText = document.getElementById('ob-mode-compact-text');
-  var compactIcon = document.getElementById('ob-mode-compact-icon');
-  var modeInput = document.getElementById('ob-schedule-mode');
-  var tabsBar = document.getElementById('ob-hours-emp-tabs');
-  if (!picker) return;
+  var steps = [];
+  document.querySelectorAll('[data-mini-step]').forEach(function (p) { steps.push(p.getAttribute('data-mini-step')); });
+  var stepLabels = { mode: 'Tipo de horario', services: 'Servicios', review: 'Revisar y guardar' };
+  var current = 0;
 
-  function applyMode(mode, cardEl) {
-    modeInput.value = mode;
-    document.querySelectorAll('.ob-mode-card').forEach(function (c) { c.classList.remove('is-selected'); });
-    cardEl.classList.add('is-selected');
-    compactText.textContent = cardEl.querySelector('strong').textContent;
-    compactIcon.innerHTML = cardEl.querySelector('.ob-mode-card-icon').innerHTML;
-    tabsBar.classList.toggle('d-none', mode === 'same');
-    if (mode === 'individual') {
-      // Al pasar a "cada uno el suyo", mostramos el profesional activo (la primera pestaña)
-      document.querySelectorAll('.ob-hours-emp-panel').forEach(function (p, i) { p.classList.toggle('d-none', i !== 0); });
-      document.querySelectorAll('.ob-hours-emp-tab').forEach(function (t, i) { t.classList.toggle('is-active', i === 0); });
-    }
-    picker.classList.add('is-collapsing');
-    setTimeout(function () {
-      picker.classList.add('d-none');
-      compact.classList.remove('d-none');
-      document.getElementById('ob-panels-wrapper')?.classList.remove('d-none');
-    }, 180);
+  function renderStepper() {
+    var stepperEl = document.getElementById('ob-mini-stepper');
+    if (!stepperEl || steps.length < 2) return;
+    var html = '';
+    steps.forEach(function (id, i) {
+      if (i > 0) html += '<span class="ob-mini-stepper-line ' + (i <= current ? 'is-done' : '') + '"></span>';
+      var cls = i === current ? 'is-active' : (i < current ? 'is-done' : '');
+      html += '<span class="ob-mini-stepper-item ' + cls + '">' +
+        '<span class="ob-mini-stepper-num">' + (i < current ? '✓' : (i + 1)) + '</span>' +
+        '<span class="ob-mini-stepper-label">' + stepLabels[id] + '</span></span>';
+    });
+    stepperEl.innerHTML = html;
   }
 
-  document.querySelectorAll('.ob-mode-card').forEach(function (card) {
-    card.addEventListener('click', function () {
-      applyMode(card.getAttribute('data-mode'), card);
+  function showStep(i) {
+    current = i;
+    document.querySelectorAll('[data-mini-step]').forEach(function (p, idx) {
+      p.classList.toggle('d-none', steps[idx] !== steps[i]);
+    });
+    renderStepper();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('[data-next]').forEach(function (btn) {
+    btn.addEventListener('click', function () { showStep(current + 1); });
+  });
+  document.querySelectorAll('[data-prev]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (current === 0) {
+        window.location.href = "{{ url_for('onboarding.services') }}";
+        return;
+      }
+      showStep(current - 1);
     });
   });
 
-  document.getElementById('ob-mode-compact-change')?.addEventListener('click', function () {
-    compact.classList.add('d-none');
-    picker.classList.remove('d-none', 'is-collapsing');
-  });
+  // Tarjetas de "Tipo de horario": ninguna preseleccionada, hay que elegir para continuar
+  var modePanel = document.querySelector('[data-mini-step="mode"]');
+  if (modePanel) {
+    var modeNextBtn = modePanel.querySelector('[data-next]');
+    modePanel.querySelectorAll('.ob-mode-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        modePanel.querySelectorAll('.ob-mode-card').forEach(function (c) { c.classList.remove('is-selected'); c.querySelector('input').checked = false; });
+        card.classList.add('is-selected');
+        card.querySelector('input').checked = true;
+        document.getElementById('ob-schedule-mode').value = card.getAttribute('data-mode');
+        modeNextBtn.disabled = false;
+        if (card.getAttribute('data-mode') === 'individual') {
+          document.querySelectorAll('.ob-hours-emp-panel').forEach(function (p, i) { p.classList.toggle('d-none', i !== 0); });
+          document.querySelectorAll('.ob-hours-emp-tab').forEach(function (t, i) { t.classList.toggle('is-active', i === 0); });
+        }
+        document.getElementById('ob-hours-emp-tabs-wrap')?.classList.toggle('d-none', card.getAttribute('data-mode') === 'same');
+      });
+    });
+  }
+  document.getElementById('ob-hours-emp-tabs-wrap')?.classList.add('d-none');
+
+  // Tarjetas de "Servicios": ninguna preseleccionada; aplica la misma respuesta a todos los profesionales
+  var servicesPanel = document.querySelector('[data-mini-step="services"]');
+  if (servicesPanel) {
+    var servicesNextBtn = servicesPanel.querySelector('[data-next]');
+    servicesPanel.querySelectorAll('.ob-mode-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        servicesPanel.querySelectorAll('.ob-mode-card').forEach(function (c) { c.classList.remove('is-selected'); c.querySelector('input').checked = false; });
+        card.classList.add('is-selected');
+        card.querySelector('input').checked = true;
+        var vary = card.getAttribute('data-vary') === '1';
+        document.getElementById('ob-services-vary').value = vary ? '1' : '0';
+        document.querySelectorAll('.ob-vary-switch').forEach(function (sw) {
+          sw.checked = vary;
+          sw.dispatchEvent(new Event('change'));
+        });
+        servicesNextBtn.disabled = false;
+      });
+    });
+  }
+
+  showStep(0);
 })();
 </script>
 {% endblock %}

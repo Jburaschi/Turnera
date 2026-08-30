@@ -915,51 +915,66 @@ body {
 .ob-vary-btn--no.is-selected { background: #52525b; }
 
 /* ── Selector "¿Cómo querés organizar los horarios?" ─────────────── */
-.ob-hours-header { display: flex; align-items: center; gap: .9rem; margin-bottom: 1.4rem; }
+/* ── Layout de 2 columnas (lateral + contenido) ─────────────────────── */
+.ob-hours-layout { display: grid; grid-template-columns: 230px 1fr; gap: 2.2rem; }
+.ob-hours-side { padding-top: .2rem; }
 .ob-hours-header-icon { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%; background: var(--c-blue-bg); color: var(--c-blue); display: flex; align-items: center; justify-content: center; }
+.ob-hours-side-sub { font-size: .85rem; color: #71717a; margin: 0 0 1.2rem; }
+.ob-hours-main { min-width: 0; }
 
-.ob-hours-section { background: #fff; border: 1px solid var(--c-border); border-radius: 12px; padding: 1.2rem 1.3rem; margin-bottom: 1.2rem; transition: opacity .18s, transform .18s; }
-.ob-hours-section.is-collapsing { opacity: 0; transform: scale(.97); }
+.ob-hours-info-banner { display: flex; align-items: flex-start; gap: .55rem; background: var(--c-blue-bg); color: var(--c-blue); border-radius: 8px; padding: .65rem .8rem; font-size: .8rem; line-height: 1.4; }
+.ob-hours-info-banner svg { flex: 0 0 auto; margin-top: .1rem; }
 
-.ob-hours-info-banner { display: flex; align-items: center; gap: .55rem; background: var(--c-blue-bg); color: var(--c-blue); border-radius: 8px; padding: .65rem .9rem; font-size: .82rem; margin-top: .9rem; }
-.ob-hours-info-banner svg { flex: 0 0 auto; }
+/* ── Mini-stepper de esta pantalla (Tipo de horario / Servicios / Revisar) ── */
+.ob-mini-stepper { display: flex; align-items: center; margin-bottom: 1.8rem; flex-wrap: wrap; gap: 0; }
+.ob-mini-stepper-item { display: flex; align-items: center; gap: .5rem; }
+.ob-mini-stepper-num { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%; background: #e4e7ec; color: #71717a; font-size: .75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.ob-mini-stepper-item.is-active .ob-mini-stepper-num { background: var(--c-blue); color: #fff; }
+.ob-mini-stepper-item.is-done .ob-mini-stepper-num { background: var(--c-blue); color: #fff; }
+.ob-mini-stepper-label { font-size: .85rem; font-weight: 600; color: #a1a1aa; }
+.ob-mini-stepper-item.is-active .ob-mini-stepper-label { color: var(--c-blue); }
+.ob-mini-stepper-item.is-done .ob-mini-stepper-label { color: #3f3f46; }
+.ob-mini-stepper-line { width: 32px; height: 1.5px; background: #e4e7ec; margin: 0 .6rem; }
+.ob-mini-stepper-line.is-done { background: var(--c-blue); }
 
-.ob-vary-cards { position: relative; }
+/* ── Paneles del mini-wizard ─────────────────────────────────────────── */
+.ob-mini-panel-title { display: block; font-size: 1.05rem; font-weight: 800; color: #18181b; margin-bottom: .25rem; }
+.ob-mini-panel-sub { margin: 0 0 1.2rem; font-size: .85rem; color: #71717a; }
+.ob-mini-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1.6rem; padding-top: 1.2rem; border-top: 1px solid var(--c-border); }
 
-.ob-mode-picker { transition: opacity .18s, transform .18s; }
-.ob-mode-picker.is-collapsing { opacity: 0; transform: scale(.97); }
-.ob-mode-picker-head strong { display: block; font-size: .95rem; color: #18181b; margin-bottom: .2rem; }
-.ob-mode-picker-head p { margin: 0 0 1rem; font-size: .8rem; color: #71717a; }
 .ob-mode-picker-cards { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
-.ob-mode-card, .ob-vary-card { display: flex; align-items: flex-start; gap: .8rem; background: #fff; border: 1.5px solid var(--c-border); border-radius: 10px; padding: 1rem 1.1rem; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
-.ob-mode-card:hover, .ob-vary-card:hover { border-color: #c7d7fe; }
-.ob-mode-card.is-selected, .ob-vary-card.is-selected { border-color: var(--c-blue); box-shadow: 0 0 0 3px rgba(54,84,240,.08); }
+.ob-mode-card { position: relative; display: flex; align-items: flex-start; gap: .8rem; background: #fff; border: 1.5px solid var(--c-border); border-radius: 10px; padding: 1rem 1.1rem; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.ob-mode-card:hover { border-color: #c7d7fe; }
+.ob-mode-card.is-selected { border-color: var(--c-blue); box-shadow: 0 0 0 3px rgba(54,84,240,.08); }
 .ob-mode-card input { position: absolute; opacity: 0; pointer-events: none; }
 .ob-mode-card-icon { width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; background: #eef1ff; color: #a1a1aa; display: flex; align-items: center; justify-content: center; }
-.ob-mode-card.is-selected .ob-mode-card-icon, .ob-vary-card.is-selected .ob-mode-card-icon { color: var(--c-blue); }
+.ob-mode-card.is-selected .ob-mode-card-icon { color: var(--c-blue); }
 .ob-mode-card-body strong { display: block; font-size: .87rem; color: #18181b; margin-bottom: .15rem; }
 .ob-mode-card-body p { margin: 0; font-size: .78rem; color: #a1a1aa; }
+.ob-mode-card-check { position: absolute; top: .8rem; right: .8rem; width: 20px; height: 20px; border-radius: 50%; background: var(--c-blue); color: #fff; display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(.6); transition: all .12s; }
+.ob-mode-card.is-selected .ob-mode-card-check { opacity: 1; transform: scale(1); }
 
-.ob-mode-picker-compact { display: flex; align-items: center; gap: .6rem; background: #f0f4ff; border: 1px solid #c7d7fe; border-radius: 10px; padding: .7rem 1rem; margin-bottom: 1.5rem; font-size: .85rem; font-weight: 600; color: #3654f0; }
-.ob-mode-picker-compact-icon { display: flex; flex: 0 0 auto; }
-.ob-mode-picker-compact span:not(.ob-mode-picker-compact-icon) { flex: 1; }
-#ob-mode-compact-change, .ob-vary-compact-change { border: 0; background: none; color: #3654f0; font-size: .8rem; font-weight: 700; text-decoration: underline; cursor: pointer; flex: 0 0 auto; }
-
+@media (max-width: 780px) {
+  .ob-hours-layout { grid-template-columns: 1fr; }
+  .ob-hours-side { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.2rem; }
+  .ob-hours-side .ob-wiz-card-title { margin: 0 !important; }
+  .ob-hours-side-sub, .ob-hours-info-banner { display: none; }
+}
 @media (max-width: 640px) {
   .ob-mode-picker-cards { grid-template-columns: 1fr; }
-  .ob-vary-question { flex-direction: column; align-items: flex-start; }
   .ob-hours-day-row { flex-wrap: wrap; }
   .ob-hours-day-body { padding-left: 0; }
+  .ob-mini-stepper-label { display: none; }
 }
 
 .ob-hours-sep { color: var(--c-ink-3); font-size: .85rem; }
 .ob-hours-remove-range { border: 0; background: transparent; color: var(--c-ink-3); cursor: pointer; padding: .3rem; }
-.ob-hours-emp-tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.3rem; border-bottom: 1px solid var(--c-border); padding-bottom: .9rem; }
+.ob-hours-emp-tabs-wrap { margin-bottom: 1.3rem; border-bottom: 1px solid var(--c-border); padding-bottom: .9rem; }
+.ob-hours-emp-tabs-label { display: block; font-size: .78rem; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .55rem; }
+.ob-hours-emp-tabs { display: flex; flex-wrap: wrap; gap: .4rem; }
 .ob-hours-emp-tab { padding: .5rem 1rem; border-radius: 999px; border: 1.5px solid var(--c-border); background: #fff; font-size: .85rem; font-weight: 600; color: #71717a; cursor: pointer; }
 .ob-hours-emp-tab:hover { border-color: #c7d7fe; }
 .ob-hours-emp-tab.is-active { background: var(--c-blue); border-color: var(--c-blue); color: #fff; }
-.ob-hours-copy-btn { display: inline-flex; align-items: center; gap: .4rem; background: transparent; border: 1.5px dashed var(--c-border-2); color: var(--c-blue); font-size: .8rem; font-weight: 600; padding: .45rem .8rem; border-radius: 8px; cursor: pointer; margin-bottom: 1.1rem; }
-.ob-hours-copy-btn:hover { background: var(--c-blue-bg); }
 
 .ob-hours-tip { display: flex; align-items: center; gap: .55rem; background: var(--c-blue-bg); color: var(--c-blue); border-radius: 8px; padding: .7rem .9rem; font-size: .84rem; margin-top: 1.5rem; }
 .ob-choice-card { position: relative; display: flex; align-items: flex-start; gap: 1rem; border: 1.5px solid var(--c-border); border-radius: 12px; padding: 1.1rem 1.2rem; cursor: pointer; margin-bottom: .9rem; transition: border-color .15s, background .15s; }
