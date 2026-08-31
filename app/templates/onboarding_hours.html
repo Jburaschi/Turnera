@@ -7,7 +7,7 @@
 {% set max_services = (employees|map(attribute='services')|map('length')|list)|max if employees else 0 %}
 {% set has_services_step = max_services > 1 %}
 <div class="ob-wizard">
-  <div class="ob-wiz-container ob-wiz-card--wide">
+  <div class="ob-wiz-container ob-wiz-card--hours">
     <div class="ob-wiz-card">
 
       <div class="ob-hours-layout">
@@ -363,14 +363,13 @@ document.getElementById('ob-hours-form')?.addEventListener('submit', function ()
   function renderStepper() {
     var stepperEl = document.getElementById('ob-mini-stepper');
     if (!stepperEl || steps.length < 2) return;
-    var html = '';
+    var html = '<div class="ob-mini-dots">';
     steps.forEach(function (id, i) {
-      if (i > 0) html += '<span class="ob-mini-stepper-line ' + (i <= current ? 'is-done' : '') + '"></span>';
       var cls = i === current ? 'is-active' : (i < current ? 'is-done' : '');
-      html += '<span class="ob-mini-stepper-item ' + cls + '">' +
-        '<span class="ob-mini-stepper-num">' + (i < current ? '✓' : (i + 1)) + '</span>' +
-        '<span class="ob-mini-stepper-label">' + stepLabels[id] + '</span></span>';
+      html += '<span class="ob-mini-dot ' + cls + '"></span>';
     });
+    html += '</div>';
+    html += '<span class="ob-mini-step-name">Paso ' + (current + 1) + ' de ' + steps.length + ' · ' + stepLabels[steps[current]] + '</span>';
     stepperEl.innerHTML = html;
   }
 
