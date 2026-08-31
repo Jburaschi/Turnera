@@ -810,7 +810,7 @@ body {
 .ob-wiz-skip { font-size: .82rem; color: #a1a1aa; text-decoration: none; flex: 0 0 auto; }
 .ob-wiz-skip:hover { color: #52525b; }
 
-.ob-wiz-card { background: #fff; border: 1px solid #e4e7ec; border-radius: 14px; padding: 1.85rem; }
+.ob-wiz-card { background: #fff; border: 1px solid #e4e7ec; border-radius: 14px; padding: 2.4rem 2.6rem; }
 .ob-wiz-card--success { border-color: #c7d7fe; }
 .ob-wiz-card-icon { font-size: 2rem; margin-bottom: .85rem; }
 .ob-wiz-card-title { font-size: 1.5rem; font-weight: 800; color: #18181b; margin: 0 0 .38rem; letter-spacing: -.02em; }
@@ -824,9 +824,9 @@ body {
 .ob-schedule-preview { background: #f7f8fa; border: 1px solid #e4e7ec; border-radius: 8px; padding: .8rem .95rem; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; font-size: .88rem; color: #3f3f46; margin-top: .5rem; }
 
 /* Wizard — contenedor general de las cards de paso 2-5 */
-.ob-wiz-container { max-width: 660px; margin: 0 auto; padding: 2.75rem 1.5rem 5rem; }
-.ob-wiz-card--wide { max-width: 860px; }
-.ob-wiz-card--hours { max-width: 940px; }
+.ob-wiz-container { max-width: 760px; margin: 0 auto; padding: 2.75rem 1.5rem 5rem; }
+.ob-wiz-card--wide { max-width: 1000px; }
+.ob-wiz-card--hours { max-width: 1040px; }
 .ob-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .ob-file-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; border: 1.5px dashed var(--c-border-2); border-radius: 8px; padding: .85rem; cursor: pointer; text-align: center; background: var(--c-bg); }
 .ob-file-drop:hover { border-color: var(--c-blue); background: var(--c-blue-bg); }
@@ -917,7 +917,7 @@ body {
 
 /* ── Selector "¿Cómo querés organizar los horarios?" ─────────────── */
 /* ── Layout de 2 columnas (lateral + contenido) ─────────────────────── */
-.ob-hours-layout { display: grid; grid-template-columns: 230px 1fr; gap: 2.2rem; }
+.ob-hours-layout { display: grid; grid-template-columns: 200px 1fr; gap: 3rem; }
 .ob-hours-side { padding-top: .2rem; }
 .ob-hours-header-icon { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%; background: var(--c-blue-bg); color: var(--c-blue); display: flex; align-items: center; justify-content: center; }
 .ob-hours-side-sub { font-size: .85rem; color: #71717a; margin: 0 0 1.2rem; }
@@ -938,6 +938,8 @@ body {
 .ob-mini-panel-title { display: block; font-size: 1.2rem; font-weight: 800; color: #18181b; margin-bottom: .35rem; letter-spacing: -.01em; }
 .ob-mini-panel-sub { margin: 0 0 1.6rem; font-size: .9rem; color: #71717a; line-height: 1.5; }
 .ob-mini-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1.4rem; border-top: 1px solid var(--c-border); }
+.ob-mini-actions .ob-submit-btn { width: auto; flex: 0 0 auto; margin-top: 0; padding: .72rem 1.6rem; }
+.ob-mini-actions .ob-btn-outline { flex: 0 0 auto; }
 
 .ob-mode-picker-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .ob-mode-card { position: relative; display: flex; align-items: flex-start; gap: 1rem; background: #fff; border: 1.5px solid var(--c-border); border-radius: 14px; padding: 1.4rem 1.4rem; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
