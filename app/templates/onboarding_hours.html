@@ -69,21 +69,21 @@
               <strong class="ob-mini-panel-title">¿Los servicios cambian según el horario?</strong>
               <p class="ob-mini-panel-sub">Elegí si ofrecés los mismos servicios durante todo el día o si cambian según la franja horaria.</p>
               <div class="ob-mode-picker-cards">
-                <label class="ob-mode-card" data-vary="0">
-                  <input type="radio" name="ob_vary_radio" value="0">
-                  <span class="ob-mode-card-icon">{{ ic.icon('tag', 20) }}</span>
-                  <span class="ob-mode-card-body">
-                    <strong>No, todos los servicios</strong>
-                    <p>Todos los servicios están disponibles durante todo el horario de atención.</p>
-                  </span>
-                  <span class="ob-mode-card-check">{{ ic.icon('check', 13) }}</span>
-                </label>
                 <label class="ob-mode-card" data-vary="1">
                   <input type="radio" name="ob_vary_radio" value="1">
                   <span class="ob-mode-card-icon">{{ ic.icon('clock', 20) }}</span>
                   <span class="ob-mode-card-body">
-                    <strong>Sí, según el horario</strong>
-                    <p>Vas a elegir qué servicios ofrecer en cada franja horaria.</p>
+                    <strong>Cada horario ofrece servicios distintos</strong>
+                    <p>Elegís qué servicios das en cada franja. Por ejemplo: tintura a la mañana y corte a la tarde.</p>
+                  </span>
+                  <span class="ob-mode-card-check">{{ ic.icon('check', 13) }}</span>
+                </label>
+                <label class="ob-mode-card" data-vary="0">
+                  <input type="radio" name="ob_vary_radio" value="0">
+                  <span class="ob-mode-card-icon">{{ ic.icon('tag', 20) }}</span>
+                  <span class="ob-mode-card-body">
+                    <strong>Todos los servicios, en todo tu horario</strong>
+                    <p>Ofrecés lo mismo durante toda tu jornada. Por ejemplo: corte y color disponibles de 9 a 18.</p>
                   </span>
                   <span class="ob-mode-card-check">{{ ic.icon('check', 13) }}</span>
                 </label>
