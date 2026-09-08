@@ -186,27 +186,47 @@
       </div>
 
       <div class="cp-services-grid">
+        {% set grad_pairs = [('#eef1ff','#e8ecff'), ('#f3eefb','#efeaff'), ('#eaf3ff','#e6f0ff'), ('#fdeef5','#faeaf1'), ('#eefaf3','#e8f6ee'), ('#fff4ea','#fdefe2')] %}
         {% for service in company.services if service.active %}
+        {% set gp = grad_pairs[loop.index0 % grad_pairs|length] %}
         <a href="{{ url_for('public.booking_page', slug=company.slug) }}?service_id={{ service.id }}" class="cp-service-card">
           {% if service.photo_url %}
-          <div class="cp-service-photo" style="background-image:url('{{ service.photo_url }}');">
-            <span class="cp-service-icon" style="background:#fff; color:var(--brand);">{{ ic.icon('briefcase', 17) }}</span>
-          </div>
+          <div class="cp-service-photo" style="background-image:url('{{ service.photo_url }}');"></div>
           {% else %}
-          <div class="cp-service-photo cp-service-photo--empty">
-            <span class="cp-service-icon" style="background:#fff; color:var(--brand);">{{ ic.icon('briefcase', 17) }}</span>
+          <div class="cp-service-photo cp-service-photo--empty" style="background:linear-gradient(135deg, {{ gp[0] }} 0%, {{ gp[1] }} 55%, #ffffff 130%);">
+            <span class="cp-service-photo-glow"></span>
           </div>
           {% endif %}
           <div class="cp-service-body">
             <h3 class="cp-service-name">{{ service.name }}</h3>
+            <div class="cp-service-divider"></div>
             <div class="cp-service-meta">{{ ic.icon('clock', 13) }} {{ service.duration_min }} min</div>
-            <div class="cp-service-price">${{ '{:,.0f}'.format(service.price or 0).replace(',', '.') }}</div>
+            <div class="cp-service-price">$ {{ '{:,.0f}'.format(service.price or 0).replace(',', '.') }}</div>
             <span class="cp-service-action cp-service-action--block">Reservar</span>
           </div>
         </a>
         {% else %}
         <div class="cp-empty">Esta empresa todavía no tiene servicios activos para reservar.</div>
         {% endfor %}
+      </div>
+
+      <div class="cp-service-trust">
+        <div class="cp-trust-item">
+          <span class="cp-trust-icon">{{ ic.icon('calendar', 18) }}</span>
+          <div><strong>Confirmación inmediata</strong><span>Tu turno al instante</span></div>
+        </div>
+        <div class="cp-trust-item">
+          <span class="cp-trust-icon">{{ ic.icon('shield', 18) }}</span>
+          <div><strong>Cancelación simple</strong><span>Sin complicaciones</span></div>
+        </div>
+        <div class="cp-trust-item">
+          <span class="cp-trust-icon">{{ ic.icon('user', 18) }}</span>
+          <div><strong>Atención profesional</strong><span>Un equipo capacitado</span></div>
+        </div>
+        <div class="cp-trust-item">
+          <span class="cp-trust-icon">{{ ic.icon('clock', 18) }}</span>
+          <div><strong>Turnos online 24/7</strong><span>Reservá cuando quieras</span></div>
+        </div>
       </div>
 
       <!-- Barra de confianza -->
@@ -233,9 +253,13 @@
           <h2 class="cp-section-title">Nuestro equipo</h2>
           <p class="cp-section-sub">Conocé a nuestros profesionales y elegí con quién querés atenderte.</p>
         </div>
+        <div class="cp-people-nav" id="cp-people-nav">
+          <button type="button" class="cp-people-arrow" data-people-prev aria-label="Anterior">{{ ic.icon('chevron-left', 18) }}</button>
+          <button type="button" class="cp-people-arrow" data-people-next aria-label="Siguiente">{{ ic.icon('chevron-right', 18) }}</button>
+        </div>
       </div>
 
-      <div class="cp-people-grid">
+      <div class="cp-people-track" id="cp-people-track">
         {% for employee in active_employees %}
         <div class="cp-people-card">
           {% if employee.photo_url %}
@@ -244,7 +268,7 @@
           <div class="cp-people-avatar" style="background:var(--brand);">{{ employee.name[0]|upper }}</div>
           {% endif %}
           <div class="cp-people-name">{{ employee.name }}</div>
-          <div class="cp-people-role">{{ employee.bio or (employee.services|map(attribute='name')|list|join(' · ') if employee.services else company.category or 'Profesional') }}</div>
+          <div class="cp-people-divider"></div>
           <a href="{{ url_for('public.booking_page', slug=company.slug) }}?employee_id={{ employee.id }}" class="cp-people-cta">Ver horarios →</a>
         </div>
         {% endfor %}
@@ -312,4 +336,35 @@
   </footer>
 
 </div>
+
+<script>
+(function () {
+  var track = document.getElementById('cp-people-track');
+  var nav = document.getElementById('cp-people-nav');
+  if (!track || !nav) return;
+  var prev = nav.querySelector('[data-people-prev]');
+  var next = nav.querySelector('[data-people-next]');
+
+  function updateNav() {
+    // Si todas las cards entran sin scroll, escondemos las flechas del todo
+    var needsScroll = track.scrollWidth > track.clientWidth + 4;
+    nav.style.display = needsScroll ? 'flex' : 'none';
+    if (!needsScroll) return;
+    prev.disabled = track.scrollLeft <= 4;
+    next.disabled = track.scrollLeft >= track.scrollWidth - track.clientWidth - 4;
+  }
+
+  function scrollByCards(dir) {
+    var card = track.querySelector('.cp-people-card');
+    var amount = card ? (card.offsetWidth + 18) * 1 : 260;
+    track.scrollBy({ left: dir * amount, behavior: 'smooth' });
+  }
+
+  prev.addEventListener('click', function () { scrollByCards(-1); });
+  next.addEventListener('click', function () { scrollByCards(1); });
+  track.addEventListener('scroll', updateNav);
+  window.addEventListener('resize', updateNav);
+  updateNav();
+})();
+</script>
 {% endblock %}

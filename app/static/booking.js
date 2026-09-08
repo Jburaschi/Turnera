@@ -408,18 +408,47 @@ if (root) {
     const cards = [];
     if (allowAvailability) {
       cards.push(`
-        <div class="mode-option" data-mode="availability">
-          <div class="mode-icon">📅</div>
-          <h6>Primer turno disponible</h6>
-          <div class="small opacity-75">Elegís la fecha y hora; te mostramos los profesionales disponibles.</div>
+        <div class="mode-card" data-mode="availability">
+          <div class="mode-card-illus mode-card-illus--date">
+            <svg viewBox="0 0 200 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="46" y="34" width="108" height="80" rx="10" fill="#fff"/>
+              <rect x="46" y="34" width="108" height="22" rx="10" fill="var(--brand, #3654f0)"/>
+              <circle cx="70" cy="30" r="4" fill="var(--brand, #3654f0)"/><circle cx="100" cy="30" r="4" fill="var(--brand, #3654f0)"/><circle cx="130" cy="30" r="4" fill="var(--brand, #3654f0)"/>
+              <rect x="58" y="66" width="12" height="10" rx="2" fill="#e4e7ec"/><rect x="78" y="66" width="12" height="10" rx="2" fill="#e4e7ec"/><rect x="98" y="66" width="12" height="10" rx="2" fill="#e4e7ec"/>
+              <rect x="58" y="84" width="12" height="10" rx="2" fill="#e4e7ec"/><rect x="78" y="84" width="12" height="10" rx="2" fill="var(--brand, #3654f0)"/><rect x="98" y="84" width="12" height="10" rx="2" fill="#e4e7ec"/>
+              <circle cx="132" cy="92" r="20" fill="#fff" stroke="var(--brand, #3654f0)" stroke-width="4"/>
+              <path d="M132 82v10l6 4" stroke="var(--brand, #3654f0)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="mode-card-body">
+            <div class="mode-card-text">
+              <h3>Buscar por fecha</h3>
+              <p>Elegí la fecha que te convenga y te mostramos los profesionales disponibles.</p>
+            </div>
+            <span class="mode-card-arrow">→</span>
+          </div>
         </div>`);
     }
     if (allowEmployee) {
       cards.push(`
-        <div class="mode-option" data-mode="employee">
-          <div class="mode-icon">👤</div>
-          <h6>Elegir profesional</h6>
-          <div class="small opacity-75">Primero elegís quién te atiende y después ves sus fechas disponibles.</div>
+        <div class="mode-card" data-mode="employee">
+          <div class="mode-card-illus mode-card-illus--prof">
+            <svg viewBox="0 0 200 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="52" y="30" width="96" height="72" rx="10" fill="#fff"/>
+              <circle cx="72" cy="50" r="7" fill="#c7d1f7"/><rect x="86" y="46" width="46" height="6" rx="3" fill="#e4e7ec"/>
+              <circle cx="72" cy="70" r="7" fill="#c7d1f7"/><rect x="86" y="66" width="38" height="6" rx="3" fill="#e4e7ec"/>
+              <circle cx="72" cy="90" r="7" fill="#c7d1f7"/><rect x="86" y="86" width="30" height="6" rx="3" fill="#e4e7ec"/>
+              <circle cx="140" cy="94" r="20" fill="var(--brand, #3654f0)"/>
+              <circle cx="140" cy="88" r="6" fill="#fff"/><path d="M129 102a11 9 0 0122 0z" fill="#fff"/>
+            </svg>
+          </div>
+          <div class="mode-card-body">
+            <div class="mode-card-text">
+              <h3>Buscar por profesional</h3>
+              <p>Seleccioná quién te atiende y después vas a ver sus fechas disponibles.</p>
+            </div>
+            <span class="mode-card-arrow">→</span>
+          </div>
         </div>`);
     }
     if (!cards.length) {
@@ -428,12 +457,12 @@ if (root) {
     }
     modeOptions.innerHTML = cards.join('');
 
-    document.querySelectorAll('.mode-option').forEach(option => {
+    document.querySelectorAll('.mode-card').forEach(option => {
       option.addEventListener('click', async () => {
-        document.querySelectorAll('.mode-option').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.mode-card').forEach(x => x.classList.remove('active'));
         option.classList.add('active');
         selectedMode = option.dataset.mode;
-        modeStatus.textContent = selectedMode === 'availability' ? 'Primer turno disponible' : 'Elegir profesional';
+        modeStatus.textContent = selectedMode === 'availability' ? 'Buscar por fecha' : 'Buscar por profesional';
 
         selectedEmployeeId = null;
         selectedEmployeeName = null;
@@ -481,30 +510,57 @@ if (root) {
   }
 
   function renderEmployeeCards(items, clickHandler) {
-    employeeOptions.innerHTML = items.map(e => {
+    const showSearch = items.length >= 10;
+    const searchHtml = showSearch
+      ? `<div class="emp-search-wrap">
+           <span class="emp-search-icon">${EMP_SEARCH_ICON}</span>
+           <input type="text" class="emp-search-input" id="emp-search-input" placeholder="Buscar profesional...">
+         </div>`
+      : '';
+
+    const cardsHtml = items.map(e => {
       const id   = e.id ?? e.employee_id;
       const name = e.name ?? e.employee_name ?? 'Profesional';
       const color = e.color ?? '';
+      const initial = name.trim().charAt(0).toUpperCase() || '?';
       return `
-        <button type="button" class="employee-card w-100" data-id="${id}" data-name="${name}">
-          ${color ? `<div class="emp-dot" style="background:${color}"></div>` : '<div class="emp-dot"></div>'}
-          <div class="fw-semibold">${name}</div>
-          <div class="small text-secondary mt-1">Profesional</div>
+        <button type="button" class="emp-pick-card" data-id="${id}" data-name="${name}" data-search="${name.toLowerCase()}">
+          <span class="emp-pick-avatar" ${color ? `style="background:${color};color:#fff;"` : ''}>${initial}</span>
+          <span class="emp-pick-info">
+            <strong>${name}</strong>
+            <span>Profesional</span>
+          </span>
+          <span class="emp-pick-radio"></span>
         </button>`;
     }).join('');
-    document.querySelectorAll('.employee-card').forEach(card => {
+
+    employeeOptions.innerHTML = searchHtml + `<div class="emp-pick-grid" id="emp-pick-grid">${cardsHtml}</div>`;
+
+    document.querySelectorAll('.emp-pick-card').forEach(card => {
       card.addEventListener('click', () => clickHandler(card));
     });
 
+    if (showSearch) {
+      const input = document.getElementById('emp-search-input');
+      input.addEventListener('input', () => {
+        const q = input.value.toLowerCase().trim();
+        document.querySelectorAll('.emp-pick-card').forEach(card => {
+          card.style.display = card.dataset.search.includes(q) ? '' : 'none';
+        });
+      });
+    }
+
     if (preselectedEmployeeId) {
-      const match = document.querySelector(`.employee-card[data-id="${preselectedEmployeeId}"]`);
+      const match = document.querySelector(`.emp-pick-card[data-id="${preselectedEmployeeId}"]`);
       preselectedEmployeeId = null; // solo se auto-aplica una vez
       if (match) match.click();
     }
   }
 
+  const EMP_SEARCH_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
+
   function chooseEmployeeForMode(card) {
-    document.querySelectorAll('.employee-card').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.emp-pick-card').forEach(x => x.classList.remove('active'));
     card.classList.add('active');
     selectedEmployeeId   = Number(card.dataset.id);
     selectedEmployeeName = card.dataset.name;
@@ -536,15 +592,21 @@ if (root) {
     const end    = new Date(year, month, 0);
     calendarGrid.innerHTML = '';
 
-    ['Lu','Ma','Mi','Ju','Vi','Sa','Do'].forEach(label => {
+    ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(label => {
       const head = document.createElement('div');
-      head.className = 'fw-semibold text-secondary small p-2 text-center';
+      head.className = 'cal-weekday';
       head.textContent = label;
       calendarGrid.appendChild(head);
     });
 
     const offset = (start.getDay() + 6) % 7;
-    for (let i = 0; i < offset; i++) calendarGrid.appendChild(document.createElement('div'));
+    for (let i = 0; i < offset; i++) {
+      const prevDay = new Date(year, month - 1, 1 - (offset - i));
+      const empty = document.createElement('div');
+      empty.className = 'calendar-cell calendar-cell--muted';
+      empty.innerHTML = `<span>${prevDay.getDate()}</span>`;
+      calendarGrid.appendChild(empty);
+    }
 
     for (let day = 1; day <= end.getDate(); day++) {
       const cellDate = new Date(year, month - 1, day);
@@ -556,10 +618,20 @@ if (root) {
       const cell = document.createElement('button');
       cell.type = 'button';
       cell.className = classes.join(' ');
-      cell.innerHTML = `<span>${day}</span><small>${count > 0 ? count : ''}</small>`;
+      cell.innerHTML = `<span>${day}</span>`;
       if (count > 0) cell.addEventListener('click', () => selectDate(iso));
       else cell.disabled = true;
       calendarGrid.appendChild(cell);
+    }
+
+    // Rellenar los días del mes siguiente para completar la última fila
+    const totalCells = offset + end.getDate();
+    const trailing = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= trailing; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'calendar-cell calendar-cell--muted';
+      empty.innerHTML = `<span>${i}</span>`;
+      calendarGrid.appendChild(empty);
     }
   }
 
@@ -630,15 +702,17 @@ if (root) {
 
     Object.values(groups).forEach(group => {
       if (!group.items.length) return;
+      const first = group.items[0].label;
+      const last = group.items[group.items.length - 1].label;
       const section = document.createElement('div');
       section.className = 'time-group';
-      section.innerHTML = `<div class="time-group-label">${group.icon} ${group.label}</div>`;
+      section.innerHTML = `<div class="time-group-label">${group.icon}<strong>${group.label}</strong><span class="time-group-range">${first} – ${last}</span></div>`;
       const row = document.createElement('div');
-      row.className = 'd-flex flex-wrap gap-2';
+      row.className = 'time-slots-row';
       group.items.forEach(option => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'btn btn-outline-secondary slot-btn';
+        btn.className = 'slot-btn';
         btn.textContent = option.label;
         btn.addEventListener('click', () => selectTime(option, btn));
         row.appendChild(btn);

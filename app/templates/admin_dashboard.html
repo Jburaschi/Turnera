@@ -434,225 +434,191 @@
       {% endif %}
 
       {% elif active_section == 'agenda' %}
-        {% set ROW_PX = 52 %}
-        <div id="agenda-main">
+        {% set status_meta = {
+          'BOOKED':   {'label': 'Confirmado', 'cls': 'is-booked'},
+          'DONE':     {'label': 'Atendido',   'cls': 'is-done'},
+          'NO_SHOW':  {'label': 'No vino',    'cls': 'is-noshow'},
+          'CANCELED': {'label': 'Cancelado',  'cls': 'is-canceled'}
+        } %}
+        <div id="agenda-main" class="ag2">
 
-          <div class="admin-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <span class="admin-section-icon">{{ ic.icon('calendar', 22) }}</span>
+          <!-- Barra superior: fecha + navegación + acciones -->
+          <div class="ag2-topbar">
+            <div class="ag2-date">
+              <span class="ag2-date-icon">{{ ic.icon('calendar', 20) }}</span>
               <div>
-                <h1 class="admin-page-title">Agenda</h1>
-                <p class="admin-page-sub">Administrá tus turnos y la disponibilidad de tu equipo.</p>
+                <div class="ag2-date-title">{{ selected_day.strftime('%A %d de %B de %Y')|capitalize }}</div>
+                <div class="ag2-date-sub">{{ agenda_day_total }} turno{{ '' if agenda_day_total == 1 else 's' }} programado{{ '' if agenda_day_total == 1 else 's' }}</div>
+              </div>
+              <div class="ag2-date-nav">
+                <a class="ag2-nav-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day - timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">{{ ic.icon('chevron-left', 16) }}</a>
+              <a class="ag2-nav-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day + timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">{{ ic.icon('chevron-right', 16) }}</a>
+                <a class="ag2-today-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">Hoy</a>
               </div>
             </div>
+            <button class="ag2-new-btn" id="btn-nuevo-turno" type="button">{{ ic.icon('plus', 16) }} Nuevo turno</button>
           </div>
 
-          <div class="agenda-toolbar mb-3">
-            <div class="agenda-toolbar-left">
-              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day - timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">‹</a>
-              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">Hoy</a>
-              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day + timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">›</a>
-              <span class="agenda-date-label">{{ ic.icon('calendar', 15) }} {{ selected_day.strftime('%A %d de %B de %Y')|capitalize }}</span>
+          <!-- Filtros -->
+          <form method="get" class="ag2-filters" id="ag2-filters">
+            <input type="hidden" name="section" value="agenda">
+            <input type="hidden" name="day" value="{{ selected_day.isoformat() }}">
+            <div class="ag2-search">
+              {{ ic.icon('search', 16) }}
+              <input type="text" name="search_customer" value="{{ search_customer or '' }}" placeholder="Buscar por cliente...">
             </div>
-            <div class="agenda-toolbar-right">
-              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#agenda-filters-panel">{{ ic.icon('sliders', 14) }} Filtros</button>
-              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.export_agenda_csv', slug=company.slug, day=selected_day.isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">Exportar CSV</a>
-              <button class="btn btn-primary btn-sm" id="btn-nuevo-turno" type="button">{{ ic.icon('plus', 14) }} Nuevo turno</button>
+            <select class="ag2-filter-select" name="professional_id" onchange="this.form.submit()">
+              <option value="">Profesional</option>
+              {% for p in company.employees if p.active %}<option value="{{ p.id }}" {% if selected_professional_id == p.id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+            </select>
+            <select class="ag2-filter-select" name="service_id" onchange="this.form.submit()">
+              <option value="">Prestación</option>
+              {% for s in company.services %}<option value="{{ s.id }}" {% if selected_service_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+            </select>
+            <select class="ag2-filter-select" name="status" onchange="this.form.submit()">
+              <option value="">Estado</option>
+              {% for opt in status_options %}<option value="{{ opt }}" {% if selected_status == opt %}selected{% endif %}>{{ status_meta[opt].label if opt in status_meta else opt }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="ag2-search-btn d-none">Buscar</button>
+            {% if selected_professional_id or selected_service_id or selected_status or search_customer %}
+            <a class="ag2-clear" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat()) }}">Limpiar filtros</a>
+            {% endif %}
+          </form>
+
+          <div class="ag2-layout">
+            <!-- Lista de turnos agrupados por hora -->
+            <div class="ag2-list">
+              {% if agenda_by_hour %}
+                {% for hour, aps in agenda_by_hour.items() %}
+                <div class="ag2-hour-block">
+                  <div class="ag2-hour-col">
+                    <div class="ag2-hour">{{ hour }}</div>
+                    <div class="ag2-hour-count">{{ aps|length }} turno{{ '' if aps|length == 1 else 's' }}</div>
+                  </div>
+                  <div class="ag2-hour-rows">
+                    {% for ap in aps %}
+                    {% set sm = status_meta.get(ap.status, {'label': ap.status, 'cls': ''}) %}
+                    <div class="ag2-row" data-ap-id="{{ ap.id }}"
+                         data-ap-client="{{ ap.customer_display_name }}"
+                         data-ap-phone="{{ ap.customer.phone if ap.customer and ap.customer.phone else '' }}"
+                         data-ap-service="{{ ap.service.name if ap.service else '—' }}"
+                         data-ap-prof="{{ ap.employee.name if ap.employee else '—' }}"
+                         data-ap-time="{{ ap.start_dt.strftime('%H:%M') }} – {{ ap.end_dt.strftime('%H:%M') }}"
+                         data-ap-status="{{ ap.status }}"
+                         data-ap-status-label="{{ sm.label }}">
+                      <div class="ag2-row-time">{{ ap.start_dt.strftime('%H:%M') }} – {{ ap.end_dt.strftime('%H:%M') }}</div>
+                      <div class="ag2-avatar" style="background:{{ (ap.employee.color if ap.employee and ap.employee.color else '#eef1ff') }}">{{ ap.customer_display_name[:2]|upper }}</div>
+                      <div class="ag2-row-client">
+                        <strong>{{ ap.customer_display_name }}</strong>
+                        <span>{{ ap.customer.phone if ap.customer and ap.customer.phone else 'Sin teléfono' }}</span>
+                      </div>
+                      <div class="ag2-row-service">{{ ap.service.name if ap.service else '—' }}</div>
+                      <div class="ag2-row-prof">
+                        <span class="ag2-prof-dot" style="background:{{ ap.employee.color or '#3654f0' if ap.employee else '#a1a1aa' }}">{{ ap.employee.name[:1]|upper if ap.employee else '?' }}</span>
+                        {{ ap.employee.name if ap.employee else '—' }}
+                      </div>
+                      <div class="ag2-row-status"><span class="ag2-badge {{ sm.cls }}">{{ sm.label }}</span></div>
+                      <button class="ag2-row-more" type="button" aria-label="Ver detalle">{{ ic.icon('dots', 16) }}</button>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endfor %}
+              {% else %}
+                <div class="admin-empty-state">
+                  <span class="admin-empty-icon">{{ ic.icon('calendar', 30) }}</span>
+                  <div class="admin-empty-title">No hay turnos este día</div>
+                  <div class="admin-empty-sub">Cuando reserven o cargues un turno, va a aparecer acá.</div>
+                </div>
+              {% endif %}
             </div>
+
+            <!-- Sidebar: mini calendario + resumen del día -->
+            <aside class="ag2-side">
+              <div class="ag2-side-card">
+                <div class="ag2-mini-head">
+                  <strong class="text-capitalize">{{ mini_cal_month_label }}</strong>
+                  <div class="ag2-mini-nav">
+                    <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=prev_month_date.isoformat()) }}">{{ ic.icon('chevron-left', 15) }}</a>
+                    <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=next_month_date.isoformat()) }}">{{ ic.icon('chevron-right', 15) }}</a>
+                  </div>
+                </div>
+                <table class="ag2-mini-cal">
+                  <thead><tr>{% for d in ['L','M','X','J','V','S','D'] %}<th>{{ d }}</th>{% endfor %}</tr></thead>
+                  <tbody>
+                    {% for week in mini_cal_weeks %}
+                    <tr>
+                      {% for day_num in week %}
+                        {% if day_num == 0 %}<td></td>
+                        {% else %}
+                          {% set cell_date = selected_day.replace(day=day_num) %}
+                          <td><a class="ag2-mini-day {{ 'is-selected' if day_num == selected_day.day }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=cell_date.isoformat()) }}">{{ day_num }}</a></td>
+                        {% endif %}
+                      {% endfor %}
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="ag2-side-card">
+                <div class="ag2-summary-head">
+                  <strong>Resumen del día</strong>
+                  <span>{{ agenda_day_total }} turno{{ '' if agenda_day_total == 1 else 's' }}</span>
+                </div>
+                <div class="ag2-summary-row"><span class="ag2-dot is-booked"></span>Confirmados<b>{{ agenda_day_counts.BOOKED }}</b></div>
+                <div class="ag2-summary-row"><span class="ag2-dot is-done"></span>Atendidos<b>{{ agenda_day_counts.DONE }}</b></div>
+                <div class="ag2-summary-row"><span class="ag2-dot is-noshow"></span>No vinieron<b>{{ agenda_day_counts.NO_SHOW }}</b></div>
+                <div class="ag2-summary-row"><span class="ag2-dot is-canceled"></span>Cancelados<b>{{ agenda_day_counts.CANCELED }}</b></div>
+              </div>
+
+              <button class="ag2-side-new" id="btn-nuevo-turno-quick" type="button">{{ ic.icon('plus', 16) }} Nuevo turno</button>
+              <a class="ag2-side-block" href="{{ url_for('admin.dashboard', slug=company.slug, section='blocks') }}">{{ ic.icon('clock', 16) }} Bloquear horario</a>
+            </aside>
           </div>
 
-          <div class="admin-card collapse mb-3" id="agenda-filters-panel">
-            <div class="admin-card-body">
-              <form method="get" class="row g-3 align-items-end">
-                <input type="hidden" name="section" value="agenda">
-                <input type="hidden" name="day" value="{{ selected_day.isoformat() }}">
-                <div class="col-md-3"><label class="form-label">Prestación</label>
-                  <select class="form-select form-select-sm" name="service_id"><option value="">Todas</option>{% for s in company.services %}<option value="{{ s.id }}" {% if selected_service_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select>
+          <!-- Panel deslizante de detalle del turno (se abre al seleccionar) -->
+          <div class="ag2-detail-overlay" id="ag2-detail-overlay"></div>
+          <aside class="ag2-detail" id="ag2-detail">
+            <div class="ag2-detail-head">
+              <strong>Detalle del turno</strong>
+              <button type="button" class="ag2-detail-close" id="ag2-detail-close">{{ ic.icon('x', 18) }}</button>
+            </div>
+            <div class="ag2-detail-body">
+              <div class="ag2-detail-client">
+                <div class="ag2-detail-avatar" id="ag2d-avatar">--</div>
+                <div>
+                  <div class="ag2-detail-name" id="ag2d-name">—</div>
+                  <div class="ag2-detail-phone" id="ag2d-phone">—</div>
                 </div>
-                <div class="col-md-3"><label class="form-label">Estado</label>
-                  <select class="form-select form-select-sm" name="status"><option value="">Todos</option>{% for option in status_options %}<option value="{{ option }}" {% if selected_status == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>
-                </div>
-                <div class="col-md-3"><button class="btn btn-primary btn-sm">Aplicar filtros</button>
-                  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat()) }}">Limpiar</a>
-                </div>
+              </div>
+              <div class="ag2-detail-rows">
+                <div class="ag2-detail-item"><span>{{ ic.icon('clock', 15) }} Horario</span><b id="ag2d-time">—</b></div>
+                <div class="ag2-detail-item"><span>{{ ic.icon('scissors', 15) }} Prestación</span><b id="ag2d-service">—</b></div>
+                <div class="ag2-detail-item"><span>{{ ic.icon('user', 15) }} Profesional</span><b id="ag2d-prof">—</b></div>
+                <div class="ag2-detail-item"><span>{{ ic.icon('calendar', 15) }} Estado</span><b><span class="ag2-badge" id="ag2d-status">—</span></b></div>
+              </div>
+            </div>
+            <div class="ag2-detail-actions">
+              <form method="post" id="ag2d-form-done" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="DONE">
+                <button type="submit" class="ag2-act ag2-act--done">{{ ic.icon('check', 15) }} Marcar como atendido</button>
+              </form>
+              <form method="post" id="ag2d-form-noshow" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="NO_SHOW">
+                <button type="submit" class="ag2-act ag2-act--noshow">No vino</button>
+              </form>
+              <form method="post" id="ag2d-form-cancel" action="" onsubmit="return confirm('¿Cancelar este turno? Se le va a avisar al cliente.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="CANCELED">
+                <button type="submit" class="ag2-act ag2-act--cancel">{{ ic.icon('x', 15) }} Cancelar turno</button>
               </form>
             </div>
-          </div>
+          </aside>
 
-          <!-- Chips de profesional -->
-          <div class="agenda-chips mb-3">
-            <a class="agenda-chip {{ 'active' if not selected_professional_id }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat(), service_id=selected_service_id, status=selected_status) }}">Todos</a>
-            {% for p in company.employees if p.active %}
-            <a class="agenda-chip {{ 'active' if selected_professional_id == p.id }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat(), professional_id=p.id, service_id=selected_service_id, status=selected_status) }}">
-              <span class="agenda-chip-dot" style="background:{{ p.color or '#3654f0' }}"></span>{{ p.name }}
-            </a>
-            {% endfor %}
-          </div>
 
-          <div class="agenda-layout">
-
-            <!-- ── Grilla de calendario ── -->
-            <div class="admin-card agenda-grid-card">
-              {% if agenda_employees %}
-              <div class="agenda-grid" style="--row-px:{{ ROW_PX }}px; --n-cols:{{ agenda_employees|length }};">
-                <div class="agenda-grid-hours">
-                  <div class="agenda-grid-corner"></div>
-                  {% for h in agenda_hour_marks %}<div class="agenda-hour-mark" style="height:{{ ROW_PX*2 }}px;">{{ '%02d:00'|format(h) }}</div>{% endfor %}
-                </div>
-                <div class="agenda-grid-cols">
-                  {% for prof in agenda_employees %}
-                  <div class="agenda-col">
-                    <div class="agenda-col-head"><span class="agenda-chip-dot" style="background:{{ prof.color or '#3654f0' }}"></span>{{ prof.name }}</div>
-                    <div class="agenda-col-body" style="height:{{ (agenda_end_hour-agenda_start_hour)*2*ROW_PX }}px;">
-                      {% for h in range(1, (agenda_end_hour-agenda_start_hour)) %}<div class="agenda-hline" style="top:{{ h*2*ROW_PX }}px;"></div>{% endfor %}
-                      {% for ap in agenda_by_employee.get(prof.id, []) %}
-                        {% set start_offset = (ap.start_dt.hour - agenda_start_hour)*60 + ap.start_dt.minute %}
-                        {% set duration_min = ((ap.end_dt - ap.start_dt).total_seconds() / 60)|int %}
-                        {% set top = (start_offset / 30 * ROW_PX)|round(1) %}
-                        {% set h_px = ([(duration_min / 30 * ROW_PX)|round(1), 26]|max) %}
-                        {% set color = service_color_map.get(ap.service_id, '#3654f0') %}
-                        <a href="#ap_detail_{{ ap.id }}" data-bs-toggle="collapse" class="agenda-card {{ 'agenda-card--canceled' if ap.status == 'CANCELED' }}"
-                           style="top:{{ top }}px; height:{{ h_px }}px; background:{{ color }}14; border-color:{{ color }}55; color:{{ color }};">
-                          <strong>{{ ap.customer_display_name }}</strong>
-                          <span>{{ ap.service.name if ap.service else '—' }}</span>
-                          <span class="agenda-card-time">{{ ap.start_dt.strftime('%H:%M') }} - {{ ap.end_dt.strftime('%H:%M') }}</span>
-                        </a>
-                      {% endfor %}
-                    </div>
-                  </div>
-                  {% endfor %}
-                </div>
-              </div>
-              {% else %}
-              <div class="admin-empty-state">
-                <span class="admin-empty-icon">{{ ic.icon('user', 30) }}</span>
-                <div class="admin-empty-title">No hay profesionales activos</div>
-                <div class="admin-empty-sub">Agregá un profesional para poder ver la agenda.</div>
-              </div>
-              {% endif %}
-
-              <div class="agenda-legend">
-                {% for s in company.services %}
-                <span class="agenda-legend-item"><span class="agenda-chip-dot" style="background:{{ service_color_map.get(s.id,'#3654f0') }}"></span>{{ s.name }}</span>
-                {% endfor %}
-                <span class="agenda-legend-item"><span class="agenda-chip-dot" style="background:#a1a1aa"></span>Bloqueo</span>
-              </div>
-            </div>
-
-            <!-- ── Sidebar derecha ── -->
-            <div class="agenda-sidebar">
-
-              <div class="admin-card mb-3">
-                <div class="admin-card-header">
-                  <h2 class="admin-card-title text-capitalize">{{ mini_cal_month_label }}</h2>
-                  <div class="d-flex gap-1">
-                    <a class="admin-icon-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=prev_month_date.isoformat()) }}">‹</a>
-                    <a class="admin-icon-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=next_month_date.isoformat()) }}">›</a>
-                  </div>
-                </div>
-                <div class="admin-card-body">
-                  <table class="mini-cal">
-                    <thead><tr>{% for d in ['L','M','X','J','V','S','D'] %}<th>{{ d }}</th>{% endfor %}</tr></thead>
-                    <tbody>
-                      {% for week in mini_cal_weeks %}
-                      <tr>
-                        {% for day_num in week %}
-                          {% if day_num == 0 %}<td></td>
-                          {% else %}
-                            {% set this_date = selected_day.replace(day=day_num) %}
-                            <td><a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=this_date.isoformat(), professional_id=selected_professional_id) }}" class="mini-cal-day {{ 'mini-cal-day--selected' if this_date == selected_day }} {{ 'mini-cal-day--today' if this_date == today }}">{{ day_num }}</a></td>
-                          {% endif %}
-                        {% endfor %}
-                      </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="admin-card mb-3">
-                <div class="admin-card-header"><h2 class="admin-card-title">Vista rápida</h2></div>
-                <div class="admin-card-body--compact">
-                  <div class="agenda-quickstat"><span>Turnos hoy</span><strong>{{ agenda_today_count }}</strong></div>
-                  <div class="agenda-quickstat"><span>Turnos esta semana</span><strong>{{ agenda_week_count }}</strong></div>
-                  <div class="agenda-quickstat"><span>Turnos sin confirmar</span><strong>{{ agenda_unconfirmed_count }}{% if agenda_unconfirmed_count > 0 %}<span class="agenda-quickstat-dot"></span>{% endif %}</strong></div>
-                </div>
-              </div>
-
-              <div class="admin-card">
-                <div class="admin-card-header"><h2 class="admin-card-title">Acciones rápidas</h2></div>
-                <div class="admin-card-body--compact" style="padding-bottom:1.1rem;">
-                  <button type="button" class="admin-quickaction w-100" style="border:0;background:none;text-align:left;" id="btn-nuevo-turno-quick">
-                    <span class="admin-quickaction-icon">{{ ic.icon('calendar', 15) }}</span><span>Nuevo turno</span>{{ ic.icon('chevron-right', 15) }}
-                  </button>
-                  <a class="admin-quickaction" href="{{ url_for('admin.dashboard', slug=company.slug, section='blocked') }}">
-                    <span class="admin-quickaction-icon">{{ ic.icon('ban', 15) }}</span><span>Bloquear horario</span>{{ ic.icon('chevron-right', 15) }}
-                  </a>
-                  <a class="admin-quickaction" href="{{ url_for('admin.export_agenda_csv', slug=company.slug, day=selected_day.isoformat()) }}">
-                    <span class="admin-quickaction-icon">{{ ic.icon('calendar-check', 15) }}</span><span>Exportar turnos del día</span>{{ ic.icon('chevron-right', 15) }}
-                  </a>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- ── Detalle / acciones por turno (se abre al tocar una card) ── -->
-          {% if appointments %}
-          <div class="admin-card mt-3 agenda-day-list">
-            <div class="agenda-mobile-note">{{ ic.icon('sliders', 14) }} Vista de lista — la grilla completa está disponible en pantallas más anchas.</div>
-            <div class="admin-card-header"><h2 class="admin-card-title">Turnos del día <span class="badge text-bg-primary ms-1">{{ appointments|length }}</span></h2></div>
-            <div class="admin-card-body--compact">
-              {% for ap in appointments %}
-              <div class="agenda-list-row {% if ap.status == 'CANCELED' %}opacity-50{% endif %}" data-bs-toggle="collapse" data-bs-target="#ap_detail_{{ ap.id }}" style="cursor:pointer;">
-                <span class="agenda-chip-dot" style="background:{{ service_color_map.get(ap.service_id,'#3654f0') }}"></span>
-                <div class="upcoming-time"><div>{{ ap.start_dt.strftime('%H:%M') }}</div><div style="font-size:.85em;opacity:.7">{{ ap.end_dt.strftime('%H:%M') }}</div></div>
-                <div class="upcoming-info flex-1">
-                  <div class="upcoming-name">{{ ap.customer_display_name }}</div>
-                  <div class="upcoming-meta">{{ ap.service.name if ap.service else '—' }} · {{ ap.employee.name if ap.employee else '—' }}</div>
-                </div>
-                {% if ap.status == 'BOOKED' %}<span class="status-pill status-pill--booked">Confirmado</span>
-                {% elif ap.status == 'DONE' %}<span class="status-pill status-pill--done">Realizado</span>
-                {% elif ap.status == 'CANCELED' %}<span class="status-pill status-pill--canceled">Cancelado</span>
-                {% elif ap.status == 'NO_SHOW' %}<span class="status-pill status-pill--noshow">No asistió</span>{% endif %}
-              </div>
-              <div class="collapse" id="ap_detail_{{ ap.id }}">
-                <div class="rounded-3 border bg-light p-3 mb-2">
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      <div class="small fw-semibold mb-2">Cambiar estado</div>
-                      <div class="d-flex flex-wrap gap-2">
-                        {% if ap.status == 'BOOKED' %}
-                        <form method="post" action="{{ url_for('admin.update_appointment_status', slug=company.slug, appointment_id=ap.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="DONE"><button class="btn btn-sm btn-success">Realizado</button></form>
-                        <form method="post" action="{{ url_for('admin.update_appointment_status', slug=company.slug, appointment_id=ap.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="NO_SHOW"><button class="btn btn-sm btn-warning">No asistió</button></form>
-                        <form method="post" action="{{ url_for('admin.update_appointment_status', slug=company.slug, appointment_id=ap.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="CANCELED"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Cancelar este turno?')">Cancelar</button></form>
-                        {% endif %}
-                        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.appointment_log', slug=company.slug, appointment_id=ap.id) }}">Ver historial</a>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="small fw-semibold mb-2">Reprogramar</div>
-                      <form method="post" action="{{ url_for('admin.reschedule_appointment', slug=company.slug, appointment_id=ap.id) }}" class="d-flex flex-wrap gap-2">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <select class="form-select form-select-sm" name="service_id" style="min-width:120px">{% for service in company.services if service.active %}<option value="{{ service.id }}" {% if ap.service_id == service.id %}selected{% endif %}>{{ service.name }}</option>{% endfor %}</select>
-                        <select class="form-select form-select-sm" name="employee_id" style="min-width:120px">{% for professional in company.employees if professional.active %}<option value="{{ professional.id }}" {% if ap.employee_id == professional.id %}selected{% endif %}>{{ professional.name }}</option>{% endfor %}</select>
-                        <input class="form-control form-control-sm" type="datetime-local" name="start_dt" value="{{ ap.start_dt.strftime('%Y-%m-%dT%H:%M') }}" style="min-width:180px">
-                        <button class="btn btn-sm btn-outline-dark">Reprogramar</button>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-          </div>
-          {% endif %}
-
-        </div><!-- /agenda-main -->
-
-        <!-- ╔══════════════════════════════════════════╗
-             ║  PANEL NUEVO TURNO (oculto por defecto) ║
-             ╚══════════════════════════════════════════╝ -->
         <div id="nuevo-turno-panel" class="d-none">
           <div class="card shadow-sm">
             <div class="card-body p-4">
@@ -1770,6 +1736,55 @@
     if (opt.dataset.email) ntGuestEmail.value = opt.dataset.email;
     if (opt.dataset.dni)   ntGuestDni.value   = opt.dataset.dni;
   });
+})();
+
+// ── Panel de detalle del turno (agenda v2) ──
+(function () {
+  const detail = document.getElementById('ag2-detail');
+  const overlay = document.getElementById('ag2-detail-overlay');
+  if (!detail || !overlay) return;
+  const closeBtn = document.getElementById('ag2-detail-close');
+  const slug = {{ company.slug|tojson }};
+
+  const statusClsMap = { BOOKED: 'is-booked', DONE: 'is-done', NO_SHOW: 'is-noshow', CANCELED: 'is-canceled' };
+
+  function openDetail(row) {
+    const d = row.dataset;
+    document.getElementById('ag2d-name').textContent = d.apClient || '—';
+    document.getElementById('ag2d-phone').textContent = d.apPhone || 'Sin teléfono';
+    document.getElementById('ag2d-avatar').textContent = (d.apClient || '--').substring(0, 2).toUpperCase();
+    document.getElementById('ag2d-time').textContent = d.apTime || '—';
+    document.getElementById('ag2d-service').textContent = d.apService || '—';
+    document.getElementById('ag2d-prof').textContent = d.apProf || '—';
+    const badge = document.getElementById('ag2d-status');
+    badge.textContent = d.apStatusLabel || d.apStatus;
+    badge.className = 'ag2-badge ' + (statusClsMap[d.apStatus] || '');
+
+    // Apuntar los formularios de acción a este turno
+    const action = '/admin/' + slug + '/appointments/' + d.apId + '/status';
+    ['ag2d-form-done', 'ag2d-form-noshow', 'ag2d-form-cancel'].forEach(id => {
+      document.getElementById(id).action = action;
+    });
+
+    // Ocultar acciones que no aplican según el estado actual
+    const isFinal = (d.apStatus === 'CANCELED' || d.apStatus === 'DONE' || d.apStatus === 'NO_SHOW');
+    document.querySelector('.ag2-detail-actions').style.display = isFinal ? 'none' : 'flex';
+
+    detail.classList.add('is-open');
+    overlay.classList.add('is-open');
+  }
+
+  function closeDetail() {
+    detail.classList.remove('is-open');
+    overlay.classList.remove('is-open');
+  }
+
+  document.querySelectorAll('.ag2-row').forEach(row => {
+    row.addEventListener('click', () => openDetail(row));
+  });
+  closeBtn.addEventListener('click', closeDetail);
+  overlay.addEventListener('click', closeDetail);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 })();
 </script>
 {% endblock %}

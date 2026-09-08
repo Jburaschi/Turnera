@@ -301,6 +301,23 @@ def dashboard(slug):
         if ap.employee_id:
             agenda_by_employee.setdefault(ap.employee_id, []).append(ap)
 
+    # ── Agenda tipo lista: turnos agrupados por hora de inicio ────────────
+    from collections import OrderedDict
+    agenda_sorted = sorted(appointments, key=lambda a: a.start_dt)
+    agenda_by_hour = OrderedDict()
+    for ap in agenda_sorted:
+        key = ap.start_dt.strftime('%H:%M')
+        agenda_by_hour.setdefault(key, []).append(ap)
+
+    # Contadores de estado del día seleccionado
+    agenda_day_counts = {
+        'BOOKED':   sum(1 for a in appointments if a.status == 'BOOKED'),
+        'DONE':     sum(1 for a in appointments if a.status == 'DONE'),
+        'NO_SHOW':  sum(1 for a in appointments if a.status == 'NO_SHOW'),
+        'CANCELED': sum(1 for a in appointments if a.status == 'CANCELED'),
+    }
+    agenda_day_total = len(appointments)
+
     company_hours_today = CompanyHours.query.filter_by(company_id=company.id).all()
     if company_hours_today:
         agenda_start_hour = min(h.start_time.hour for h in company_hours_today)
@@ -543,6 +560,7 @@ def dashboard(slug):
         payments_total_rows=payments_total_rows, unpaid_appointments=unpaid_appointments,
         service_color_map=service_color_map,
         agenda_employees=agenda_employees, agenda_by_employee=agenda_by_employee,
+        agenda_by_hour=agenda_by_hour, agenda_day_counts=agenda_day_counts, agenda_day_total=agenda_day_total,
         agenda_start_hour=agenda_start_hour, agenda_end_hour=agenda_end_hour, agenda_hour_marks=agenda_hour_marks,
         mini_cal_weeks=mini_cal_weeks, mini_cal_month_label=mini_cal_month_label,
         prev_month_date=prev_month_date, next_month_date=next_month_date,

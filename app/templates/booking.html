@@ -81,7 +81,11 @@
 
         <!-- Step: Mode -->
         <div class="booking-panel d-none" id="step-mode">
-          <div class="option-grid" id="mode-options"></div>
+          <div class="booking-panel-header">
+            <h2 class="booking-panel-title">¿Cómo querés buscar tu turno?</h2>
+            <p class="booking-panel-sub">Elegí la modalidad de búsqueda que preferís.</p>
+          </div>
+          <div class="mode-options-grid" id="mode-options"></div>
           <span class="step-status visually-hidden" id="mode-status">Elegí una modalidad</span>
         </div>
 
@@ -97,19 +101,19 @@
 
         <!-- Step: Date -->
         <div class="booking-panel d-none" id="step-date">
-          <div class="booking-panel-header">
-            <h2 class="booking-panel-title" id="date-step-title">Elegí una fecha</h2>
-            <p class="booking-panel-sub" id="date-step-help">Seleccioná el día que te quede mejor.</p>
-          </div>
-          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-secondary btn-sm" id="prev-month" type="button">←</button>
-              <button class="btn btn-outline-secondary btn-sm" id="next-month" type="button">→</button>
+          <div class="cal-head">
+            <div>
+              <h2 class="booking-panel-title" id="date-step-title">Seleccioná una fecha</h2>
+              <p class="booking-panel-sub" id="date-step-help">Te mostramos los días disponibles para turnos.</p>
             </div>
-            <span class="fw-semibold text-capitalize" id="calendar-title"></span>
+            <div class="cal-nav">
+              <button class="cal-nav-btn" id="prev-month" type="button" aria-label="Mes anterior">{{ ic.icon('chevron-left', 18) }}</button>
+              <span class="cal-nav-title text-capitalize" id="calendar-title"></span>
+              <button class="cal-nav-btn" id="next-month" type="button" aria-label="Mes siguiente">{{ ic.icon('chevron-right', 18) }}</button>
+            </div>
           </div>
           <div class="calendar-grid" id="calendar-grid"></div>
-          <div class="small mt-3 d-flex gap-3 flex-wrap">
+          <div class="cal-legend">
             <span><span class="legend available"></span>Disponible</span>
             <span><span class="legend unavailable"></span>No disponible</span>
             <span><span class="legend selected"></span>Seleccionada</span>
@@ -121,16 +125,13 @@
         <div class="booking-panel d-none" id="step-time">
           <div class="booking-panel-header">
             <h2 class="booking-panel-title" id="time-step-title">Elegí un horario</h2>
+            <p class="booking-panel-sub">Seleccioná el horario que mejor se adapte a vos.</p>
             <div class="summary-pill mb-2" id="time-context">Primero elegí una fecha.</div>
           </div>
           <div class="timezone-note">
             {{ ic.icon('globe', 14) }} Los horarios se muestran en la zona horaria de {{ company.name }}: <strong>{{ timezone_label }}</strong>
           </div>
           <div id="time-slots"></div>
-          <div class="small mt-3 d-flex gap-3 flex-wrap">
-            <span><span class="legend available"></span>Disponible</span>
-            <span><span class="legend selected"></span>Seleccionado</span>
-          </div>
           <span class="step-status visually-hidden" id="time-status">Elegí un horario</span>
         </div>
 
