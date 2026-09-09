@@ -447,7 +447,7 @@
             <div class="ag2-date">
               <span class="ag2-date-icon">{{ ic.icon('calendar', 20) }}</span>
               <div>
-                <div class="ag2-date-title">{{ selected_day.strftime('%A %d de %B de %Y')|capitalize }}</div>
+                <div class="ag2-date-title">{{ selected_day_label }}</div>
                 <div class="ag2-date-sub">{{ agenda_day_total }} turno{{ '' if agenda_day_total == 1 else 's' }} programado{{ '' if agenda_day_total == 1 else 's' }}</div>
               </div>
               <div class="ag2-date-nav">
@@ -617,6 +617,7 @@
               </form>
             </div>
           </aside>
+        </div><!-- /agenda-main -->
 
 
         <div id="nuevo-turno-panel" class="d-none">

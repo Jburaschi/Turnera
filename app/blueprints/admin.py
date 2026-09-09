@@ -333,6 +333,7 @@ def dashboard(slug):
     cal = _cal.Calendar(firstweekday=0)
     mini_cal_weeks = cal.monthdayscalendar(selected_day.year, selected_day.month)
     mini_cal_month_label = MONTH_LABELS[selected_day.month - 1] + f' {selected_day.year}'
+    selected_day_label = f'{WEEKDAY_LABELS[selected_day.weekday()]} {selected_day.day} de {MONTH_LABELS[selected_day.month - 1]} de {selected_day.year}'
     prev_month_date = (selected_day.replace(day=1) - timedelta(days=1))
     next_month_date = (selected_day.replace(day=28) + timedelta(days=7)).replace(day=1)
 
@@ -543,7 +544,7 @@ def dashboard(slug):
         customers_new_month_delta=customers_new_month_delta,
         customers_with_appts_30d=customers_with_appts_30d, customers_without_appts_30d=customers_without_appts_30d,
         with_appts_pct=with_appts_pct, without_appts_pct=without_appts_pct,
-        selected_day=selected_day, weekday_labels=WEEKDAY_LABELS, active_section=section,
+        selected_day=selected_day, selected_day_label=selected_day_label, weekday_labels=WEEKDAY_LABELS, active_section=section,
         stats=dict(today_appointments=today_count, month_appointments=month_count,
                    professionals=active_professionals, services=active_services,
                    paid_total=paid_total, pending_total=pending_total,
