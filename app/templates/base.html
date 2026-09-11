@@ -116,11 +116,11 @@
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="container pt-3">
+    <div class="admin-toasts" id="base-toasts">
       {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert">×</button>
+        <div class="admin-toast admin-toast--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }}" role="alert">
+          <span class="admin-toast-msg">{{ message }}</span>
+          <button type="button" class="admin-toast-close" aria-label="Cerrar">&times;</button>
         </div>
       {% endfor %}
     </div>
@@ -170,6 +170,18 @@
         btn.querySelector('.pwd-icon-eye-off').classList.toggle('d-none', showing);
       });
     });
+
+    // Toasts flotantes: cerrar con la X y auto-cierre a los 6s
+    (function () {
+      var wrap = document.getElementById('base-toasts');
+      if (!wrap) return;
+      function hide(toast) { toast.classList.add('is-hiding'); setTimeout(function () { toast.remove(); }, 200); }
+      wrap.querySelectorAll('.admin-toast').forEach(function (toast) {
+        var btn = toast.querySelector('.admin-toast-close');
+        if (btn) btn.addEventListener('click', function () { hide(toast); });
+        setTimeout(function () { if (toast.isConnected) hide(toast); }, 6000);
+      });
+    })();
   </script>
   {% block scripts %}{% endblock %}
 </body>

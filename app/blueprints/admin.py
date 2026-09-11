@@ -287,8 +287,17 @@ def dashboard(slug):
     selected_professional_id = request.args.get('professional_id', type=int)
     selected_service_id      = request.args.get('service_id', type=int)
     selected_status          = request.args.get('status', '').strip().upper()
-    search_customer          = request.args.get('q', '').strip().lower()
+    search_customer          = (request.args.get('q') or request.args.get('search_customer') or '').strip().lower()
+    selected_time_range      = request.args.get('time_range', '').strip().lower()
     appointments = build_agenda_query(company, selected_day, selected_professional_id, selected_service_id, selected_status, search_customer)
+
+    # Filtro por franja horaria (mañana <13, tarde 13-19, noche >=19)
+    if selected_time_range == 'morning':
+        appointments = [a for a in appointments if a.start_dt.hour < 13]
+    elif selected_time_range == 'afternoon':
+        appointments = [a for a in appointments if 13 <= a.start_dt.hour < 19]
+    elif selected_time_range == 'evening':
+        appointments = [a for a in appointments if a.start_dt.hour >= 19]
 
     today = datetime.now().date()
 
@@ -561,7 +570,7 @@ def dashboard(slug):
         payments_total_rows=payments_total_rows, unpaid_appointments=unpaid_appointments,
         service_color_map=service_color_map,
         agenda_employees=agenda_employees, agenda_by_employee=agenda_by_employee,
-        agenda_by_hour=agenda_by_hour, agenda_day_counts=agenda_day_counts, agenda_day_total=agenda_day_total,
+        agenda_by_hour=agenda_by_hour, agenda_sorted=agenda_sorted, agenda_day_counts=agenda_day_counts, agenda_day_total=agenda_day_total,
         agenda_start_hour=agenda_start_hour, agenda_end_hour=agenda_end_hour, agenda_hour_marks=agenda_hour_marks,
         mini_cal_weeks=mini_cal_weeks, mini_cal_month_label=mini_cal_month_label,
         prev_month_date=prev_month_date, next_month_date=next_month_date,
@@ -574,6 +583,7 @@ def dashboard(slug):
         sections=ADMIN_SECTIONS, selected_professional_id=selected_professional_id,
         selected_service_id=selected_service_id, selected_status=selected_status,
         search_customer=search_customer, status_options=STATUS_OPTIONS,
+        selected_time_range=selected_time_range, month_labels=MONTH_LABELS,
         blocked_periods=blocked_periods, manual_slots=manual_slots,
         manual_service_id=manual_service_id, manual_employee_id=manual_employee_id,
         employees_by_service=employees_by_service,

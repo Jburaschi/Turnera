@@ -136,13 +136,6 @@
 
     <div class="admin-content">
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show mb-3 rounded-3" role="alert">
-          {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endwith %}
 
     {% if plan_state.trial_warning %}
     <div class="trial-banner trial-banner--warning">
@@ -440,110 +433,120 @@
           'NO_SHOW':  {'label': 'No vino',    'cls': 'is-noshow'},
           'CANCELED': {'label': 'Cancelado',  'cls': 'is-canceled'}
         } %}
-        <div id="agenda-main" class="ag2">
+        <div id="agenda-main" class="ag3">
 
-          <!-- Barra superior: fecha + navegación + acciones -->
-          <div class="ag2-topbar">
-            <div class="ag2-date">
-              <span class="ag2-date-icon">{{ ic.icon('calendar', 20) }}</span>
-              <div>
-                <div class="ag2-date-title">{{ selected_day_label }}</div>
-                <div class="ag2-date-sub">{{ agenda_day_total }} turno{{ '' if agenda_day_total == 1 else 's' }} programado{{ '' if agenda_day_total == 1 else 's' }}</div>
-              </div>
-              <div class="ag2-date-nav">
-                <a class="ag2-nav-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day - timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">{{ ic.icon('chevron-left', 16) }}</a>
-              <a class="ag2-nav-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day + timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">{{ ic.icon('chevron-right', 16) }}</a>
-                <a class="ag2-today-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">Hoy</a>
-              </div>
+          <!-- Barra superior: fecha + navegación + vista + nuevo turno -->
+          <div class="ag3-topbar">
+            <div class="ag3-date-nav">
+              <a class="ag3-nav-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day - timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">{{ ic.icon('chevron-left', 18) }}</a>
+              <span class="ag3-date-title">{{ selected_day.day }} de {{ month_labels[selected_day.month - 1] }} de {{ selected_day.year }}</span>
+              <a class="ag3-nav-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day + timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">{{ ic.icon('chevron-right', 18) }}</a>
+              <a class="ag3-today-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">Hoy</a>
             </div>
-            <button class="ag2-new-btn" id="btn-nuevo-turno" type="button">{{ ic.icon('plus', 16) }} Nuevo turno</button>
+            <div class="ag3-view-toggle">
+              <a class="ag3-view is-active">Día</a>
+              <a class="ag3-view is-disabled" title="Próximamente">Semana</a>
+              <a class="ag3-view is-disabled" title="Próximamente">Mes</a>
+              <a class="ag3-view is-disabled" title="Próximamente">Año</a>
+            </div>
           </div>
 
           <!-- Filtros -->
-          <form method="get" class="ag2-filters" id="ag2-filters">
+          <form method="get" class="ag3-filters" id="ag3-filters">
             <input type="hidden" name="section" value="agenda">
             <input type="hidden" name="day" value="{{ selected_day.isoformat() }}">
-            <div class="ag2-search">
-              {{ ic.icon('search', 16) }}
-              <input type="text" name="search_customer" value="{{ search_customer or '' }}" placeholder="Buscar por cliente...">
+            <div class="ag3-filter">
+              <span class="ag3-filter-ic">{{ ic.icon('user', 15) }}</span>
+              <select name="professional_id" onchange="this.form.submit()">
+                <option value="">Profesional</option>
+                {% for p in company.employees if p.active %}<option value="{{ p.id }}" {% if selected_professional_id == p.id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+              </select>
+              <span class="ag3-filter-caret">{{ ic.icon('chevron-down', 14) }}</span>
             </div>
-            <select class="ag2-filter-select" name="professional_id" onchange="this.form.submit()">
-              <option value="">Profesional</option>
-              {% for p in company.employees if p.active %}<option value="{{ p.id }}" {% if selected_professional_id == p.id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
-            </select>
-            <select class="ag2-filter-select" name="service_id" onchange="this.form.submit()">
-              <option value="">Prestación</option>
-              {% for s in company.services %}<option value="{{ s.id }}" {% if selected_service_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
-            </select>
-            <select class="ag2-filter-select" name="status" onchange="this.form.submit()">
-              <option value="">Estado</option>
-              {% for opt in status_options %}<option value="{{ opt }}" {% if selected_status == opt %}selected{% endif %}>{{ status_meta[opt].label if opt in status_meta else opt }}</option>{% endfor %}
-            </select>
-            <button type="submit" class="ag2-search-btn d-none">Buscar</button>
-            {% if selected_professional_id or selected_service_id or selected_status or search_customer %}
-            <a class="ag2-clear" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat()) }}">Limpiar filtros</a>
+            <div class="ag3-filter">
+              <span class="ag3-filter-ic">{{ ic.icon('scissors', 15) }}</span>
+              <select name="service_id" onchange="this.form.submit()">
+                <option value="">Prestación</option>
+                {% for s in company.services %}<option value="{{ s.id }}" {% if selected_service_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+              </select>
+              <span class="ag3-filter-caret">{{ ic.icon('chevron-down', 14) }}</span>
+            </div>
+            <div class="ag3-filter">
+              <span class="ag3-filter-ic">{{ ic.icon('tag', 15) }}</span>
+              <select name="status" onchange="this.form.submit()">
+                <option value="">Estado</option>
+                {% for opt in status_options %}<option value="{{ opt }}" {% if selected_status == opt %}selected{% endif %}>{{ status_meta[opt].label if opt in status_meta else opt }}</option>{% endfor %}
+              </select>
+              <span class="ag3-filter-caret">{{ ic.icon('chevron-down', 14) }}</span>
+            </div>
+            <div class="ag3-filter">
+              <span class="ag3-filter-ic">{{ ic.icon('clock', 15) }}</span>
+              <select name="time_range" onchange="this.form.submit()">
+                <option value="">Horario</option>
+                <option value="morning" {% if selected_time_range == 'morning' %}selected{% endif %}>Mañana</option>
+                <option value="afternoon" {% if selected_time_range == 'afternoon' %}selected{% endif %}>Tarde</option>
+                <option value="evening" {% if selected_time_range == 'evening' %}selected{% endif %}>Noche</option>
+              </select>
+              <span class="ag3-filter-caret">{{ ic.icon('chevron-down', 14) }}</span>
+            </div>
+            {% if selected_professional_id or selected_service_id or selected_status or selected_time_range or search_customer %}
+            <a class="ag3-clear" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=selected_day.isoformat()) }}">{{ ic.icon('refresh', 15) }} Limpiar filtros</a>
+            {% else %}
+            <span class="ag3-clear is-muted">{{ ic.icon('refresh', 15) }} Limpiar filtros</span>
             {% endif %}
           </form>
 
-          <div class="ag2-layout">
-            <!-- Lista de turnos agrupados por hora -->
-            <div class="ag2-list">
-              {% if agenda_by_hour %}
-                {% for hour, aps in agenda_by_hour.items() %}
-                <div class="ag2-hour-block">
-                  <div class="ag2-hour-col">
-                    <div class="ag2-hour">{{ hour }}</div>
-                    <div class="ag2-hour-count">{{ aps|length }} turno{{ '' if aps|length == 1 else 's' }}</div>
-                  </div>
-                  <div class="ag2-hour-rows">
-                    {% for ap in aps %}
-                    {% set sm = status_meta.get(ap.status, {'label': ap.status, 'cls': ''}) %}
-                    <div class="ag2-row" data-ap-id="{{ ap.id }}"
-                         data-ap-client="{{ ap.customer_display_name }}"
-                         data-ap-phone="{{ ap.customer.phone if ap.customer and ap.customer.phone else '' }}"
-                         data-ap-service="{{ ap.service.name if ap.service else '—' }}"
-                         data-ap-prof="{{ ap.employee.name if ap.employee else '—' }}"
-                         data-ap-time="{{ ap.start_dt.strftime('%H:%M') }} – {{ ap.end_dt.strftime('%H:%M') }}"
-                         data-ap-status="{{ ap.status }}"
-                         data-ap-status-label="{{ sm.label }}">
-                      <div class="ag2-row-time">{{ ap.start_dt.strftime('%H:%M') }} – {{ ap.end_dt.strftime('%H:%M') }}</div>
-                      <div class="ag2-avatar" style="background:{{ (ap.employee.color if ap.employee and ap.employee.color else '#eef1ff') }}">{{ ap.customer_display_name[:2]|upper }}</div>
-                      <div class="ag2-row-client">
-                        <strong>{{ ap.customer_display_name }}</strong>
-                        <span>{{ ap.customer.phone if ap.customer and ap.customer.phone else 'Sin teléfono' }}</span>
-                      </div>
-                      <div class="ag2-row-service">{{ ap.service.name if ap.service else '—' }}</div>
-                      <div class="ag2-row-prof">
-                        <span class="ag2-prof-dot" style="background:{{ ap.employee.color or '#3654f0' if ap.employee else '#a1a1aa' }}">{{ ap.employee.name[:1]|upper if ap.employee else '?' }}</span>
-                        {{ ap.employee.name if ap.employee else '—' }}
-                      </div>
-                      <div class="ag2-row-status"><span class="ag2-badge {{ sm.cls }}">{{ sm.label }}</span></div>
-                      <button class="ag2-row-more" type="button" aria-label="Ver detalle">{{ ic.icon('dots', 16) }}</button>
-                    </div>
-                    {% endfor %}
-                  </div>
-                </div>
-                {% endfor %}
+          <div class="ag3-layout">
+            <!-- Tabla de turnos -->
+            <div class="ag3-table-wrap">
+              {% if agenda_sorted %}
+              <table class="ag3-table">
+                <thead>
+                  <tr>
+                    <th>Hora</th><th>Cliente</th><th>Prestación</th><th>Profesional</th><th>Estado</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ap in agenda_sorted %}
+                  {% set sm = status_meta.get(ap.status, {'label': ap.status, 'cls': ''}) %}
+                  <tr class="ag3-row" data-ap-id="{{ ap.id }}"
+                      data-ap-client="{{ ap.customer_display_name }}"
+                      data-ap-phone="{{ ap.customer.phone if ap.customer and ap.customer.phone else '' }}"
+                      data-ap-service="{{ ap.service.name if ap.service else '—' }}"
+                      data-ap-prof="{{ ap.employee.name if ap.employee else '—' }}"
+                      data-ap-time="{{ ap.start_dt.strftime('%H:%M') }} – {{ ap.end_dt.strftime('%H:%M') }}"
+                      data-ap-status="{{ ap.status }}"
+                      data-ap-status-label="{{ sm.label }}">
+                    <td class="ag3-td-hour">{{ ap.start_dt.strftime('%H:%M') }}</td>
+                    <td class="ag3-td-client">{{ ap.customer_display_name }}</td>
+                    <td class="ag3-td-service">{{ ap.service.name if ap.service else '—' }}</td>
+                    <td class="ag3-td-prof">{{ ap.employee.name if ap.employee else '—' }}</td>
+                    <td><span class="ag3-badge {{ sm.cls }}"><span class="ag3-badge-dot"></span>{{ sm.label }}</span></td>
+                    <td class="ag3-td-more"><button type="button" class="ag3-more" aria-label="Ver detalle">{{ ic.icon('dots', 16) }}</button></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
               {% else %}
-                <div class="admin-empty-state">
-                  <span class="admin-empty-icon">{{ ic.icon('calendar', 30) }}</span>
-                  <div class="admin-empty-title">No hay turnos este día</div>
-                  <div class="admin-empty-sub">Cuando reserven o cargues un turno, va a aparecer acá.</div>
-                </div>
+              <div class="admin-empty-state" style="padding:4rem 1rem;">
+                <span class="admin-empty-icon">{{ ic.icon('calendar', 30) }}</span>
+                <div class="admin-empty-title">No hay turnos este día</div>
+                <div class="admin-empty-sub">Cuando reserven o cargues un turno, va a aparecer acá.</div>
+              </div>
               {% endif %}
             </div>
 
-            <!-- Sidebar: mini calendario + resumen del día -->
-            <aside class="ag2-side">
-              <div class="ag2-side-card">
-                <div class="ag2-mini-head">
+            <!-- Sidebar: mini calendario + turnos del día -->
+            <aside class="ag3-side">
+              <div class="ag3-side-card">
+                <div class="ag3-mini-head">
                   <strong class="text-capitalize">{{ mini_cal_month_label }}</strong>
-                  <div class="ag2-mini-nav">
+                  <div class="ag3-mini-nav">
                     <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=prev_month_date.isoformat()) }}">{{ ic.icon('chevron-left', 15) }}</a>
                     <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=next_month_date.isoformat()) }}">{{ ic.icon('chevron-right', 15) }}</a>
                   </div>
                 </div>
-                <table class="ag2-mini-cal">
+                <table class="ag3-mini-cal">
                   <thead><tr>{% for d in ['L','M','X','J','V','S','D'] %}<th>{{ d }}</th>{% endfor %}</tr></thead>
                   <tbody>
                     {% for week in mini_cal_weeks %}
@@ -552,7 +555,7 @@
                         {% if day_num == 0 %}<td></td>
                         {% else %}
                           {% set cell_date = selected_day.replace(day=day_num) %}
-                          <td><a class="ag2-mini-day {{ 'is-selected' if day_num == selected_day.day }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=cell_date.isoformat()) }}">{{ day_num }}</a></td>
+                          <td><a class="ag3-mini-day {{ 'is-selected' if day_num == selected_day.day }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=cell_date.isoformat()) }}">{{ day_num }}</a></td>
                         {% endif %}
                       {% endfor %}
                     </tr>
@@ -561,22 +564,15 @@
                 </table>
               </div>
 
-              <div class="ag2-side-card">
-                <div class="ag2-summary-head">
-                  <strong>Resumen del día</strong>
-                  <span>{{ agenda_day_total }} turno{{ '' if agenda_day_total == 1 else 's' }}</span>
-                </div>
-                <div class="ag2-summary-row"><span class="ag2-dot is-booked"></span>Confirmados<b>{{ agenda_day_counts.BOOKED }}</b></div>
-                <div class="ag2-summary-row"><span class="ag2-dot is-done"></span>Atendidos<b>{{ agenda_day_counts.DONE }}</b></div>
-                <div class="ag2-summary-row"><span class="ag2-dot is-noshow"></span>No vinieron<b>{{ agenda_day_counts.NO_SHOW }}</b></div>
-                <div class="ag2-summary-row"><span class="ag2-dot is-canceled"></span>Cancelados<b>{{ agenda_day_counts.CANCELED }}</b></div>
+              <div class="ag3-side-card">
+                <div class="ag3-summary-title">Turnos del día</div>
+                <div class="ag3-summary-row"><span class="ag3-dot is-booked"></span>Confirmados<b>{{ agenda_day_counts.BOOKED }}</b></div>
+                <div class="ag3-summary-row"><span class="ag3-dot is-done"></span>Atendidos<b>{{ agenda_day_counts.DONE }}</b></div>
+                <div class="ag3-summary-row"><span class="ag3-dot is-noshow"></span>No vinieron<b>{{ agenda_day_counts.NO_SHOW }}</b></div>
+                <div class="ag3-summary-row"><span class="ag3-dot is-canceled"></span>Cancelados<b>{{ agenda_day_counts.CANCELED }}</b></div>
               </div>
-
-              <button class="ag2-side-new" id="btn-nuevo-turno-quick" type="button">{{ ic.icon('plus', 16) }} Nuevo turno</button>
-              <a class="ag2-side-block" href="{{ url_for('admin.dashboard', slug=company.slug, section='blocks') }}">{{ ic.icon('clock', 16) }} Bloquear horario</a>
             </aside>
           </div>
-
           <!-- Panel deslizante de detalle del turno (se abre al seleccionar) -->
           <div class="ag2-detail-overlay" id="ag2-detail-overlay"></div>
           <aside class="ag2-detail" id="ag2-detail">
@@ -1780,12 +1776,13 @@
     overlay.classList.remove('is-open');
   }
 
-  document.querySelectorAll('.ag2-row').forEach(row => {
+  document.querySelectorAll('.ag3-row').forEach(row => {
     row.addEventListener('click', () => openDetail(row));
   });
   closeBtn.addEventListener('click', closeDetail);
   overlay.addEventListener('click', closeDetail);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 })();
+// ── Toasts: gestionados por base.html ──
 </script>
 {% endblock %}
