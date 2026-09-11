@@ -105,12 +105,8 @@
     <!-- ══ TOPBAR ═══════════════════════════════════ -->
     <div class="admin-topbar">
       <div class="admin-topbar-brand">
-        <div class="admin-topbar-logo">
-          {% if company.logo_url %}<img src="{{ company.logo_url }}" alt="{{ company.name }}">{% else %}T{% endif %}
-        </div>
         <div style="min-width:0;">
           <div class="admin-topbar-name">{{ sections.get(active_section, company.name) }}</div>
-          {% if company.address %}<div class="admin-topbar-sub">{{ company.address }}</div>{% endif %}
         </div>
       </div>
       <div class="admin-topbar-actions">
@@ -137,40 +133,13 @@
     <div class="admin-content">
 
 
-    {% if plan_state.trial_warning %}
-    <div class="trial-banner trial-banner--warning">
-      <div class="trial-banner-left">
-        <span class="trial-banner-icon">⏳</span>
-        <div>
-          <strong>Período de prueba: {{ plan_state.trial_days_left }} día{{ 's' if plan_state.trial_days_left != 1 }} restante{{ 's' if plan_state.trial_days_left != 1 }}</strong>
-          <span>Activá tu plan para no perder el acceso al panel ni la página pública.</span>
-        </div>
-      </div>
-      <a href="mailto:hola@turnex.com?subject=Quiero activar mi plan — {{ company.name }}" class="trial-banner-cta">
-        Activar plan
-      </a>
-    </div>
-    {% elif plan_state.trial_active %}
-    <div class="trial-banner trial-banner--info">
-      <div class="trial-banner-left">
-        <span class="trial-banner-icon">🔎</span>
-        <div>
-          <strong>Estás en período de prueba</strong>
-          <span>{{ plan_state.trial_days_left }} día{{ 's' if plan_state.trial_days_left != 1 }} restante{{ 's' if plan_state.trial_days_left != 1 }}. Todas las funciones están activas.</span>
-        </div>
-      </div>
-      <a href="mailto:hola@turnex.com?subject=Quiero activar mi plan — {{ company.name }}" class="trial-banner-cta trial-banner-cta--ghost">
-        Ver planes
-      </a>
-    </div>
-    {% endif %}
 
     <!-- ════ OVERVIEW ════════════════════════════════════ -->
     {% if active_section == 'overview' %}
       {% set first_name = (current_user.name.split()[0] if current_user.name else 'Administrador') %}
       <div class="admin-page-header">
         <div>
-          <h1 class="admin-page-title">¡Hola, {{ first_name }}! 👋</h1>
+          <h1 class="admin-page-title">¡Hola, {{ first_name }}!</h1>
           <p class="admin-page-sub">Acá tenés un resumen de tu negocio.</p>
         </div>
         <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}" class="btn btn-dark btn-sm">Ver agenda →</a>
@@ -182,7 +151,6 @@
           <div class="admin-stat-body-v2">
             <span class="admin-stat-label-v2">Turnos hoy</span>
             <div class="admin-stat-value-v2">{{ stats.today_appointments }}</div>
-            {% if stats.today_appointments == 0 %}<div class="admin-stat-sub">Sin turnos programados</div>{% endif %}
           </div>
         </div>
         <div class="admin-stat-card-v2">
@@ -449,6 +417,7 @@
               <a class="ag3-view is-disabled" title="Próximamente">Mes</a>
               <a class="ag3-view is-disabled" title="Próximamente">Año</a>
             </div>
+            <button class="ag3-new-btn" id="btn-nuevo-turno" type="button">{{ ic.icon('plus', 16) }} Nuevo turno</button>
           </div>
 
           <!-- Filtros -->
@@ -918,17 +887,16 @@
         <div class="admin-card-header"><h2 class="admin-card-title">Nuevo profesional</h2></div>
         <div class="admin-card-body">
           <p class="small text-secondary mb-3">Podés agregar varias franjas el mismo día. En cada franja podés limitar prestaciones o dejarlas vacías para aplicar todas.</p>
-          <form method="post" action="{{ url_for('admin.create_employee', slug=company.slug) }}" class="row g-3">
+          <form method="post" action="{{ url_for('admin.create_employee', slug=company.slug) }}" class="row g-3" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" required></div>
-            <div class="col-md-3"><label class="form-label">Color</label><input class="form-control form-control-color" type="color" name="color" value="#3654f0"></div>
-            <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" role="switch" type="checkbox" name="active" checked id="new_employee_active"><label class="form-check-label" for="new_employee_active">Activo</label></div></div>
-            <div class="col-md-8"><label class="form-label">Foto (URL) <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="photo_url" type="url" placeholder="https://..."></div>
+            <div class="col-md-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" role="switch" type="checkbox" name="active" checked id="new_employee_active"><label class="form-check-label" for="new_employee_active">Activo</label></div></div>
+            <div class="col-md-8"><label class="form-label">Foto <span class="text-secondary fw-normal small">— opcional, PNG o JPG (máx. 2MB)</span></label><input class="form-control" name="photo_file" type="file" accept="image/png,image/jpeg"></div>
             <div class="col-md-4"><label class="form-label">Descripción breve</label><input class="form-control" name="bio" maxlength="300" placeholder="Aparece en la página pública"></div>
             <div class="col-12"><label class="form-label">Prestaciones</label>
               <div class="border rounded-3 p-3 bg-light" style="max-height:200px;overflow-y:auto;">
                 {% if company.services %}<div class="row g-2">{% for service in company.services %}
-                <div class="col-md-6"><div class="form-check">
+                <div class="col-md-4"><div class="form-check">
                   <input class="form-check-input" type="checkbox" name="service_ids" value="{{ service.id }}" id="new_svc_{{ service.id }}">
                   <label class="form-check-label" for="new_svc_{{ service.id }}"><strong>{{ service.name }}</strong> <span class="text-secondary small">· {{ service.duration_min }} min</span></label>
                 </div></div>
@@ -958,11 +926,17 @@
               <tr>
                 <td>
                   <div class="admin-table-person">
-                    <span class="admin-table-avatar" style="background:{{ professional.color or '#3654f0' }}">{{ professional.name[0]|upper }}</span>
+                    <span class="admin-table-avatar" style="background:#2d2d38">{{ professional.name[0]|upper }}</span>
                     <div class="fw-semibold">{{ professional.name }}</div>
                   </div>
                 </td>
-                <td><span class="entity-badge {% if professional.active %}entity-badge--active{% else %}entity-badge--inactive{% endif %}">{{ 'Activo' if professional.active else 'Inactivo' }}</span></td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.toggle_employee_active', slug=company.slug, employee_id=professional.id) }}" class="d-inline"
+                        onsubmit="return confirm('{% if professional.active %}¿Seguro que querés desactivar a {{ professional.name }}? No va a aparecer más para reservar turnos nuevos.{% else %}¿Activar a {{ professional.name }}? Va a volver a aparecer para reservar turnos.{% endif %}');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="entity-badge entity-badge--btn {% if professional.active %}entity-badge--active{% else %}entity-badge--inactive{% endif %}" title="Clic para {{ 'desactivar' if professional.active else 'activar' }}">{{ 'Activo' if professional.active else 'Inactivo' }}</button>
+                  </form>
+                </td>
                 <td class="text-sm">
                   {% if professional.services %}
                     {{ professional.services[:2]|map(attribute='name')|join(', ') }}{% if professional.services|length > 2 %} +{{ professional.services|length - 2 }} más{% endif %}
@@ -979,17 +953,30 @@
               </tr>
               <tr class="collapse" id="employee_{{ professional.id }}"><td colspan="5">
               <div class="expand-panel">
-              <form method="post" action="{{ url_for('admin.update_employee', slug=company.slug, employee_id=professional.id) }}" class="row g-3">
+              <form method="post" action="{{ url_for('admin.update_employee', slug=company.slug, employee_id=professional.id) }}" class="row g-3" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" value="{{ professional.name }}"></div>
-                <div class="col-md-3"><label class="form-label">Color</label><input class="form-control form-control-color" type="color" name="color" value="{{ professional.color }}"></div>
-                <div class="col-12 col-md-9"><label class="form-label">Foto (URL) <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="photo_url" type="url" value="{{ professional.photo_url or '' }}" placeholder="https://..."></div>
-                <div class="col-12 col-md-3"><label class="form-label">Descripción breve</label><input class="form-control" name="bio" maxlength="300" value="{{ professional.bio or '' }}" placeholder="Aparece públicamente"></div>
-                <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" role="switch" type="checkbox" name="active" {% if professional.active %}checked{% endif %} id="emp_active_{{ professional.id }}"><label class="form-check-label" for="emp_active_{{ professional.id }}">Activo</label></div></div>
+                <div class="col-12 col-md-9">
+                  <label class="form-label">Foto <span class="text-secondary fw-normal small">— opcional, PNG o JPG (máx. 2MB)</span></label>
+                  <div class="d-flex align-items-center gap-3">
+                    {% if professional.photo_url %}
+                    <img src="{{ professional.photo_url }}" alt="{{ professional.name }}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex:0 0 52px;">
+                    {% else %}
+                    <span style="width:52px;height:52px;border-radius:50%;background:#eef1ff;color:#3654f0;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 52px;">{{ professional.name[:1]|upper }}</span>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                      <input class="form-control" name="photo_file" type="file" accept="image/png,image/jpeg">
+                      {% if professional.photo_url %}
+                      <div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="remove_photo" value="1" id="rmphoto_{{ professional.id }}"><label class="form-check-label text-secondary small" for="rmphoto_{{ professional.id }}">Quitar la foto actual</label></div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-9"><label class="form-label">Descripción breve</label><input class="form-control" name="bio" maxlength="300" value="{{ professional.bio or '' }}" placeholder="Aparece públicamente"></div>
                 <div class="col-12"><label class="form-label">Prestaciones</label>
                   <div class="border rounded-3 p-3 bg-light" style="max-height:180px;overflow-y:auto;">
                     {% if company.services %}<div class="row g-2">{% for service in company.services %}
-                    <div class="col-md-6"><div class="form-check">
+                    <div class="col-md-4"><div class="form-check">
                       <input class="form-check-input" type="checkbox" name="service_ids" value="{{ service.id }}" id="edit_svc_{{ professional.id }}_{{ service.id }}" {% if service in professional.services %}checked{% endif %}>
                       <label class="form-check-label" for="edit_svc_{{ professional.id }}_{{ service.id }}"><strong>{{ service.name }}</strong> <span class="text-secondary small">· {{ service.duration_min }} min</span></label>
                     </div></div>
@@ -1003,13 +990,14 @@
                   {% else %}{{ schedule_row(0, 0, '09:00', '17:00', []) }}{% endif %}
                   </tbody>
                 </table></div>
-                <div class="col-12 d-flex flex-wrap gap-2">
+                <div class="col-12 d-flex flex-wrap gap-2 mb-2">
                   <button type="button" class="btn btn-outline-secondary btn-sm schedule-add-row" data-schedule-tbody="schedule-rows-{{ professional.id }}">+ Franja</button>
                   <button type="button" class="btn btn-outline-secondary btn-sm schedule-replicate-mon-fri" data-schedule-tbody="schedule-rows-{{ professional.id }}">Replicar lu → mar–vie</button>
                 </div>
-                <div class="col-12 d-flex gap-2">
-                  <button type="submit" class="btn btn-primary btn-sm">Guardar</button></form>
-                  <form method="post" action="{{ url_for('admin.delete_employee', slug=company.slug, employee_id=professional.id) }}" onsubmit="return confirm('¿Eliminar o desactivar?')">
+                <div class="col-12"><hr class="my-2" style="border-color:#eee;"></div>
+                <div class="col-12 d-flex justify-content-between align-items-center gap-2">
+                  <button type="submit" class="btn btn-primary">Guardar cambios</button></form>
+                  <form method="post" action="{{ url_for('admin.delete_employee', slug=company.slug, employee_id=professional.id) }}" onsubmit="return confirm('¿Eliminar a {{ professional.name }}? Si tiene historial de turnos, se desactivará en vez de borrarse.')">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
                   </form>

@@ -749,7 +749,7 @@ def create_employee(slug):
     employee=Employee(company=company, name=name,
                       color=request.form.get('color','#0d6efd'),
                       active='active' in request.form,
-                      photo_url=request.form.get('photo_url','').strip() or None,
+                      photo_url=_save_uploaded_image(request.files.get('photo_file'), company.id),
                       bio=request.form.get('bio','').strip() or None)
     sids={int(s) for s in request.form.getlist('service_ids') if s.isdigit()}
     for svc in company.services:
@@ -769,8 +769,13 @@ def update_employee(slug, employee_id):
     if not name:
         flash('El profesional debe tener nombre.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
     employee.name=name; employee.color=request.form.get('color',employee.color)
-    employee.active='active' in request.form
-    employee.photo_url=request.form.get('photo_url','').strip() or None
+    # El estado activo/inactivo ya no se toca acá: se maneja con el botón del badge.
+    # Foto: si suben un archivo nuevo, lo guardamos; si no, mantenemos lo que había
+    uploaded = _save_uploaded_image(request.files.get('photo_file'), company.id)
+    if uploaded:
+        employee.photo_url = uploaded
+    elif request.form.get('remove_photo') == '1':
+        employee.photo_url = None
     employee.bio=request.form.get('bio','').strip() or None
     employee.services.clear()
     sids={int(s) for s in request.form.getlist('service_ids') if s.isdigit()}
@@ -788,6 +793,17 @@ def update_employee(slug, employee_id):
     else:
         flash('Profesional actualizado.','success')
     return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
+
+@admin_bp.route('/<slug>/employees/<int:employee_id>/toggle-active', methods=['POST'])
+@owner_required
+def toggle_employee_active(slug, employee_id):
+    company = get_owned_company_or_404(slug)
+    employee = Employee.query.filter_by(company_id=company.id, id=employee_id).first_or_404()
+    employee.active = not employee.active
+    db.session.commit()
+    flash(f'{employee.name} ahora está {"activo" if employee.active else "inactivo"}.', 'success')
+    return redirect(url_for('admin.dashboard', slug=slug, section='professionals'))
+
 
 @admin_bp.route('/<slug>/employees/<int:employee_id>/delete', methods=['POST'])
 @owner_required

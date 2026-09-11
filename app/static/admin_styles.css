@@ -31,7 +31,7 @@
 .admin-plan-card a:hover { text-decoration: underline; }
 
 .admin-main { background: #f7f8fa; min-height: 100vh; padding: 0 0 3rem; overflow-x: hidden; }
-.admin-content { padding: 1.65rem 1.85rem 0; }
+.admin-content { padding: 1.65rem 1.85rem 0; max-width: 1320px; }
 
 /* ── Topbar ──────────────────────────────────────────────────── */
 .admin-topbar { position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid #e4e7ec; padding: .75rem 1.85rem; display: flex; align-items: center; gap: 1rem; }
@@ -50,15 +50,15 @@
 .admin-topbar-user-role { font-size: .7rem; color: #a1a1aa; }
 
 /* ── Stat cards v2 (con ícono + variación) ──────────────────── */
-.admin-stat-card-v2 { background: #fff; border: 1px solid #e4e7ec; border-radius: 12px; padding: 1.1rem 1.2rem; display: flex; align-items: flex-start; gap: .9rem; }
-.admin-stat-icon-v2 { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.admin-stat-card-v2 { background: #fff; border: 1px solid #e4e7ec; border-radius: 12px; padding: .85rem .95rem; display: flex; align-items: center; gap: .75rem; }
+.admin-stat-icon-v2 { width: 38px; height: 38px; flex: 0 0 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 .admin-stat-icon-v2--blue { background: #eef1ff; color: #3654f0; }
 .admin-stat-icon-v2--green { background: #eafaf0; color: #16a34a; }
 .admin-stat-icon-v2--amber { background: #fff6e4; color: #c98a1e; }
 .admin-stat-icon-v2--purple { background: #f3ecfe; color: #7c3aed; }
 .admin-stat-body-v2 { flex: 1; min-width: 0; }
 .admin-stat-label-v2 { font-size: .8rem; color: #71717a; display: block; margin-bottom: .25rem; }
-.admin-stat-value-v2 { font-size: 1.5rem; font-weight: 800; color: #18181b; line-height: 1.1; letter-spacing: -.02em; }
+.admin-stat-value-v2 { font-size: 1.35rem; font-weight: 800; color: #18181b; line-height: 1.1; letter-spacing: -.02em; }
 .admin-stat-delta { display: inline-flex; align-items: center; gap: .25rem; font-size: .74rem; font-weight: 600; margin-top: .3rem; }
 .admin-stat-delta--up { color: #16a34a; }
 .admin-stat-delta--down { color: #dc2626; }
@@ -235,6 +235,8 @@
 .entity-meta { color: #a1a1aa; font-size: .78rem; }
 .entity-actions { flex: 0 0 auto; display: flex; gap: .35rem; }
 .entity-badge { display: inline-flex; padding: .17rem .5rem; border-radius: 4px; font-size: .7rem; font-weight: 600; }
+.entity-badge--btn { border: 0; cursor: pointer; transition: filter .12s; }
+.entity-badge--btn:hover { filter: brightness(.93); }
 .entity-badge--active { background: #f0fdf4; color: #15803d; }
 .entity-badge--inactive { background: #f7f8fa; color: #a1a1aa; }
 
@@ -515,13 +517,15 @@
 /* ═══════════════ AGENDA v3 (tipo tabla, mockup final) ═══════════════ */
 .ag3-topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
 .ag3-date-nav { display: flex; align-items: center; gap: .6rem; }
-.ag3-nav-btn { width: 42px; height: 42px; border-radius: 11px; border: 1px solid #e4e7ec; background: #fff; color: #52525b; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; }
+.ag3-nav-btn { width: 38px; height: 38px; border-radius: 10px; border: 1px solid #e4e7ec; background: #fff; color: #52525b; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; }
 .ag3-nav-btn:hover { background: #f4f4f5; }
-.ag3-date-title { font-size: 1.3rem; font-weight: 800; color: #18181b; letter-spacing: -.01em; padding: 0 .5rem; min-width: 230px; text-align: center; }
-.ag3-today-btn { padding: 0 1.3rem; height: 42px; display: inline-flex; align-items: center; border: 1px solid #e4e7ec; background: #fff; border-radius: 11px; font-weight: 600; font-size: .9rem; color: #52525b; text-decoration: none; }
+.ag3-date-title { font-size: 1.15rem; font-weight: 700; color: #18181b; letter-spacing: -.01em; padding: 0 .5rem; min-width: 210px; text-align: center; }
+.ag3-today-btn { padding: 0 1.1rem; height: 38px; display: inline-flex; align-items: center; border: 1px solid #e4e7ec; background: #fff; border-radius: 10px; font-weight: 600; font-size: .85rem; color: #52525b; text-decoration: none; }
 .ag3-today-btn:hover { background: #f4f4f5; }
 .ag3-view-toggle { display: inline-flex; background: #eff1f6; border-radius: 11px; padding: .25rem; gap: .15rem; }
-.ag3-view { padding: .5rem 1.1rem; border-radius: 9px; font-size: .88rem; font-weight: 600; color: #71717a; cursor: pointer; text-decoration: none; }
+.ag3-view { padding: .42rem .95rem; border-radius: 8px; font-size: .84rem; font-weight: 600; color: #71717a; cursor: pointer; text-decoration: none; }
+.ag3-new-btn { margin-left: auto; border: 0; background: #3654f0; color: #fff; border-radius: 10px; padding: .6rem 1.2rem; font-weight: 700; font-size: .88rem; display: inline-flex; align-items: center; gap: .45rem; cursor: pointer; }
+.ag3-new-btn:hover { background: #2c48d8; }
 .ag3-view.is-active { background: #3654f0; color: #fff; }
 .ag3-view.is-disabled { color: #c7c7cc; cursor: default; }
 
@@ -529,7 +533,7 @@
 .ag3-filter { position: relative; display: inline-flex; align-items: center; }
 .ag3-filter-ic { position: absolute; left: .8rem; color: #a1a1aa; pointer-events: none; display: flex; }
 .ag3-filter-caret { position: absolute; right: .7rem; color: #a1a1aa; pointer-events: none; display: flex; }
-.ag3-filter select { appearance: none; -webkit-appearance: none; border: 1px solid #e4e7ec; background: #fff; border-radius: 11px; padding: .7rem 2.2rem .7rem 2.4rem; font-size: .88rem; color: #52525b; cursor: pointer; font-weight: 500; }
+.ag3-filter select { appearance: none; -webkit-appearance: none; border: 1px solid #e4e7ec; background: #fff; border-radius: 10px; padding: .6rem 2rem .6rem 2.2rem; font-size: .85rem; color: #52525b; cursor: pointer; font-weight: 500; }
 .ag3-filter select:focus { outline: none; border-color: #3654f0; }
 .ag3-clear { display: inline-flex; align-items: center; gap: .4rem; color: #3654f0; font-size: .88rem; font-weight: 600; text-decoration: none; margin-left: auto; }
 .ag3-clear:hover { text-decoration: underline; }
