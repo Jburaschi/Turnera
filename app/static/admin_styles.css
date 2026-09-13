@@ -589,3 +589,12 @@
   .ag3-td-service, .ag3-td-prof { display: none; }
   .ag3-table thead th:nth-child(3), .ag3-table thead th:nth-child(4) { display: none; }
 }
+
+/* Agenda: turnos anteriores del día (colapsables) */
+.ag3-past-toggle-row td { padding: .5rem 1.2rem !important; background: #fafafa; }
+.ag3-past-toggle-btn { border: 0; background: transparent; color: #71717a; font-size: .84rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: .45rem; padding: .3rem 0; }
+.ag3-past-toggle-btn:hover { color: #3654f0; }
+.ag3-past-toggle-btn.is-open svg { transform: rotate(180deg); transition: transform .15s; }
+.ag3-row--past { background: #fcfcfd; }
+.ag3-row--past .ag3-td-hour, .ag3-row--past .ag3-td-client { color: #a1a1aa; }
+.ag3-no-more { text-align: center; color: #a1a1aa; font-size: .88rem; padding: 1.5rem 1rem !important; }

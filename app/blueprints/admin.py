@@ -313,6 +313,19 @@ def dashboard(slug):
     # ── Agenda tipo lista: turnos agrupados por hora de inicio ────────────
     from collections import OrderedDict
     agenda_sorted = sorted(appointments, key=lambda a: a.start_dt)
+
+    # Si estamos mirando HOY, separamos los turnos ya pasados de los próximos,
+    # para mostrar por defecto solo lo que viene (lo pasado queda accesible con un botón).
+    is_today = (selected_day == datetime.now().date())
+    now_dt = datetime.now()
+    if is_today:
+        agenda_past = [a for a in agenda_sorted if a.end_dt <= now_dt]
+        agenda_upcoming = [a for a in agenda_sorted if a.end_dt > now_dt]
+    else:
+        agenda_past = []
+        agenda_upcoming = agenda_sorted
+    agenda_past_count = len(agenda_past)
+
     agenda_by_hour = OrderedDict()
     for ap in agenda_sorted:
         key = ap.start_dt.strftime('%H:%M')
@@ -571,6 +584,7 @@ def dashboard(slug):
         service_color_map=service_color_map,
         agenda_employees=agenda_employees, agenda_by_employee=agenda_by_employee,
         agenda_by_hour=agenda_by_hour, agenda_sorted=agenda_sorted, agenda_day_counts=agenda_day_counts, agenda_day_total=agenda_day_total,
+        agenda_past=agenda_past, agenda_upcoming=agenda_upcoming, agenda_past_count=agenda_past_count, agenda_is_today=is_today,
         agenda_start_hour=agenda_start_hour, agenda_end_hour=agenda_end_hour, agenda_hour_marks=agenda_hour_marks,
         mini_cal_weeks=mini_cal_weeks, mini_cal_month_label=mini_cal_month_label,
         prev_month_date=prev_month_date, next_month_date=next_month_date,

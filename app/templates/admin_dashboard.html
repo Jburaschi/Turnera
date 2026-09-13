@@ -471,10 +471,9 @@
                     <th>Hora</th><th>Cliente</th><th>Prestación</th><th>Profesional</th><th>Estado</th><th></th>
                   </tr>
                 </thead>
-                <tbody>
-                  {% for ap in agenda_sorted %}
+                {% macro ag3_row(ap, muted=false) %}
                   {% set sm = status_meta.get(ap.status, {'label': ap.status, 'cls': ''}) %}
-                  <tr class="ag3-row" data-ap-id="{{ ap.id }}"
+                  <tr class="ag3-row {% if muted %}ag3-row--past d-none{% endif %}" data-ap-id="{{ ap.id }}"
                       data-ap-client="{{ ap.customer_display_name }}"
                       data-ap-phone="{{ ap.customer.phone if ap.customer and ap.customer.phone else '' }}"
                       data-ap-service="{{ ap.service.name if ap.service else '—' }}"
@@ -489,7 +488,24 @@
                     <td><span class="ag3-badge {{ sm.cls }}"><span class="ag3-badge-dot"></span>{{ sm.label }}</span></td>
                     <td class="ag3-td-more"><button type="button" class="ag3-more" aria-label="Ver detalle">{{ ic.icon('dots', 16) }}</button></td>
                   </tr>
-                  {% endfor %}
+                {% endmacro %}
+                <tbody>
+                  {% if agenda_is_today and agenda_past_count > 0 %}
+                  <tr class="ag3-past-toggle-row" id="ag3-past-toggle">
+                    <td colspan="6">
+                      <button type="button" class="ag3-past-toggle-btn" onclick="document.querySelectorAll('.ag3-row--past').forEach(function(r){r.classList.toggle('d-none')}); this.classList.toggle('is-open');">
+                        {{ ic.icon('clock', 15) }} Ver {{ agenda_past_count }} turno{{ 's' if agenda_past_count != 1 }} anterior{{ 'es' if agenda_past_count != 1 }} del día
+                      </button>
+                    </td>
+                  </tr>
+                  {% for ap in agenda_past %}{{ ag3_row(ap, muted=true) }}{% endfor %}
+                  {% endif %}
+
+                  {% if agenda_upcoming %}
+                    {% for ap in agenda_upcoming %}{{ ag3_row(ap) }}{% endfor %}
+                  {% elif agenda_is_today and agenda_past_count > 0 %}
+                  <tr><td colspan="6" class="ag3-no-more">No quedan más turnos para hoy.</td></tr>
+                  {% endif %}
                 </tbody>
               </table>
               {% else %}
