@@ -4,7 +4,8 @@ from flask import Blueprint, abort, flash, jsonify, redirect, render_template, r
 from flask_login import current_user
 from sqlalchemy.exc import IntegrityError
 from ..extensions import db, limiter
-from ..models import Appointment, Company, CompanyHours, Employee, Service, SlotHold
+from ..models import Appointment, Company, CompanyHours, Employee, Service, SlotHold, WEEKDAY_LABELS
+MONTH_LABELS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 from ..services.availability import get_availability_for_day, get_month_summary, HOLD_MINUTES
 from ..services.appointment_service import cancel_appointment_logic
 from ..services.google_calendar import ensure_google_event_for_appointment, delete_google_event_for_appointment
@@ -327,7 +328,9 @@ def create_appointment(slug):
     company_url = url_for('public.company_page', slug=slug, _external=True)
     send_booking_confirmed(appointment, manage_url=manage_url, company_url=company_url)
 
-    return render_template('booking_success.html', company=company, appointment=appointment)
+    d = appointment.start_dt
+    fecha_es = f'{WEEKDAY_LABELS[d.weekday()]} {d.day} de {MONTH_LABELS_ES[d.month - 1]} de {d.year}'
+    return render_template('booking_success.html', company=company, appointment=appointment, fecha_es=fecha_es)
 
 
 @public_bp.route('/<slug>/mis-turnos')

@@ -1,27 +1,62 @@
 {% extends 'base.html' %}
-{% block title %}Turno confirmado{% endblock %}
+{% import '_icons.html' as ic %}
+{% block title %}Turno confirmado · {{ company.name }}{% endblock %}
+{% block topnav %}{% endblock %}
 {% block content %}
-<div class="container py-5">
-  <div class="card shadow-sm mx-auto" style="max-width: 700px;">
-    <div class="card-body p-5">
-      <h1 class="h3 mb-3">¡Turno confirmado!</h1>
-      <p class="text-secondary">Tu reserva ya quedó registrada.</p>
-      <div class="rounded-4 bg-light p-4">
-        <div><strong>Empresa:</strong> {{ company.name }}</div>
-        <div><strong>Servicio:</strong> {{ appointment.service.name }}</div>
-        <div><strong>Profesional:</strong> {{ appointment.employee.name }}</div>
-        <div><strong>Inicio:</strong> {{ appointment.start_dt.strftime('%d/%m/%Y %H:%M') }}</div>
-        <div><strong>Fin:</strong> {{ appointment.end_dt.strftime('%d/%m/%Y %H:%M') }}</div>
-        <div><strong>Cliente:</strong> {{ appointment.customer_display_name }}</div>
-      </div>
-      <div class="mt-4 d-flex gap-2 flex-wrap">
-        <a href="{{ url_for('public.company_page', slug=company.slug) }}" class="btn btn-dark">Volver al inicio</a>
-        <a href="{{ url_for('public.manage_appointment', slug=company.slug, token=appointment.manage_token) }}" class="btn btn-outline-dark">Gestionar (cancelar / reprogramar)</a>
-      </div>
-      <div class="text-secondary small mt-3">
-        Guardá este link para modificar tu turno más tarde.
-      </div>
+<div class="bs-page">
+  <div class="bs-card">
+    <div class="bs-check">{{ ic.icon('check', 34) }}</div>
+    <h1 class="bs-title">¡Turno confirmado!</h1>
+    <p class="bs-sub">Tu reserva ya quedó registrada. Te esperamos.</p>
+
+    <div class="bs-details">
+      <div class="bs-row"><span class="bs-ic">{{ ic.icon('building', 17) }}</span><span class="bs-label">Empresa</span><span class="bs-value">{{ company.name }}</span></div>
+      <div class="bs-row"><span class="bs-ic">{{ ic.icon('scissors', 17) }}</span><span class="bs-label">Servicio</span><span class="bs-value">{{ appointment.service.name }}</span></div>
+      <div class="bs-row"><span class="bs-ic">{{ ic.icon('user', 17) }}</span><span class="bs-label">Profesional</span><span class="bs-value">{{ appointment.employee.name if appointment.employee else '—' }}</span></div>
+      <div class="bs-row"><span class="bs-ic">{{ ic.icon('calendar', 17) }}</span><span class="bs-label">Fecha</span><span class="bs-value">{{ fecha_es|capitalize }}</span></div>
+      <div class="bs-row"><span class="bs-ic">{{ ic.icon('clock', 17) }}</span><span class="bs-label">Horario</span><span class="bs-value">{{ appointment.start_dt.strftime('%H:%M') }} a {{ appointment.end_dt.strftime('%H:%M') }}</span></div>
+      <div class="bs-row"><span class="bs-ic">{{ ic.icon('users', 17) }}</span><span class="bs-label">Cliente</span><span class="bs-value">{{ appointment.customer_display_name }}</span></div>
     </div>
+
+    <div class="bs-actions">
+      <a href="{{ url_for('public.company_page', slug=company.slug) }}" class="bs-btn bs-btn--primary">
+        {{ ic.icon('calendar', 17) }} Volver al inicio
+      </a>
+      <a href="{{ url_for('public.manage_appointment', slug=company.slug, token=appointment.manage_token) }}" class="bs-btn bs-btn--outline">
+        {{ ic.icon('edit', 17) }}
+        <span class="bs-btn-stack"><strong>Gestionar turno</strong><small>Cancelar o reprogramar</small></span>
+      </a>
+    </div>
+
+    <div class="bs-footer">{{ ic.icon('link', 14) }} Guardá este link para modificar tu turno más tarde.</div>
   </div>
 </div>
+
+<style>
+.bs-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f7f8fa; padding: 2rem 1rem; }
+.bs-card { width: 100%; max-width: 720px; background: #fff; border: 1px solid #eee; border-radius: 20px; padding: 2.6rem 2.8rem; box-shadow: 0 4px 24px rgba(0,0,0,.05); }
+.bs-check { width: 78px; height: 78px; border-radius: 50%; background: #e7f7ee; border: 6px solid #f0fbf4; color: #16a34a; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.4rem; }
+.bs-title { text-align: center; font-size: 2rem; font-weight: 800; color: #18181b; margin: 0 0 .4rem; letter-spacing: -.02em; }
+.bs-sub { text-align: center; color: #71717a; font-size: 1rem; margin: 0 0 2rem; }
+.bs-details { background: #f7f8fa; border-radius: 14px; padding: .6rem 1.4rem; margin-bottom: 1.6rem; }
+.bs-row { display: flex; align-items: center; gap: 1rem; padding: .85rem 0; border-bottom: 1px solid #eef0f3; }
+.bs-row:last-child { border-bottom: none; }
+.bs-ic { width: 38px; height: 38px; flex: 0 0 38px; border-radius: 10px; background: #fff; color: #52525b; display: flex; align-items: center; justify-content: center; }
+.bs-label { flex: 0 0 130px; color: #71717a; font-size: .95rem; }
+.bs-value { flex: 1; color: #18181b; font-weight: 700; font-size: 1rem; }
+.bs-actions { display: flex; gap: .9rem; margin-bottom: 1.4rem; }
+.bs-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: .6rem; padding: 1rem; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 1rem; transition: all .15s; }
+.bs-btn--primary { background: #2440e8; color: #fff; }
+.bs-btn--primary:hover { background: #1c34c9; color: #fff; }
+.bs-btn--outline { background: #fff; color: #18181b; border: 1.5px solid #e4e7ec; }
+.bs-btn--outline:hover { background: #f7f8fa; color: #18181b; }
+.bs-btn-stack { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+.bs-btn-stack small { font-weight: 500; color: #a1a1aa; font-size: .82rem; }
+.bs-footer { text-align: center; color: #a1a1aa; font-size: .88rem; padding-top: 1.3rem; border-top: 1px solid #f1f1f3; display: flex; align-items: center; justify-content: center; gap: .4rem; }
+@media (max-width: 560px) {
+  .bs-card { padding: 1.8rem 1.4rem; }
+  .bs-actions { flex-direction: column; }
+  .bs-label { flex: 0 0 100px; font-size: .85rem; }
+}
+</style>
 {% endblock %}

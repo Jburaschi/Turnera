@@ -1222,83 +1222,107 @@
           </div>
         </div>
       </div>
-      <div class="row g-3">
-        <div class="col-lg-8">
-          <div class="admin-card">
-            <div class="admin-card-body">
-              <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" class="row g-3" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="target_section" value="company">
-                <div class="col-md-6"><label class="form-label">Nombre del negocio</label><input class="form-control" name="name" value="{{ company.name }}"></div>
-                <div class="col-md-6"><label class="form-label">Categoría</label><input class="form-control" name="category" value="{{ company.category or '' }}"></div>
-                <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" rows="3" name="description">{{ company.description or '' }}</textarea></div>
-                <div class="col-md-8"><label class="form-label">Dirección</label><input class="form-control" name="address" value="{{ company.address or '' }}"></div>
-                <div class="col-md-4"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ company.phone or '' }}"></div>
-                <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ company.email or '' }}"></div>
-                <div class="col-md-6"><label class="form-label">Color principal</label><input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color }}"></div>
-                <div class="col-md-6"><label class="form-label">Instagram <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="instagram_url" value="{{ company.instagram_url or '' }}" placeholder="https://instagram.com/tu_negocio"></div>
-                <div class="col-md-6"><label class="form-label">Facebook <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="facebook_url" value="{{ company.facebook_url or '' }}" placeholder="https://facebook.com/tu_negocio"></div>
-                <div class="col-12"><button class="btn btn-primary">Guardar cambios</button></div>
-              </form>
-            </div>
+      <div class="prof-single">
+        <!-- Información básica -->
+        <div class="admin-card prof-card">
+          <div class="prof-card-head">
+            <span class="prof-card-icon">{{ ic.icon('building', 18) }}</span>
+            <div><strong>Información básica</strong><span>Datos principales de tu negocio.</span></div>
           </div>
+          <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" class="prof-form" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="target_section" value="company">
+            <div class="prof-field"><label class="form-label">Nombre del negocio</label><input class="form-control" name="name" value="{{ company.name }}"></div>
+            <div class="prof-field"><label class="form-label">Categoría</label><input class="form-control" name="category" value="{{ company.category or '' }}"></div>
+            <div class="prof-field"><label class="form-label">Descripción</label><textarea class="form-control" rows="3" name="description" maxlength="300">{{ company.description or '' }}</textarea></div>
+
+            <div class="prof-section-sep"></div>
+            <div class="prof-card-head prof-card-head--inline">
+              <span class="prof-card-icon">{{ ic.icon('pin', 18) }}</span>
+              <div><strong>Contacto y ubicación</strong><span>Esta información ayudará a que tus clientes te encuentren.</span></div>
+            </div>
+            <div class="prof-field"><label class="form-label">Dirección</label><input class="form-control" name="address" value="{{ company.address or '' }}"></div>
+            <div class="prof-field"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ company.phone or '' }}"></div>
+            <div class="prof-field"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ company.email or '' }}"></div>
+            <div class="prof-field"><label class="form-label">Color principal <span class="text-secondary fw-normal small">— se usa en tu página pública</span></label><input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color }}"></div>
+            <div class="prof-field"><label class="form-label">Instagram <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="instagram_url" value="{{ company.instagram_url or '' }}" placeholder="https://instagram.com/tu_negocio"></div>
+            <div class="prof-field"><label class="form-label">Facebook <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="facebook_url" value="{{ company.facebook_url or '' }}" placeholder="https://facebook.com/tu_negocio"></div>
+            <div class="prof-actions"><button class="btn btn-primary">Guardar cambios</button></div>
+          </form>
         </div>
-        <div class="col-lg-4">
-          <div class="admin-card mb-3">
-            <div class="admin-card-header"><h2 class="admin-card-title">Logo del negocio</h2></div>
-            <div class="admin-card-body text-center">
+
+        <!-- Imagen de marca (logo) -->
+        <div class="admin-card prof-card">
+          <div class="prof-card-head">
+            <span class="prof-card-icon">{{ ic.icon('image', 18) }}</span>
+            <div><strong>Imagen de marca</strong><span>El logo se mostrará en tu página pública y en las comunicaciones.</span></div>
+          </div>
+          <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="target_section" value="company">
+            <div class="prof-logo-row">
               {% if company.logo_url %}
-                <img src="{{ company.logo_url }}" alt="{{ company.name }}" style="width:88px;height:88px;border-radius:14px;object-fit:cover;margin-bottom:1rem;">
+                <img src="{{ company.logo_url }}" alt="{{ company.name }}" class="prof-logo-img">
               {% else %}
-                <div style="width:88px;height:88px;border-radius:14px;background:#3654f0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.6rem;margin:0 auto 1rem;">{{ company.name[:2]|upper }}</div>
+                <div class="prof-logo-placeholder">{{ company.name[:2]|upper }}</div>
               {% endif %}
-              <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="target_section" value="company">
+              <div class="prof-logo-actions">
                 <input type="file" name="logo" accept=".png,.jpg,.jpeg" class="form-control form-control-sm mb-2">
-                <button class="btn btn-outline-secondary btn-sm w-100 mb-2">{{ 'Cambiar logo' if company.logo_url else 'Subir logo' }}</button>
+                <button class="btn btn-outline-secondary btn-sm">{{ 'Cambiar logo' if company.logo_url else 'Subir logo' }}</button>
+                <div class="text-secondary small mt-1">Formatos: JPG, PNG o SVG. Máx. 2 MB.</div>
                 {% if company.logo_url %}
-                <label class="d-flex align-items-center justify-content-center gap-2 text-danger small" style="cursor:pointer;">
+                <label class="d-flex align-items-center gap-2 text-danger small mt-2" style="cursor:pointer;">
                   <input type="checkbox" name="remove_logo" value="1" onchange="this.form.submit()"> Quitar logo actual
                 </label>
                 {% endif %}
-              </form>
-            </div>
-          </div>
-          <div class="admin-card mb-3">
-            <div class="admin-card-header"><h2 class="admin-card-title">Foto de portada</h2></div>
-            <div class="admin-card-body">
-              <p class="text-secondary small mb-2">Se muestra de fondo en el encabezado de tu página pública. Si no subís una, se usa un fondo con el color de tu marca.</p>
-              {% if company.cover_photo_url %}
-                <img src="{{ company.cover_photo_url }}" alt="Portada" style="width:100%;height:110px;border-radius:10px;object-fit:cover;margin-bottom:.8rem;">
-              {% endif %}
-              <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="target_section" value="company">
-                <input type="file" name="cover_photo" accept=".png,.jpg,.jpeg" class="form-control form-control-sm mb-2">
-                <button class="btn btn-outline-secondary btn-sm w-100 mb-2">{{ 'Cambiar foto de portada' if company.cover_photo_url else 'Subir foto de portada' }}</button>
-                {% if company.cover_photo_url %}
-                <label class="d-flex align-items-center justify-content-center gap-2 text-danger small" style="cursor:pointer;">
-                  <input type="checkbox" name="remove_cover_photo" value="1" onchange="this.form.submit()"> Quitar foto de portada
-                </label>
-                {% endif %}
-              </form>
-            </div>
-          </div>
-          <div class="admin-card">
-            <div class="admin-card-header"><h2 class="admin-card-title">Vista previa</h2></div>
-            <div class="admin-card-body">
-              <div class="admin-table-person mb-2">
-                {% if company.logo_url %}<img src="{{ company.logo_url }}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;">
-                {% else %}<span class="admin-table-avatar" style="background:#3654f0;border-radius:8px;">{{ company.name[0]|upper }}</span>{% endif %}
-                <div>
-                  <div class="fw-semibold">{{ company.name }}</div>
-                  <div class="text-muted text-sm">{{ company.category or 'Sin categoría' }}</div>
-                </div>
               </div>
-              {% if company.address %}<div class="text-muted text-sm mb-1">{{ ic.icon('pin', 13) }} {{ company.address }}</div>{% endif %}
-              {% if company.phone %}<div class="text-muted text-sm">{{ ic.icon('mail', 13) }} {{ company.phone }}</div>{% endif %}
             </div>
+          </form>
+        </div>
+
+        <!-- Foto de portada -->
+        <div class="admin-card prof-card">
+          <div class="prof-card-head">
+            <span class="prof-card-icon">{{ ic.icon('image', 18) }}</span>
+            <div><strong>Foto de portada</strong><span>Imagen principal de tu página pública.</span></div>
+          </div>
+          <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="target_section" value="company">
+            {% if company.cover_photo_url %}
+              <img src="{{ company.cover_photo_url }}" alt="Portada" class="prof-cover-img">
+            {% else %}
+              <div class="prof-cover-placeholder">Sin foto de portada — se usa un fondo con el color de tu marca.</div>
+            {% endif %}
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+              <input type="file" name="cover_photo" accept=".png,.jpg,.jpeg" class="form-control form-control-sm" style="max-width:280px;">
+              <button class="btn btn-outline-secondary btn-sm">{{ 'Cambiar foto de portada' if company.cover_photo_url else 'Subir foto de portada' }}</button>
+              <span class="text-secondary small">Recomendado 1200 × 400 px.</span>
+              {% if company.cover_photo_url %}
+              <label class="d-flex align-items-center gap-2 text-danger small" style="cursor:pointer;">
+                <input type="checkbox" name="remove_cover_photo" value="1" onchange="this.form.submit()"> Quitar
+              </label>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+
+        <!-- Vista previa -->
+        <div class="admin-card prof-card">
+          <div class="prof-card-head">
+            <span class="prof-card-icon">{{ ic.icon('eye', 18) }}</span>
+            <div><strong>Vista previa</strong><span>Así se verá tu negocio en la página pública.</span></div>
+          </div>
+          <div class="prof-preview">
+            {% if company.logo_url %}<img src="{{ company.logo_url }}" class="prof-preview-logo">
+            {% else %}<span class="prof-preview-logo prof-preview-logo--ph">{{ company.name[:2]|upper }}</span>{% endif %}
+            <div class="prof-preview-body">
+              <div class="prof-preview-name">{{ company.name }}</div>
+              <div class="prof-preview-cat">{{ company.category or 'Sin categoría' }}</div>
+              {% if company.address %}<div class="prof-preview-line">{{ ic.icon('pin', 13) }} {{ company.address }}</div>{% endif %}
+              {% if company.description %}<div class="prof-preview-desc">{{ company.description }}</div>{% endif %}
+            </div>
+            <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm">Ver página pública {{ ic.icon('external', 13) }}</a>
           </div>
         </div>
       </div>
