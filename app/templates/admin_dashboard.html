@@ -113,9 +113,11 @@
         <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
           <span class="d-none-mobile-text">Ver página pública</span> {{ ic.icon('external', 14) }}
         </a>
+        {% if active_section == 'overview' %}
         <a href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda') }}" class="btn btn-primary btn-sm">
           {{ ic.icon('plus', 15) }} Nuevo turno
         </a>
+        {% endif %}
         <a href="{{ url_for('admin.dashboard', slug=company.slug, section='overview') }}#actividad-reciente" class="admin-topbar-bell" title="Ver actividad reciente">
           {{ ic.icon('bell', 18) }}
           {% if recent_activity %}<span class="admin-topbar-bell-badge">{{ recent_activity|length }}</span>{% endif %}
@@ -410,12 +412,6 @@
               <span class="ag3-date-title">{{ selected_day.day }} de {{ month_labels[selected_day.month - 1] }} de {{ selected_day.year }}</span>
               <a class="ag3-nav-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', day=(selected_day + timedelta(days=1)).isoformat(), professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">{{ ic.icon('chevron-right', 18) }}</a>
               <a class="ag3-today-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='agenda', professional_id=selected_professional_id, service_id=selected_service_id, status=selected_status) }}">Hoy</a>
-            </div>
-            <div class="ag3-view-toggle">
-              <a class="ag3-view is-active">Día</a>
-              <a class="ag3-view is-disabled" title="Próximamente">Semana</a>
-              <a class="ag3-view is-disabled" title="Próximamente">Mes</a>
-              <a class="ag3-view is-disabled" title="Próximamente">Año</a>
             </div>
             <button class="ag3-new-btn" id="btn-nuevo-turno" type="button">{{ ic.icon('plus', 16) }} Nuevo turno</button>
           </div>
