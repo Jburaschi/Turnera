@@ -89,7 +89,7 @@
         <div class="cp-contact-groups">
           {% if company.config.show_address_public %}
           <div class="cp-contact-group">
-            <span class="cp-contact-group-icon">{{ ic.icon('pin', 17) }}</span>
+            <span class="cp-contact-group-icon">{{ ic.icon('pin', 20) }}</span>
             <div>
               <span class="cp-contact-group-label">DIRECCIÓN</span>
               {% if company.address %}
@@ -101,7 +101,7 @@
           </div>
           {% endif %}
           <div class="cp-contact-group">
-            <span class="cp-contact-group-icon">{{ ic.icon('clock', 17) }}</span>
+            <span class="cp-contact-group-icon">{{ ic.icon('clock', 20) }}</span>
             <div>
               <span class="cp-contact-group-label">HORARIOS</span>
               {% if hours_summary %}
@@ -113,7 +113,7 @@
           </div>
           {% if company.config.show_phone_public %}
           <div class="cp-contact-group">
-            <span class="cp-contact-group-icon">{{ ic.icon('phone-off', 17) }}</span>
+            <span class="cp-contact-group-icon">{{ ic.icon('phone-off', 20) }}</span>
             <div>
               <span class="cp-contact-group-label">TELÉFONO</span>
               {% if company.phone %}
@@ -126,7 +126,7 @@
           {% endif %}
           {% if company.config.show_email_public %}
           <div class="cp-contact-group">
-            <span class="cp-contact-group-icon">{{ ic.icon('mail', 17) }}</span>
+            <span class="cp-contact-group-icon">{{ ic.icon('mail', 20) }}</span>
             <div>
               <span class="cp-contact-group-label">EMAIL</span>
               {% if company.email %}
@@ -208,25 +208,6 @@
         {% else %}
         <div class="cp-empty">Esta empresa todavía no tiene servicios activos para reservar.</div>
         {% endfor %}
-      </div>
-
-      <div class="cp-service-trust">
-        <div class="cp-trust-item">
-          <span class="cp-trust-icon">{{ ic.icon('calendar', 18) }}</span>
-          <div><strong>Confirmación inmediata</strong><span>Tu turno al instante</span></div>
-        </div>
-        <div class="cp-trust-item">
-          <span class="cp-trust-icon">{{ ic.icon('shield', 18) }}</span>
-          <div><strong>Cancelación simple</strong><span>Sin complicaciones</span></div>
-        </div>
-        <div class="cp-trust-item">
-          <span class="cp-trust-icon">{{ ic.icon('user', 18) }}</span>
-          <div><strong>Atención profesional</strong><span>Un equipo capacitado</span></div>
-        </div>
-        <div class="cp-trust-item">
-          <span class="cp-trust-icon">{{ ic.icon('clock', 18) }}</span>
-          <div><strong>Turnos online 24/7</strong><span>Reservá cuando quieras</span></div>
-        </div>
       </div>
 
       <!-- Barra de confianza -->

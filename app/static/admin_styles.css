@@ -542,11 +542,17 @@
 .ag3-layout { display: grid; grid-template-columns: 1fr 290px; gap: 1.4rem; align-items: start; }
 .ag3-table-wrap { background: #fff; border: 1px solid #e9e9ec; border-radius: 16px; overflow: hidden; }
 .ag3-table { width: 100%; border-collapse: collapse; }
-.ag3-table thead th { text-align: left; font-size: .78rem; font-weight: 600; color: #a1a1aa; padding: 1rem 1.2rem; border-bottom: 1px solid #f1f1f3; }
+.ag3-table thead th { text-align: left; font-size: .76rem; font-weight: 600; color: #a1a1aa; padding: .7rem 1.2rem; border-bottom: 1px solid #f1f1f3; }
 .ag3-row { cursor: pointer; transition: background .12s; border-left: 3px solid transparent; }
 .ag3-row:hover { background: #f7f9fc; }
 .ag3-row:hover { border-left-color: #3654f0; }
-.ag3-table td { padding: .95rem 1.2rem; border-bottom: 1px solid #f4f4f5; font-size: .9rem; }
+.ag3-table td { padding: .62rem 1.2rem; border-bottom: 1px solid #f4f4f5; font-size: .88rem; }
+
+.ag3-pagination { display: flex; justify-content: center; align-items: center; gap: .35rem; padding: 1rem; flex-wrap: wrap; }
+.ag3-page-btn { min-width: 34px; height: 34px; padding: 0 .5rem; border: 1px solid #e4e7ec; background: #fff; border-radius: 8px; color: #52525b; font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .12s; }
+.ag3-page-btn:hover:not(:disabled):not(.is-active) { background: #f4f4f5; }
+.ag3-page-btn.is-active { background: #3654f0; color: #fff; border-color: #3654f0; }
+.ag3-page-btn:disabled { opacity: .4; cursor: default; }
 .ag3-table tbody tr:last-child td { border-bottom: none; }
 .ag3-td-hour { font-weight: 700; color: #18181b; }
 .ag3-td-client { font-weight: 600; color: #18181b; }

@@ -493,7 +493,7 @@
                   {% if agenda_is_today and agenda_past_count > 0 %}
                   <tr class="ag3-past-toggle-row" id="ag3-past-toggle">
                     <td colspan="6">
-                      <button type="button" class="ag3-past-toggle-btn" onclick="document.querySelectorAll('.ag3-row--past').forEach(function(r){r.classList.toggle('d-none')}); this.classList.toggle('is-open');">
+                      <button type="button" class="ag3-past-toggle-btn">
                         {{ ic.icon('clock', 15) }} Ver {{ agenda_past_count }} turno{{ 's' if agenda_past_count != 1 }} anterior{{ 'es' if agenda_past_count != 1 }} del día
                       </button>
                     </td>
@@ -508,6 +508,7 @@
                   {% endif %}
                 </tbody>
               </table>
+              <div class="ag3-pagination" id="ag3-pagination"></div>
               {% else %}
               <div class="admin-empty-state" style="padding:4rem 1rem;">
                 <span class="admin-empty-icon">{{ ic.icon('calendar', 30) }}</span>
@@ -1806,6 +1807,74 @@
   closeBtn.addEventListener('click', closeDetail);
   overlay.addEventListener('click', closeDetail);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+})();
+
+// ── Paginación de la agenda (10 por página) ──
+(function () {
+  const PER_PAGE = 10;
+  const pag = document.getElementById('ag3-pagination');
+  const table = document.querySelector('.ag3-table');
+  if (!pag || !table) return;
+
+  let currentPage = 1;
+  let pastShown = false;
+
+  function paginableRows() {
+    // Próximas siempre entran; las pasadas solo si el usuario las desplegó
+    return Array.from(table.querySelectorAll('tbody .ag3-row')).filter(r => {
+      if (r.classList.contains('ag3-row--past')) return pastShown;
+      return true;
+    });
+  }
+
+  function render() {
+    // Las filas pasadas: visibles solo si están desplegadas
+    table.querySelectorAll('.ag3-row--past').forEach(r => {
+      r.classList.toggle('d-none', !pastShown);
+    });
+
+    const rows = paginableRows();
+    const totalPages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    // Ocultar todas las paginables y mostrar solo las de la página actual
+    rows.forEach((r, i) => {
+      const page = Math.floor(i / PER_PAGE) + 1;
+      r.style.display = (page === currentPage) ? '' : 'none';
+    });
+
+    if (totalPages <= 1) { pag.innerHTML = ''; return; }
+    let html = '<button class="ag3-page-btn" data-page="prev" ' + (currentPage === 1 ? 'disabled' : '') + '>‹</button>';
+    for (let p = 1; p <= totalPages; p++) {
+      html += '<button class="ag3-page-btn ' + (p === currentPage ? 'is-active' : '') + '" data-page="' + p + '">' + p + '</button>';
+    }
+    html += '<button class="ag3-page-btn" data-page="next" ' + (currentPage === totalPages ? 'disabled' : '') + '>›</button>';
+    pag.innerHTML = html;
+    pag.querySelectorAll('.ag3-page-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.dataset.page;
+        if (val === 'prev' && currentPage > 1) currentPage--;
+        else if (val === 'next' && currentPage < totalPages) currentPage++;
+        else if (val !== 'prev' && val !== 'next') currentPage = parseInt(val, 10);
+        render();
+        table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  // Botón "turnos anteriores": al desplegarlos, entran en la paginación
+  const pastToggleRow = document.getElementById('ag3-past-toggle');
+  if (pastToggleRow) {
+    const btn = pastToggleRow.querySelector('.ag3-past-toggle-btn');
+    btn.addEventListener('click', function () {
+      pastShown = !pastShown;
+      btn.classList.toggle('is-open', pastShown);
+      currentPage = 1;
+      render();
+    });
+  }
+
+  render();
 })();
 // ── Toasts: gestionados por base.html ──
 </script>
