@@ -408,6 +408,7 @@ body {
 @media (max-width: 480px) {
   .cp-trust-bar { grid-template-columns: 1fr; }
   .cp-trust-bar .cp-trust-item { border-left: 0 !important; }
+  .cp-contact-groups { grid-template-columns: 1fr; }
 }
 
 /* ── Section head link ─────────────────────────────────────────── */
@@ -415,8 +416,8 @@ body {
 .cp-link-more:hover { text-decoration: underline; }
 
 @media (max-width: 900px) {
-  .cp-contact-card { flex-direction: column; align-items: flex-start; text-align: left; }
-  .cp-contact-groups { gap: 1.1rem; }
+  .cp-contact-card { grid-template-columns: 1fr; align-items: stretch; text-align: left; }
+  .cp-contact-groups { gap: 1.3rem 1.5rem; }
   .cp-contact-actions { flex-direction: row; flex-wrap: wrap; min-width: 0; }
   .cp-contact-actions .cp-btn-outline, .cp-contact-actions .cp-btn-whatsapp { flex: 1; min-width: 130px; }
 }
@@ -427,16 +428,18 @@ body {
 .cp-contact-card {
   background: #fff; border: 1px solid #e4e7ec; border-radius: 20px; box-shadow: var(--shadow-md);
   margin-top: -2.75rem; position: relative; z-index: 3;
-  padding: 2.4rem 2.6rem; display: flex; align-items: center; justify-content: space-between;
-  gap: 2.4rem; flex-wrap: wrap;
+  padding: 2rem 2.2rem; display: grid; grid-template-columns: 1fr 220px; align-items: center;
+  gap: 2rem;
 }
-.cp-contact-groups { display: flex; flex-wrap: wrap; gap: 2.4rem; flex: 1; }
-.cp-contact-group { display: flex; align-items: flex-start; gap: .9rem; min-width: 175px; }
-.cp-contact-group-icon { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 12px; background: color-mix(in srgb, var(--brand) 10%, #fff); color: var(--brand); display: flex; align-items: center; justify-content: center; }
-.cp-contact-group-label { display: block; font-size: .74rem; font-weight: 700; color: var(--brand); letter-spacing: .06em; margin-bottom: .3rem; }
-.cp-contact-group-value { display: block; font-size: 1.05rem; font-weight: 700; color: #18181b; line-height: 1.35; }
+.cp-contact-groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.6rem 2rem; flex: none; }
+.cp-contact-group { display: flex; align-items: flex-start; gap: .9rem; min-width: 0; }
+.cp-contact-group-icon { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; background: color-mix(in srgb, var(--brand) 10%, #fff); color: var(--brand); display: flex; align-items: center; justify-content: center; }
+.cp-contact-group > div { min-width: 0; }
+.cp-contact-group-label { display: block; font-size: .72rem; font-weight: 700; color: var(--brand); letter-spacing: .06em; margin-bottom: .25rem; }
+.cp-contact-group-value { display: block; font-size: 1rem; font-weight: 700; color: #18181b; line-height: 1.35; word-break: break-word; }
 .cp-contact-group-value--sm { font-size: .9rem; font-weight: 600; }
 .cp-contact-group-value--empty { color: #a1a1aa; font-weight: 500; font-style: italic; }
+.cp-contact-social-inline { grid-column: 1 / -1; }
 .cp-contact-group-sub { display: block; font-size: .82rem; color: #71717a; margin-top: .1rem; }
 .cp-contact-group-sub--empty { color: #b4b4b8; font-style: italic; }
 .cp-social-row { display: flex; gap: .5rem; }
