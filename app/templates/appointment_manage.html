@@ -32,7 +32,7 @@
               </div>
               <div class="col-md-6">
                 <span class="info-label">Estado</span>
-                <div class="fw-semibold">{{ appointment.status }}</div>
+                <div class="fw-semibold">{{ {'BOOKED': 'Reservado', 'CANCELED': 'Cancelado', 'DONE': 'Realizado', 'NO_SHOW': 'No asistió'}.get(appointment.status, appointment.status) }}</div>
               </div>
               <div class="col-12">
                 <span class="info-label">Cliente</span>
@@ -41,15 +41,35 @@
             </div>
           </div>
 
-          {% if appointment.status != 'BOOKED' %}
-            <div class="alert alert-secondary mb-0">Este turno ya no está activo, por lo que no se puede modificar.</div>
-          {% else %}
-            <div class="alert alert-light border mb-4">
-              <div class="small text-secondary">
-                Tip: si no encontrás lugar, volvé a la web del negocio para ver todos los horarios disponibles.
-              </div>
+          {% if not policy.can_cancel and not policy.can_reschedule %}
+            <div class="alert alert-secondary mb-0">
+              {{ policy.reason }}
+              {% if policy.is_late and appointment.status == 'BOOKED' and company.phone %}
+                <div class="mt-2 small">Teléfono del negocio: <strong>{{ company.phone }}</strong></div>
+              {% endif %}
             </div>
+          {% else %}
+            {% if not policy.is_late and policy.limit_hours > 0 %}
+              <div class="alert alert-light border mb-4 small">
+                Podés cancelar o reprogramar sin cargo hasta el
+                <strong>{{ policy.deadline.strftime('%d/%m/%Y a las %H:%M') }}</strong>
+                ({{ policy.limit_hours }} h antes del turno).
+                {% if company.cancelation_penalty_enabled and company.cancelation_penalty_amount %}
+                  Después de ese momento, cancelar tiene una penalidad de {{ company.cancelation_penalty_amount|ars }}.
+                {% else %}
+                  Después, solo el negocio puede modificarlo.
+                {% endif %}
+              </div>
+            {% elif policy.is_late %}
+              <div class="alert alert-warning mb-4 small">
+                {{ policy.reason }}
+                {% if policy.penalty_amount %}
+                  Si cancelás ahora, corresponde una penalidad de <strong>{{ policy.penalty_amount|ars }}</strong>.
+                {% endif %}
+              </div>
+            {% endif %}
             <div class="row g-3">
+              {% if policy.can_reschedule %}
               <div class="col-lg-7">
                 <div class="border rounded-4 p-3 h-100">
                   <div class="fw-semibold mb-1">Reprogramar</div>
@@ -58,7 +78,7 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="col-12">
                       <input class="form-control" type="datetime-local" name="start_dt" required>
-                      <div class="form-text">Elegí la fecha y hora deseadas (se valida que esté libre).</div>
+                      <div class="form-text">Elegí la fecha y hora deseadas (se valida que esté libre). Si no encontrás lugar, mirá los horarios disponibles en la web del negocio.</div>
                     </div>
                     <div class="col-12">
                       <button class="btn btn-dark w-100">Reprogramar</button>
@@ -66,17 +86,24 @@
                   </form>
                 </div>
               </div>
+              {% endif %}
 
-              <div class="col-lg-5">
+              {% if policy.can_cancel %}
+              <div class="{{ 'col-lg-5' if policy.can_reschedule else 'col-12' }}">
                 <div class="border rounded-4 p-3 h-100">
                   <div class="fw-semibold mb-1">Cancelar</div>
-                  <div class="text-secondary small mb-3">Si cancelás, este turno quedará liberado.</div>
+                  <div class="text-secondary small mb-3">
+                    {% if policy.penalty_amount %}Cancelar ahora tiene una penalidad de {{ policy.penalty_amount|ars }}.{% else %}Si cancelás, este turno quedará liberado.{% endif %}
+                  </div>
+                  {% set confirm_msg = ('¿Seguro que querés cancelar? Corresponde una penalidad de ' ~ (policy.penalty_amount|ars) ~ '.') if policy.penalty_amount else '¿Seguro que querés cancelar el turno?' %}
                   <form method="post" action="{{ url_for('public.manage_appointment_cancel', slug=company.slug, token=appointment.manage_token) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-outline-dark w-100" onclick="return confirm('¿Seguro que querés cancelar el turno?');">Cancelar turno</button>
+                    <button class="btn btn-outline-dark w-100"
+                            onclick='return confirm({{ confirm_msg|tojson }});'>Cancelar turno</button>
                   </form>
                 </div>
               </div>
+              {% endif %}
             </div>
           {% endif %}
         </div>

@@ -11,6 +11,7 @@ from .blueprints.cron import cron_bp
 from .blueprints.media import media_bp
 from .seed import seed_if_empty
 from .timeutils import utc_to_ar
+from .utils import format_ars
 from .sqlite_migrations import run_sqlite_migrations, ensure_booking_indexes
 
 
@@ -103,6 +104,7 @@ def create_app():
     # Las marcas del sistema (created_at, vencimientos) se guardan en UTC:
     # {{ fecha|hora_ar }} las muestra en hora de Argentina.
     app.add_template_filter(utc_to_ar, 'hora_ar')
+    app.add_template_filter(format_ars, 'ars')
 
     # ── Cabeceras de seguridad HTTP ──────────────────────────────────────────
     @app.after_request

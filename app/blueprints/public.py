@@ -7,11 +7,12 @@ from ..extensions import db, limiter
 from ..models import Appointment, Company, CompanyHours, Employee, Service, SlotHold, WEEKDAY_LABELS
 MONTH_LABELS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 from ..services.availability import get_availability_for_day, get_month_summary, lock_employee_for_booking, HOLD_MINUTES
-from ..services.appointment_service import cancel_appointment_logic
+from ..services.appointment_service import cancel_appointment_logic, customer_change_policy
 from ..services.google_calendar import ensure_google_event_for_appointment, delete_google_event_for_appointment
 from ..services.email_service import send_booking_confirmed, send_booking_canceled, send_booking_rescheduled
 from ..services import audit as audit_log
 from ..timeutils import TZ_LABEL, today_ar
+from ..utils import format_ars
 
 
 def _session_hold_key() -> str:
@@ -348,22 +349,30 @@ def customer_appointments(slug):
 def manage_appointment(slug, token):
     company     = get_company_or_404(slug)
     appointment = Appointment.query.filter_by(company_id=company.id, manage_token=token).first_or_404()
-    return render_template('appointment_manage.html', company=company, appointment=appointment)
+    return render_template('appointment_manage.html', company=company, appointment=appointment,
+                           policy=customer_change_policy(appointment))
 
 
 @public_bp.route('/<slug>/a/<token>/cancel', methods=['POST'])
 def manage_appointment_cancel(slug, token):
     company     = get_company_or_404(slug)
     appointment = Appointment.query.filter_by(company_id=company.id, manage_token=token).first_or_404()
-    ok, err = cancel_appointment_logic(appointment)
+    ok, err, penalty = cancel_appointment_logic(appointment)
     if not ok:
         flash(err or 'No se pudo cancelar el turno.', 'danger')
         return redirect(url_for('public.manage_appointment', slug=slug, token=token))
-    audit_log.log_status_changed(appointment, 'BOOKED', 'CANCELED', notes='Cancelado por el cliente')
+    note = 'Cancelado por el cliente'
+    if appointment.penalty_applied:
+        note += f' fuera de término (penalidad {format_ars(penalty)})'
+    audit_log.log_status_changed(appointment, 'BOOKED', 'CANCELED', notes=note)
     db.session.commit()
     delete_google_event_for_appointment(appointment)
-    send_booking_canceled(appointment, company_url=url_for('public.company_page', slug=slug, _external=True))
-    flash('Turno cancelado.', 'success')
+    send_booking_canceled(appointment, company_url=url_for('public.company_page', slug=slug, _external=True),
+                          penalty_amount=penalty)
+    if penalty:
+        flash(f'Turno cancelado. Por cancelar fuera de término corresponde una penalidad de {format_ars(penalty)}; el negocio se va a comunicar con vos.', 'warning')
+    else:
+        flash('Turno cancelado.', 'success')
     return redirect(url_for('public.manage_appointment', slug=slug, token=token))
 
 
@@ -371,8 +380,9 @@ def manage_appointment_cancel(slug, token):
 def manage_appointment_reschedule(slug, token):
     company     = get_company_or_404(slug)
     appointment = Appointment.query.filter_by(company_id=company.id, manage_token=token).first_or_404()
-    if appointment.status != 'BOOKED':
-        flash('Solo se pueden reprogramar turnos activos.', 'warning')
+    policy = customer_change_policy(appointment)
+    if not policy.can_reschedule:
+        flash(policy.reason or 'Este turno no se puede reprogramar.', 'warning')
         return redirect(url_for('public.manage_appointment', slug=slug, token=token))
     raw = request.form.get('start_dt', '').strip()
     if not raw:

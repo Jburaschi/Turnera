@@ -36,7 +36,10 @@ Tu turno fue cancelado:
   Servicio:     {{ service }}
   Profesional:  {{ professional }}
   Fecha y hora: {{ start_dt }}
-
+{% if penalty %}
+Como la cancelación se hizo fuera del plazo que fija el negocio, corresponde
+una penalidad de {{ penalty }}. {{ company }} se va a comunicar con vos.
+{% endif %}
 Si querés reservar un nuevo turno, podés hacerlo acá:
   {{ company_url }}
 
@@ -104,12 +107,14 @@ def send_booking_confirmed(appointment, manage_url: str, company_url: str) -> No
     _send(f'Turno confirmado — {appointment.company.name}', [recipient], body)
 
 
-def send_booking_canceled(appointment, company_url: str) -> None:
+def send_booking_canceled(appointment, company_url: str, penalty_amount: float = 0) -> None:
     recipient = _get_email(appointment)
     if not recipient:
         return
+    from ..utils import format_ars
     body = _render(
         BOOKING_CANCELED_BODY,
+        penalty=format_ars(penalty_amount) if penalty_amount else None,
         name=appointment.customer_display_name,
         company=appointment.company.name,
         service=appointment.service.name,

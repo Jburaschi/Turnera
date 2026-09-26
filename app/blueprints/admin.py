@@ -674,12 +674,12 @@ def update_company(slug):
         cfg.show_phone_public   = 'show_phone_public'   in request.form
         cfg.show_email_public   = 'show_email_public'   in request.form
         try:
-            company.cancelation_limit_hours = int(request.form.get('cancelation_limit_hours', 24))
+            company.cancelation_limit_hours = min(720, max(0, int(request.form.get('cancelation_limit_hours', 24))))
         except (ValueError, TypeError):
             pass
         company.cancelation_penalty_enabled = 'cancelation_penalty_enabled' in request.form
         try:
-            company.cancelation_penalty_amount = float(request.form.get('cancelation_penalty_amount', 0) or 0)
+            company.cancelation_penalty_amount = max(0.0, float(request.form.get('cancelation_penalty_amount', 0) or 0))
         except (ValueError, TypeError):
             pass
     else:
