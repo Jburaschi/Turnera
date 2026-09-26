@@ -105,6 +105,7 @@
     <!-- ══ TOPBAR ═══════════════════════════════════ -->
     <div class="admin-topbar">
       <div class="admin-topbar-brand">
+      <button type="button" class="admin-m-menu m-only" data-admin-nav-toggle aria-label="Abrir menú" aria-expanded="false">{{ ic.icon('menu', 20) }}</button>
         <div style="min-width:0;">
           <div class="admin-topbar-name">{{ sections.get(active_section, company.name) }}</div>
         </div>
@@ -602,7 +603,7 @@
           <div class="card shadow-sm">
             <div class="card-body p-4">
 
-              <div class="d-flex justify-content-between align-items-center mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-4 m-stack">
                 <div>
                   <h2 class="h5 mb-1">Nuevo turno manual</h2>
                   <p class="text-secondary small mb-0">Cargá un turno por teléfono, WhatsApp o presencial.</p>
@@ -793,7 +794,7 @@
 
       <div class="admin-card">
         <div class="admin-table-wrap">
-          <table class="admin-table">
+          <table class="admin-table m-cards m-customers">
             <thead>
               <tr><th>Cliente</th><th>Contacto</th><th>Último turno</th><th>Turnos</th><th style="text-align:right;">Acciones</th></tr>
             </thead>
@@ -917,7 +918,7 @@
               </div>
             </div>
             <div class="col-12"><label class="form-label fw-semibold">Franjas horarias</label></div>
-            <div class="col-12 table-responsive"><table class="table table-sm align-middle mb-2"><thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Prestaciones en esta franja</th><th></th></tr></thead>
+            <div class="col-12 table-responsive"><table class="table table-sm align-middle mb-2 m-schedule"><thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Prestaciones en esta franja</th><th></th></tr></thead>
               <tbody id="schedule-rows-new" data-schedule-tbody>{{ schedule_row(0, 0, '09:00', '17:00', []) }}</tbody>
             </table></div>
             <div class="col-12 d-flex flex-wrap gap-2">
@@ -931,7 +932,7 @@
 
       <div class="admin-card">
         <div class="admin-table-wrap">
-          <table class="admin-table">
+          <table class="admin-table m-cards">
             <thead><tr><th>Profesional</th><th>Estado</th><th>Prestaciones</th><th>Horario</th><th style="text-align:right;">Acciones</th></tr></thead>
             <tbody>
               {% for professional in company.employees %}
@@ -997,7 +998,7 @@
                   </div>
                 </div>
                 <div class="col-12"><label class="form-label fw-semibold">Franjas horarias</label></div>
-                <div class="col-12 table-responsive"><table class="table table-sm align-middle mb-2"><thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Prestaciones en esta franja</th><th></th></tr></thead>
+                <div class="col-12 table-responsive"><table class="table table-sm align-middle mb-2 m-schedule"><thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Prestaciones en esta franja</th><th></th></tr></thead>
                   <tbody id="schedule-rows-{{ professional.id }}" data-schedule-tbody>
                   {% if professional.schedules %}{% for sch in professional.schedules %}{% set lids = sch.limited_services|map(attribute='id')|list if sch.limited_services else [] %}{{ schedule_row(loop.index0, sch.weekday, sch.start_time.strftime('%H:%M'), sch.end_time.strftime('%H:%M'), lids) }}{% endfor %}
                   {% else %}{{ schedule_row(0, 0, '09:00', '17:00', []) }}{% endif %}
@@ -1059,7 +1060,7 @@
       </div>
       <div class="admin-card">
         <div class="admin-table-wrap">
-          <table class="admin-table">
+          <table class="admin-table m-cards">
             <thead><tr><th>Prestación</th><th>Duración</th><th>Precio</th><th>Visible</th><th style="text-align:right;">Acciones</th></tr></thead>
             <tbody>
               {% set svc_colors = ['#3654f0','#16a34a','#c98a1e','#ec4899','#7c3aed','#0891b2'] %}
@@ -1186,7 +1187,7 @@
 
       <div class="admin-card">
         <div class="admin-table-wrap">
-          <table class="admin-table">
+          <table class="admin-table m-cards">
             <thead><tr><th>Título</th><th>Tipo</th><th>Profesional</th><th>Desde</th><th>Hasta</th><th style="text-align:right;">Acciones</th></tr></thead>
             <tbody>
               {% for block in blocked_periods %}
@@ -1609,6 +1610,7 @@
     {% endif %}
     </div>
   </main>
+  {% include '_admin_mobile_nav.html' %}
 </div>
 {% endblock %}
 

@@ -1,0 +1,39 @@
+{# ───────────────────────────────────────────────────────────────────────
+   Navegación del panel en MOBILE (oculta en escritorio con .m-only).
+   - Barra de pestañas fija abajo: Resumen · Agenda · Clientes · Más
+   - "Más" y el botón ☰ de la barra superior abren el menú lateral como cajón.
+   Uso: {% include '_admin_mobile_nav.html' %} con `company` y `active_section`.
+   Sin pestañas (plataforma): {% with no_tabbar = true %}{% include ... %}{% endwith %}
+   ─────────────────────────────────────────────────────────────────────── #}
+{% import '_icons.html' as ic %}
+<div class="admin-nav-overlay m-only" data-admin-nav-close></div>
+{% if not no_tabbar %}
+<nav class="m-tabbar m-only" aria-label="Navegación principal">
+  {% set tabs = [('overview', 'Resumen', 'home'), ('agenda', 'Agenda', 'calendar'), ('customers', 'Clientes', 'users')] %}
+  {% for key, label, icon_name in tabs %}
+  <a href="{{ url_for('admin.dashboard', slug=company.slug, section=key) }}"
+     class="m-tab {% if active_section == key %}is-active{% endif %}"
+     {% if active_section == key %}aria-current="page"{% endif %}>
+    {{ ic.icon(icon_name, 21) }}<span>{{ label }}</span>
+  </a>
+  {% endfor %}
+  <button type="button" class="m-tab {% if active_section not in ('overview', 'agenda', 'customers') %}is-active{% endif %}" data-admin-nav-toggle aria-label="Más opciones">
+    {{ ic.icon('menu', 21) }}<span>Más</span>
+  </button>
+</nav>
+{% endif %}
+<script>
+(function () {
+  var body = document.body;
+  function setOpen(open) {
+    body.classList.toggle('admin-nav-open', open);
+    document.querySelectorAll('[data-admin-nav-toggle]').forEach(function (b) { b.setAttribute('aria-expanded', open ? 'true' : 'false'); });
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-admin-nav-toggle]')) { setOpen(!body.classList.contains('admin-nav-open')); }
+    else if (e.target.closest('[data-admin-nav-close]')) { setOpen(false); }
+    else if (body.classList.contains('admin-nav-open') && e.target.closest('.admin-sidebar a')) { setOpen(false); }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+})();
+</script>

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% import '_icons.html' as ic %}
 {% block title %}Plataforma · Turnex{% endblock %}
 {% block topnav %}{% endblock %}
 
@@ -33,6 +34,12 @@
 
   <!-- ══ MAIN ═══════════════════════════════════════ -->
   <main class="admin-main">
+    <div class="admin-topbar m-only">
+      <div class="admin-topbar-brand">
+        <button type="button" class="admin-m-menu" data-admin-nav-toggle aria-label="Abrir menú" aria-expanded="false">{{ ic.icon('menu', 20) }}</button>
+        <div style="min-width:0;"><div class="admin-topbar-name">Plataforma</div></div>
+      </div>
+    </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
@@ -237,6 +244,7 @@
 
     </div>
   </main>
+  {% with no_tabbar = true %}{% include '_admin_mobile_nav.html' %}{% endwith %}
 </div>
 {% endblock %}
 

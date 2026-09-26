@@ -1,0 +1,439 @@
+/* ================================================================
+   TURNEX — CAPA MOBILE
+   Se carga DESPUÉS de design.css, styles.css y admin_styles.css.
+   Todas las reglas viven dentro de @media (max-width: 767.98px):
+   la versión de escritorio NO cambia.
+
+   Sistema mobile:
+   - Texto base 15px · secundario 13px · títulos 22–24px
+   - Botón estándar 40px de alto, letra 14px; principal de un flujo 46px
+   - Campos 44px de alto con letra 16px (con menos, iOS hace zoom al tocar)
+   - Márgenes laterales 16px · tarjetas radio 14px, padding 16px
+   - Pesos 600–700 (los 800–900 de escritorio pesan demasiado en pantalla chica)
+   ================================================================ */
+
+/* Elementos que solo existen en mobile: se ocultan en pantallas grandes.
+   (En mobile cada uno usa su propio display: flex, grid, etc.) */
+@media (min-width: 768px) {
+  .m-only { display: none !important; }
+}
+
+@media (max-width: 767.98px) {
+
+  .m-hide { display: none !important; }
+
+  /* ── Base ─────────────────────────────────────────────────────── */
+  body { font-size: 15px; line-height: 1.5; }
+  .container { padding-left: 16px; padding-right: 16px; }
+  .pub-nav-container { padding-left: 16px; padding-right: 16px; }
+  html, body { overflow-x: hidden; }
+
+  /* ── Botones ──────────────────────────────────────────────────── */
+  .btn {
+    min-height: 40px; padding: 0 16px; font-size: 14px; font-weight: 600;
+    border-radius: 10px; line-height: 1.2;
+  }
+  .btn-sm { min-height: 34px; padding: 0 12px; font-size: 13px; border-radius: 9px; }
+  .btn-lg { min-height: 46px; padding: 0 20px; font-size: 15px; }
+
+  /* ── Campos ───────────────────────────────────────────────────── */
+  .form-control, .form-select, select.form-control, textarea.form-control {
+    font-size: 16px; min-height: 44px; padding: 10px 12px; border-radius: 10px;
+  }
+  textarea.form-control { min-height: 88px; }
+  .form-control-sm, .form-select-sm { font-size: 16px; min-height: 40px; padding: 8px 10px; }
+  .form-control-color { min-height: 44px; width: 64px; }
+  .form-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .form-text { font-size: 12.5px; }
+  .input-group-text { font-size: 14px; }
+  .pwd-toggle-btn { width: 44px; height: 44px; }
+
+  /* Grilla: en escritorio no hace falta separación vertical (van en fila);
+     en mobile las columnas se apilan y quedaban pegadas. */
+  .row.g-2 { row-gap: 8px; }
+  .row.g-3 { row-gap: 14px; }
+  .row.g-4 { row-gap: 18px; }
+
+  /* ── Navegación pública ───────────────────────────────────────── */
+  /* En escritorio: marca · links · acciones (3 columnas). En mobile los
+     links se ocultan: marca a la izquierda, acciones/menú a la derecha. */
+  .pub-nav-inner { grid-template-columns: minmax(0, 1fr) auto; min-height: 56px; gap: 12px; }
+  .pub-brand { min-width: 0; gap: 10px; }
+  .pub-brand > div { min-width: 0; }
+  .pub-brand-name { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .pub-nav-hamburger { width: 40px; height: 40px; border-radius: 10px; }
+  .pub-brand-logo, .pub-brand-icon { width: 34px; height: 34px; }
+
+  /* ════════════════════════════════════════════════════════════════
+     PÁGINA DEL NEGOCIO  (/<slug>)
+     ════════════════════════════════════════════════════════════════ */
+  .cp-hero { padding-top: 84px; padding-bottom: 28px; }
+  .cp-hero-inner { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .cp-hero-left { gap: 12px; }
+  .cp-title { font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; }
+  .cp-desc { font-size: 15px; line-height: 1.55; }
+  .cp-hero-actions { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 8px; }
+  .cp-btn-primary, .cp-btn-ghost {
+    justify-content: center; min-height: 46px; padding: 0 12px; font-size: 15px;
+    border-radius: 12px; white-space: nowrap;
+  }
+  .cp-btn-ghost { font-size: 14px; }
+  .cp-trust-row { font-size: 13px; gap: 6px 12px; }
+  .cp-section { padding: 32px 0; }
+  .cp-section-title { font-size: 22px; font-weight: 700; }
+  .cp-section-sub { font-size: 14px; }
+  .cp-eyebrow { font-size: 11px; padding: 4px 8px; }
+
+  /* Tarjeta de contacto: más compacta */
+  .cp-contact-card { padding: 16px; border-radius: 14px; }
+  .cp-contact-groups { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .cp-contact-group { gap: 12px; }
+  .cp-contact-group-icon { width: 36px; height: 36px; flex-basis: 36px; border-radius: 10px; }
+  .cp-contact-group-label { font-size: 11px; }
+  .cp-contact-group-value { font-size: 14px; font-weight: 600; }
+  .cp-contact-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; min-width: 0; margin-top: 4px; }
+  .cp-contact-actions .cp-btn-outline, .cp-contact-actions .cp-btn-whatsapp {
+    justify-content: center; min-width: 0; min-height: 42px; padding: 0 10px; font-size: 14px; border-radius: 10px;
+  }
+
+  /* Servicios: filas compactas (miniatura · nombre, duración y precio · botón) */
+  .cp-services-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .cp-service-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; }
+  .cp-service-card:hover { transform: none; }
+  .cp-service-photo { width: 52px; height: 52px; flex: 0 0 52px; min-height: 0; border-radius: 12px; aspect-ratio: auto; }
+  .cp-service-body {
+    flex: 1; min-width: 0; padding: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 1px; align-items: center;
+  }
+  .cp-service-name { grid-column: 1; font-size: 15px; font-weight: 700; margin: 0; line-height: 1.3; }
+  .cp-service-divider { display: none; }
+  .cp-service-meta { grid-column: 1; font-size: 12.5px; margin: 0; }
+  .cp-service-price { grid-column: 1; font-size: 14px; font-weight: 700; margin: 0; }
+  .cp-service-action--block {
+    grid-column: 2; grid-row: 1 / span 3; margin: 0; padding: 8px 14px; font-size: 13px; border-radius: 999px;
+  }
+
+  /* Pasos / profesionales / confianza */
+  .cp-steps-card { padding: 18px 16px; }
+  .cp-trust-bar { padding: 14px; gap: 12px 0; }
+  .cp-trust-item strong { font-size: 13px; }
+  .cp-trust-item span { font-size: 12px; }
+  .cp-people-card { padding: 14px; }
+
+  /* ════════════════════════════════════════════════════════════════
+     RESERVA  (/<slug>/booking)
+     ════════════════════════════════════════════════════════════════ */
+  /* Causa del desborde horizontal: la columna de la grilla no tenía
+     tope y el resumen en fila la estiraba a ~445px. */
+  .booking-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .booking-main, .booking-side { min-width: 0; }
+
+  .booking-header-compact { margin-bottom: 12px; }
+  .booking-header-compact h1, #booking-flow-title { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  #booking-flow-subtitle { font-size: 14px; }
+
+  /* Resumen "tu selección": tira compacta que scrollea de costado */
+  .booking-side-card { padding: 10px 12px; gap: 14px; border-radius: 12px; scrollbar-width: none; }
+  .booking-side-card::-webkit-scrollbar { display: none; }
+  .booking-side-icon { width: 28px; height: 28px; flex-basis: 28px; border-radius: 8px; }
+  .booking-side-label { font-size: 11px; }
+  .booking-side-row strong { font-size: 13px; white-space: nowrap; }
+  .booking-side-price strong { font-size: 15px; }
+
+  /* Panel de cada paso */
+  .booking-panel { padding: 16px; border-radius: 14px; }
+  .booking-panel-title { font-size: 18px; font-weight: 700; }
+  .booking-panel-sub { font-size: 13.5px; }
+
+  /* Elegir servicio: fila compacta, descripción larga en 2 líneas */
+  .service-row { flex-wrap: nowrap; align-items: flex-start; gap: 12px; padding: 12px; margin-bottom: 8px; }
+  .service-row-icon { width: 40px; height: 40px; flex-basis: 40px; }
+  .service-row-top { flex-wrap: wrap; justify-content: flex-start; gap: 4px 8px; }
+  .service-row-top strong { font-size: 15px; }
+  .service-row-duration { font-size: 11.5px; padding: 2px 8px; }
+  .service-row-sub { font-size: 13px; }
+  .service-row-desc {
+    font-size: 12.5px; color: var(--c-ink-2); margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .service-row-right { flex-direction: column; align-items: flex-end; gap: 8px; }
+  .service-row-price { font-size: 14px; }
+  .service-row-check { width: 26px; height: 26px; }
+  /* el HTML trae style="width:auto" en línea: se pisa solo en mobile */
+  #continue-service-btn { width: 100% !important; min-height: 46px; padding: 0 16px !important; }
+  .booking-search, #service-search { max-width: none; }
+
+  /* ¿Cómo querés buscar? — filas compactas en vez de ilustraciones de 190px */
+  .mode-options-grid { gap: 10px; }
+  .mode-card { display: flex; align-items: stretch; border-radius: 14px; }
+  .mode-card:hover { transform: none; }
+  .mode-card-illus { width: 72px; flex: 0 0 72px; height: auto; min-height: 72px; }
+  .mode-card-illus svg { width: 120%; max-width: none; }
+  .mode-card-illus::after { display: none; }
+  .mode-card-body { flex: 1; min-width: 0; padding: 12px 14px; gap: 10px; }
+  .mode-card-text h3 { font-size: 15px; margin-bottom: 2px; }
+  .mode-card-text p { font-size: 13px; line-height: 1.45; }
+  .mode-card-arrow { width: 32px; height: 32px; flex-basis: 32px; font-size: 14px; }
+
+  /* Nota de zona horaria: una línea chica */
+  .timezone-note { display: block; font-size: 12.5px; padding: 8px 10px; line-height: 1.45; }
+  .timezone-note svg { display: inline-block; vertical-align: -2px; margin-right: 4px; }
+
+  /* Calendario */
+  .calendar-grid { gap: 4px; }
+  .calendar-cell { min-height: 42px; padding: 4px 2px; font-size: 14px; border-radius: 10px; }
+  .cal-weekday { font-size: 11px; }
+
+  /* Horarios */
+  .time-slots-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .slot-btn { min-height: 40px; padding: 0 4px; font-size: 14px; border-radius: 10px; }
+
+  /* Pantalla de confirmación */
+  .confirm-screen-title { font-size: 20px; font-weight: 700; line-height: 1.25; }
+  .confirm-screen-card { padding: 16px; border-radius: 14px; }
+  .booking-kicker { font-size: 11px; }
+
+  /* Botones de acción del flujo */
+  .booking-confirm-btn { min-height: 46px; font-size: 15px; border-radius: 12px; }
+
+  /* Turno confirmado (booking_success tiene su propio <style>: más especificidad) */
+  body .bs-card { padding: 22px 16px; border-radius: 16px; }
+  body .bs-title { font-size: 22px; }
+  body .bs-actions { flex-direction: column; gap: 8px; }
+  body .bs-btn { min-height: 46px; font-size: 15px; }
+  body .bs-btn, body .bs-btn * { text-decoration: none; }
+
+  /* ════════════════════════════════════════════════════════════════
+     PÁGINAS SIMPLES DEL CLIENTE (login, registro, gestionar turno…)
+     ════════════════════════════════════════════════════════════════ */
+  .card-body.p-4, .card-body.p-lg-5 { padding: 18px !important; }
+  .card { border-radius: 14px; }
+  .h3, h1.h3 { font-size: 22px; }
+  .h4, h1.h4 { font-size: 20px; }
+
+  /* ════════════════════════════════════════════════════════════════
+     PANEL DEL NEGOCIO Y PLATAFORMA
+     ════════════════════════════════════════════════════════════════ */
+  /* Estructura: el menú lateral pasa a ser un cajón que se abre con ☰ o
+     con "Más" en la barra de pestañas de abajo. */
+  .admin-shell { display: block; }
+  .admin-main { padding: 0 0 calc(76px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  .admin-content { padding: 12px 12px 0; }
+
+  .admin-sidebar {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 1050;
+    width: min(84vw, 300px); height: 100%; overflow-y: auto; overscroll-behavior: contain;
+    padding-bottom: 24px; transform: translateX(-105%); transition: transform .22s ease;
+    box-shadow: 0 0 40px rgba(0,0,0,.35);
+  }
+  body.admin-nav-open .admin-sidebar { transform: none; }
+  body.admin-nav-open { overflow: hidden; }
+  .admin-nav-overlay {
+    position: fixed; inset: 0; z-index: 1040; background: rgba(15, 23, 42, .5);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  body.admin-nav-open .admin-nav-overlay { opacity: 1; pointer-events: auto; }
+
+  /* Dentro del cajón el menú vuelve a ser vertical (deshace el modo fila de tablet) */
+  .admin-sidebar-brand { padding: 18px 16px 10px; }
+  .admin-nav { flex-direction: column; flex-wrap: nowrap; padding: 6px 10px; }
+  .admin-nav-section { display: block; }
+  .admin-nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; font-size: 15px; }
+  .admin-nav-icon { display: inline-flex; }
+  .admin-nav-footer { flex-direction: column; padding: 6px 10px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,.08); }
+  .admin-plan-card { margin: 12px 16px 0; }
+
+  /* Barra superior compacta y fija */
+  .admin-topbar {
+    position: sticky; top: 0; z-index: 1000; flex-wrap: nowrap; gap: 8px;
+    min-height: 56px; padding: 8px 12px; row-gap: 0;
+  }
+  .admin-topbar-brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+  .admin-topbar-logo { display: none; }
+  .admin-topbar-name { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .admin-topbar-sub { display: none; }
+  .admin-topbar-actions { flex: 0 0 auto; order: 0; flex-wrap: nowrap; gap: 6px; }
+  .admin-topbar-actions > a[target="_blank"] { display: none; }  /* "Ver página pública" está en el menú */
+  .admin-topbar-actions .btn-sm { min-height: 36px; padding: 0 10px; font-size: 13px; }
+  .admin-topbar-user { padding-left: 0; border-left: 0; }
+  .admin-topbar-user > div:not(.admin-topbar-avatar) { display: none; }
+  .admin-topbar-avatar { width: 32px; height: 32px; font-size: 13px; }
+  .admin-topbar-bell { width: 36px; height: 36px; }
+  .admin-m-menu {
+    display: inline-flex; align-items: center; justify-content: center; flex: 0 0 40px;
+    width: 40px; height: 40px; margin-left: -6px; border: 0; border-radius: 10px;
+    background: transparent; color: var(--c-ink); cursor: pointer;
+  }
+  .admin-m-menu:active { background: var(--c-bg); }
+
+  /* Pantallas sin .admin-content (plataforma): margen propio */
+  .admin-main:not(:has(> .admin-content)) { padding: 0 12px calc(24px + env(safe-area-inset-bottom)); }
+  .admin-main:not(:has(> .admin-content)) > .admin-topbar { margin: 0 -12px 12px; }
+  body:not(:has(.m-tabbar)) .admin-main { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+
+  /* Barra de pestañas inferior */
+  .m-tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    height: calc(62px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+    background: rgba(255,255,255,.97); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--c-border);
+  }
+  .m-tab {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    border: 0; background: none; font: inherit; font-size: 11px; font-weight: 600;
+    color: var(--c-ink-3); text-decoration: none; cursor: pointer;
+  }
+  .m-tab:hover { text-decoration: none; color: var(--c-ink-2); }
+  .m-tab.is-active { color: var(--c-blue); }
+
+  /* Tarjetas de números: ícono arriba y texto abajo (de costado no entraba
+     en media pantalla y los textos se partían en 4 líneas) */
+  .admin-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .admin-stat-card-v2 { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
+  .admin-stat-icon-v2 { width: 32px; height: 32px; flex-basis: 32px; border-radius: 9px; }
+  .admin-stat-label-v2 { font-size: 12.5px; margin-bottom: 2px; }
+  .admin-stat-value-v2 { font-size: 20px; }
+  .admin-stat-delta { font-size: 11.5px; }
+
+  /* Tablas: se deslizan de costado dentro de la tarjeta; una sombra en el
+     borde avisa que hay más columnas. */
+  .admin-table-wrap, .ag3-table-wrap, .table-responsive {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    background:
+      linear-gradient(to right, #fff 30%, rgba(255,255,255,0)) 0 0,
+      linear-gradient(to left, #fff 30%, rgba(255,255,255,0)) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(15,23,42,.14), transparent) 0 0,
+      radial-gradient(farthest-side at 100% 50%, rgba(15,23,42,.14), transparent) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 36px 100%, 36px 100%, 12px 100%, 12px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+  .admin-table { font-size: 13.5px; }
+  .admin-table th { font-size: 11px; padding: 10px 12px; white-space: nowrap; }
+  .admin-table td { padding: 10px 12px; }
+  .admin-table td .btn-sm { min-height: 32px; }
+
+  /* Encabezados de sección del panel */
+  .admin-page-header { gap: 10px; margin-bottom: 14px; }
+  .admin-page-title { font-size: 21px; }
+  .admin-page-sub { font-size: 13.5px; }
+  .admin-section-icon { width: 38px; height: 38px; }
+  .admin-card { border-radius: 14px; }
+  .admin-card-header { padding: 12px 14px; }
+  .admin-card-body { padding: 14px; }
+  .admin-card-title { font-size: 15px; }
+
+  /* Tablas con "Acciones" al final (.m-cards) → cada fila es una tarjeta:
+     el nombre arriba, los datos en una línea y el botón de editar arriba a
+     la derecha, siempre visible. El formulario de edición (fila colapsable)
+     ocupa todo el ancho de la pantalla. */
+  .admin-table-wrap:has(> .m-cards) { overflow-x: visible; background: none; }
+  .admin-table.m-cards > thead { display: none; }
+  .admin-table.m-cards, .admin-table.m-cards > tbody { display: block; width: 100%; }
+  .admin-table.m-cards > tbody > tr:not(.collapse):not(.collapsing) {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; position: relative;
+    padding: 12px 56px 12px 14px; border-bottom: 1px solid var(--c-border);
+  }
+  .admin-table.m-cards > tbody > tr > td { display: block; padding: 0; border: 0; font-size: 13px; color: var(--c-ink-2); }
+  .admin-table.m-cards > tbody > tr > td:first-child { flex: 1 1 100%; font-size: 14px; color: var(--c-ink); }
+  .admin-table.m-cards > tbody > tr:not(.collapse):not(.collapsing) > td:last-child:not(:first-child) {
+    position: absolute; top: 10px; right: 10px;
+  }
+  .admin-table.m-cards > tbody > tr > td[colspan] { flex: 1 1 100%; }
+  .admin-table.m-cards > tbody > tr.collapse.show, .admin-table.m-cards > tbody > tr.collapsing { display: block; }
+  .admin-table.m-cards > tbody > tr.collapse > td, .admin-table.m-cards > tbody > tr.collapsing > td { display: block; padding: 0; }
+  /* Clientes: etiquetas para los datos sueltos */
+  .admin-table.m-customers > tbody > tr:not(.collapse) > td:nth-child(3):not([colspan])::before { content: 'Último turno: '; color: var(--c-ink-3); }
+  .admin-table.m-customers > tbody > tr:not(.collapse) > td:nth-child(4):not([colspan])::before { content: 'Turnos: '; color: var(--c-ink-3); }
+  .admin-table.m-customers > tbody > tr:not(.collapse) > td:nth-child(2) { flex: 1 1 100%; }
+  .admin-table.m-customers > tbody > tr:not(.collapse) > td:nth-child(3),
+  .admin-table.m-customers > tbody > tr:not(.collapse) > td:nth-child(4) { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
+  .admin-table.m-customers > tbody > tr:not(.collapse) > td:nth-child(3) > *,
+  .admin-table.m-customers > tbody > tr:not(.collapse) > td:nth-child(4) > * { display: inline; margin: 0; }
+  .admin-icon-btn { width: 36px; height: 36px; }
+  .expand-panel { padding: 14px; }
+
+  /* Franjas horarias (Día · Desde · Hasta · Prestaciones · ×) → bloque por franja */
+  .m-schedule thead { display: none; }
+  .m-schedule, .m-schedule tbody { display: block; width: 100%; }
+  .m-schedule tr.schedule-block-row {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
+    gap: 8px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--c-border);
+  }
+  .m-schedule tr.schedule-block-row > td { display: block; padding: 0; border: 0; min-width: 0; }
+  .m-schedule tr.schedule-block-row > td:nth-child(1) { grid-column: 1 / 3; grid-row: 1; }
+  .m-schedule tr.schedule-block-row > td:nth-child(5) { grid-column: 3; grid-row: 1; }
+  .m-schedule tr.schedule-block-row > td:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .m-schedule tr.schedule-block-row > td:nth-child(3) { grid-column: 2 / 4; grid-row: 2; }
+  .m-schedule tr.schedule-block-row > td:nth-child(4) { grid-column: 1 / -1; grid-row: 3; }
+  .m-schedule .form-control-sm, .m-schedule .form-select-sm { min-height: 40px; font-size: 15px; padding: 6px 8px; }
+  .m-schedule .schedule-row-remove { width: 40px; min-height: 40px; padding: 0; }
+  .schedule-service-chips { gap: 6px; }
+
+  /* Encabezado con título + botón: apilados */
+  .m-stack { flex-direction: column; align-items: stretch !important; gap: 12px; }
+  .m-stack > .btn { width: 100%; }
+
+  /* ════════════════════════════════════════════════════════════════
+     ALTA GUIADA (/registrar/...)
+     ════════════════════════════════════════════════════════════════ */
+  /* Encabezado: solo el ícono de marca, pasos compactos que no chocan */
+  .ob-wiz-header { padding: 8px 12px; gap: 10px; flex-wrap: nowrap; }
+  .ob-wiz-brand { font-size: 0; gap: 0; flex: 0 0 auto; }
+  .ob-wiz-brand .pub-brand-icon { font-size: 14px; width: 32px; height: 32px; }
+  .ob-wiz-steps { justify-content: flex-start; min-width: 0; }
+  .ob-wiz-step-line { width: 10px; margin: 0 3px; flex: 0 0 10px; }
+  .ob-wiz-step-circle { width: 26px; height: 26px; font-size: 12px; }
+  .ob-wiz-skip { flex: 0 0 auto; font-size: 13px; }
+
+  .ob-form-card { padding: 18px 16px; border-radius: 14px; }
+  .ob-hours-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+
+  /* Servicios: nombre a lo ancho; duración, precio y quitar abajo */
+  .ob-service-col-labels { display: none; }
+  .ob-service-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px; gap: 8px; padding: 10px; }
+  .ob-service-grip, .ob-service-dot { display: none; }
+  .ob-service-row > input[name="service_name[]"] { grid-column: 1 / -1; }
+  .ob-service-duration-wrap, .ob-service-price-wrap { min-width: 0; width: auto; }
+  .ob-service-duration-wrap .form-control, .ob-service-price-wrap .form-control { width: 100%; min-width: 0; }
+  .ob-service-remove { width: 40px; height: 44px; }
+  .ob-service-row { width: 100%; box-sizing: border-box; }
+  .ob-service-row .form-control { min-width: 0; }
+  .ob-service-duration-wrap input { padding-right: 38px; }
+  .ob-service-duration-wrap input::-webkit-inner-spin-button,
+  .ob-service-duration-wrap input::-webkit-outer-spin-button,
+  .ob-service-price-wrap input::-webkit-inner-spin-button,
+  .ob-service-price-wrap input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .ob-service-duration-wrap input, .ob-service-price-wrap input { -moz-appearance: textfield; }
+  .ob-service-duration-suffix { right: 10px; font-size: 13px; }
+  .ob-mini-actions { gap: 10px; margin-top: 20px; padding-top: 16px; }
+  .ob-mini-actions > *, .ob-wiz-actions > * { white-space: nowrap; }
+  .ob-wiz-actions { display: flex; gap: 10px; }
+  .ob-wiz-actions .ob-btn-outline { flex: 0 0 auto; padding: 0 14px; min-height: 46px; }
+  .ob-wiz-actions .ob-submit-btn { flex: 1; width: auto; min-width: 0; padding: 0 12px; }
+  .ob-mini-actions .ob-btn-outline { flex: 0 0 auto; padding: 0 14px; min-height: 46px; }
+  .ob-mini-actions .ob-submit-btn { flex: 1; width: auto; }
+
+  /* Horarios: casilla + día arriba, horas a lo ancho debajo */
+  .ob-hours-day-row { flex-wrap: wrap; gap: 8px 10px; padding: 12px 0; }
+  .ob-hours-day-name { width: auto; flex: 1 1 auto; font-size: 15px; }
+  .ob-hours-day-row-content { order: 3; flex: 1 1 100%; flex-wrap: wrap; gap: 8px; }
+  .ob-hours-day-row-content input[type="time"], .ob-hours-range-times input[type="time"] {
+    width: auto; flex: 1 1 0; min-width: 0; min-height: 42px; font-size: 16px;
+  }
+  .ob-hours-add-range-link { flex: 1 1 100%; justify-content: flex-start; padding: 4px 0; font-size: 13px; }
+  .ob-hours-closed-label { font-size: 13px; }
+  .ob-hours-day-chevron { width: 36px; height: 36px; }
+  .ob-hours-day-body { padding-left: 0; }
+  .ob-hours-range-times { display: flex; gap: 8px; align-items: center; }
+
+  .ob-field-row { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+
+  /* Landing: botones del hero a 46px */
+  .hl-btn-primary, .hl-btn-ghost { min-height: 46px; padding: 0 18px; font-size: 15px; justify-content: center; }
+  .ob-hours-main button[type="submit"] { width: 100%; min-height: 46px; font-size: 15px; }
+
+  /* Botones de avance del asistente */
+  .ob-submit-btn { width: 100%; min-height: 46px; font-size: 15px; }
+}

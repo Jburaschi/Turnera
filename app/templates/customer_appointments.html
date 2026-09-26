@@ -30,9 +30,9 @@
       <div class="apt-card apt-card--upcoming">
         <div class="apt-card-left">
           <div class="apt-date-block">
-            <span class="apt-weekday">{{ apt.start_dt.strftime('%a') }}</span>
+            <span class="apt-weekday">{{ apt.start_dt|dia_corto }}</span>
             <span class="apt-day">{{ apt.start_dt.strftime('%d') }}</span>
-            <span class="apt-month">{{ apt.start_dt.strftime('%b') }}</span>
+            <span class="apt-month">{{ apt.start_dt|mes_corto }}</span>
           </div>
         </div>
         <div class="apt-card-body">
@@ -71,9 +71,9 @@
       <div class="apt-card apt-card--past">
         <div class="apt-card-left">
           <div class="apt-date-block apt-date-block--muted">
-            <span class="apt-weekday">{{ apt.start_dt.strftime('%a') }}</span>
+            <span class="apt-weekday">{{ apt.start_dt|dia_corto }}</span>
             <span class="apt-day">{{ apt.start_dt.strftime('%d') }}</span>
-            <span class="apt-month">{{ apt.start_dt.strftime('%b') }}</span>
+            <span class="apt-month">{{ apt.start_dt|mes_corto }}</span>
           </div>
         </div>
         <div class="apt-card-body">
