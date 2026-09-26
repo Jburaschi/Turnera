@@ -1,48 +1,19 @@
-# Turnera SaaS mejorada
+# Turnex — turnera online multiempresa
 
-Proyecto Flask para una turnera multiempresa donde:
+Aplicación Flask para que negocios de Argentina publiquen su agenda y sus
+clientes reserven turnos desde un link propio (`/<slug>`).
 
-- cada empresa tiene su URL pública propia (`/<slug>`)
-- la experiencia del cliente quedó intacta
-- se agregó un panel de plataforma para dar de alta empresas, slugs y usuarios admin
-- se reforzó el panel empresa para operar agenda, clientes, prestaciones, profesionales y bloqueos
+- **Plataforma** (`/platform/login`): alta de empresas, planes y pagos.
+- **Panel de la empresa** (`/admin/login`): agenda, clientes, prestaciones,
+  profesionales, horarios, bloqueos, pagos, equipo e integraciones.
+- **Clientes** (`/<slug>`): reservan como invitados o con cuenta, y cancelan o
+  reprograman desde el link que reciben por mail.
 
-## Qué cambió
+La app funciona solo en hora de Argentina (`America/Argentina/Buenos_Aires`).
 
-### Plataforma
+---
 
-- login de plataforma independiente
-- alta de empresa con:
-  - nombre
-  - slug/url
-  - admin inicial
-  - plan
-  - estado
-- edición posterior de empresa y admin
-- registro de pagos por empresa
-
-### Panel empresa
-
-- agenda con filtros
-- alta manual de turnos
-- cambio de estado del turno (`BOOKED`, `DONE`, `NO_SHOW`, `CANCELED`)
-- reprogramación de turnos
-- CRUD de clientes
-- CRUD de prestaciones
-- CRUD de profesionales
-- edición completa de horarios por profesional
-- bloqueos de agenda por empresa o por profesional
-
-### Backend
-
-- validaciones básicas de formularios
-- validación de que un profesional realmente haga la prestación reservada
-- corrección del conteo mensual de turnos
-- soporte para usuarios de plataforma
-- soporte para empresas activas/inactivas y planes
-- soporte para bloqueos que impactan la disponibilidad
-
-## Ejecutar
+## Ejecutar en local
 
 ```bash
 python3 -m venv .venv
@@ -51,83 +22,139 @@ pip install -r requirements.txt
 python3 run.py
 ```
 
-## URLs demo
+Con la base vacía se crean datos de demo:
 
-### Cliente
+| Qué | Dónde | Usuario |
+|---|---|---|
+| Página pública | http://127.0.0.1:5000/pepito | — |
+| Panel empresa | http://127.0.0.1:5000/admin/login | `admin@pepito.com` / `admin123` |
+| Cliente demo | http://127.0.0.1:5000/pepito/customer/login | `lucia@demo.com` / `cliente123` |
+| Plataforma | http://127.0.0.1:5000/platform/login | ver abajo |
 
-- `http://127.0.0.1:5000/pepito`
+El usuario de plataforma se crea con `PLATFORM_ADMIN_EMAIL` y
+`PLATFORM_ADMIN_PASSWORD`. Si no están definidas, se usa `owner@turnex.com` con
+una contraseña al azar que se imprime **una sola vez** en el log de arranque.
 
-### Login empresa
+> ⚠️ La empresa demo `pepito` (con `admin123`) se crea en **cualquier** base
+> vacía, también en producción. Después del primer deploy, desactivala o
+> cambiale la contraseña desde plataforma.
 
-- `http://127.0.0.1:5000/admin/login`
+---
 
-### Login plataforma
+## Variables de entorno
 
-- `http://127.0.0.1:5000/platform/login`
+| Variable | Obligatoria | Para qué |
+|---|---|---|
+| `FLASK_ENV` | Sí, en producción: `production` | Activa cookies seguras, HTTPS, confianza en el proxy y exige `SECRET_KEY`. |
+| `SECRET_KEY` | Sí, en producción | Firma de sesiones. Generala con `python3 -c "import secrets; print(secrets.token_hex(32))"`. |
+| `DATABASE_URL` | Sí, en producción | Postgres (`postgres://…` o `postgresql://…`). Sin ella usa SQLite en `instance/turnex.db`. |
+| `PLATFORM_ADMIN_EMAIL` / `PLATFORM_ADMIN_PASSWORD` | Recomendadas | Usuario de plataforma inicial (solo se usa si todavía no existe ninguno). |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Para enviar mails | Sin `MAIL_USERNAME` **no sale ningún mail**: solo se escriben en el log. |
+| `MAIL_SERVER` / `MAIL_PORT` / `MAIL_USE_TLS` | Según el proveedor | Por defecto `smtp.gmail.com`, `587`, `true`. |
+| `MAIL_DEFAULT_SENDER` | Recomendada | Remitente, ej. `Turnex <turnos@tudominio.com>`. |
+| `CRON_SECRET` | Para recordatorios | Token del endpoint de recordatorios (ver abajo). |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Para Google Calendar | Credenciales OAuth (ver abajo). |
+| `GOOGLE_REDIRECT_URI` | Opcional | Fija la URL de retorno de Google. Por defecto `https://<tu-dominio>/admin/integrations/google/callback`. |
+| `TRUSTED_PROXIES` | Opcional | Cantidad de proxies delante de la app. Por defecto `1` en producción (Railway/Render) y `0` en local. |
 
-## Credenciales demo
+---
 
-### Plataforma
+## Mails
 
-- email: `owner@turnera.com`
-- password: `owner123`
+La app manda mails de confirmación, cancelación, reprogramación,
+recordatorio, recuperación de contraseña, bienvenida y aviso de fin de prueba.
+Se envían en segundo plano: si el servidor de mail falla o tarda, la reserva no
+se ve afectada y el error queda en el log.
 
-### Empresa demo
+Si en producción falta `MAIL_USERNAME`, al arrancar aparece en el log:
+`MAIL_USERNAME no está configurado: NO se envían mails`.
 
-- slug: `pepito`
-- email: `admin@pepito.com`
-- password: `admin123`
+Opciones de proveedor (todas por SMTP, puerto 587 con TLS):
 
-### Cliente demo
+| Proveedor | `MAIL_SERVER` | `MAIL_USERNAME` | `MAIL_PASSWORD` |
+|---|---|---|---|
+| Brevo (plan gratis) | `smtp-relay.brevo.com` | tu login SMTP de Brevo | tu clave SMTP |
+| Resend (plan gratis) | `smtp.resend.com` | `resend` | tu API key |
+| Gmail (solo para probar) | `smtp.gmail.com` | tu cuenta de Gmail | una *contraseña de aplicación* (requiere verificación en 2 pasos) |
 
-- empresa: `pepito`
-- email: `lucia@demo.com`
-- password: `cliente123`
+Gmail tiene un límite de unos 500 mails por día y sus envíos suelen caer en
+spam. Para producción conviene Brevo o Resend con **tu dominio verificado** y
+`MAIL_DEFAULT_SENDER` con una dirección de ese dominio.
 
-## Nota
+---
 
-El zip se entrega sin la base SQLite generada para que al iniciar cree una base nueva con el esquema actualizado.
+## Google Calendar
 
-## Recordatorios automáticos de turno
+Sincroniza los turnos de un negocio con su Google Calendar: se crean, mueven y
+borran eventos automáticamente. La API de Google Calendar es gratuita.
 
-Turnex usa un endpoint de cron para enviar recordatorios 24 horas antes de cada turno.
+### 1. Configurar Google Cloud (una sola vez, para toda la plataforma)
 
-### Configuración
+1. Entrá a <https://console.cloud.google.com> y creá un proyecto (ej. "Turnex").
+2. **APIs y servicios → Biblioteca** → buscá **Google Calendar API** → **Habilitar**.
+3. **Pantalla de consentimiento de OAuth**:
+   - Tipo de usuario: **Externo**.
+   - Nombre de la app, email de soporte y dominio de tu sitio (también la URL
+     de `/privacidad` y `/terminos`).
+   - Permisos (scopes): agregá `https://www.googleapis.com/auth/calendar.events`.
+   - Mientras esté en modo **Prueba**, agregá como *usuarios de prueba* los
+     Gmail de los negocios que se van a conectar.
+4. **Credenciales → Crear credenciales → ID de cliente de OAuth**:
+   - Tipo: **Aplicación web**.
+   - *URI de redireccionamiento autorizados*: agregá **una sola** URL:
+     `https://<tu-dominio>/admin/integrations/google/callback`
+     (es la misma para todos los negocios).
+5. Copiá el *ID de cliente* y el *Secreto* en `GOOGLE_CLIENT_ID` y
+   `GOOGLE_CLIENT_SECRET` y redeployá.
 
-1. Generá un token secreto:
-   ```bash
-   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-   ```
+> **Modo Prueba vs. producción:** en modo Prueba solo pueden conectarse hasta
+> 100 usuarios de prueba y **la conexión se corta a los 7 días** (hay que volver
+> a conectar). Para uso real, en la pantalla de consentimiento elegí
+> **Publicar app** y completá la verificación de Google (gratis, pero tarda
+> días o semanas porque `calendar.events` es un permiso sensible).
 
-2. Agregalo como variable de entorno `CRON_SECRET`.
+### 2. Habilitarlo para un negocio
 
-3. Configurá un cron job que llame al endpoint **cada hora**:
+Google Calendar está disponible para negocios con plan **PRO** o **PREMIUM** y
+estado **ACTIVE**. Cuando un negocio paga, desde **Plataforma** cambiale el plan
+y el estado. Después, el dueño entra a **Panel → Integraciones → Google Calendar
+→ Conectar** y autoriza con su cuenta de Google.
 
-   ```bash
-   # crontab (Linux/Mac)
-   0 * * * * curl -s -X POST "https://tu-dominio.com/internal/cron/reminders?token=TU_SECRET"
-   ```
+Si Google falla o tarda, la reserva sigue funcionando: el error queda en el log
+con el texto `Google Calendar: no se pudo …`.
 
-   En **Railway**: Settings → Cron Jobs → `0 * * * *` → command: `curl -X POST https://tu-app.railway.app/internal/cron/reminders?token=$CRON_SECRET`
+---
 
-   En **Render**: usa Cron Jobs en el dashboard con la misma URL.
+## Recordatorios automáticos
 
-### Comportamiento
-
-- Busca turnos `BOOKED` que empiezan entre 23 y 25 horas desde el momento de la llamada
-- Solo manda si el turno tiene email (cliente registrado o invitado con email)
-- Marca `reminder_sent = True` para no volver a mandar
-- Devuelve JSON con `sent`, `skipped` y `errors`
-- El endpoint `/internal/cron/health` responde sin token para verificar que la app está viva
-
-### Sin cron configurado
-
-Sin `CRON_SECRET` el endpoint devuelve 403. En desarrollo podés probarlo manualmente:
+Se envía un recordatorio 24 horas antes de cada turno. Configurá `CRON_SECRET`
+y un cron que llame **cada hora** al endpoint:
 
 ```bash
-# Setear la variable
-export CRON_SECRET=mi-token-local
+# token por cabecera (recomendado: no queda en los logs de URLs)
+curl -s -X POST -H "X-Cron-Token: $CRON_SECRET" https://tu-dominio/internal/cron/reminders
 
-# Llamar el endpoint
-curl -X POST "http://localhost:5000/internal/cron/reminders?token=mi-token-local"
+# o por query string
+curl -s -X POST "https://tu-dominio/internal/cron/reminders?token=$CRON_SECRET"
 ```
+
+- En **Railway**: Settings → Cron Jobs → `0 * * * *`.
+- En **Render**: Cron Jobs, con el mismo comando.
+
+Busca turnos activos que empiezan dentro de 23 a 25 horas (hora de Argentina),
+les manda el mail si hay email y los marca para no repetir. Devuelve un JSON con
+`sent`, `skipped` y `errors`. `/internal/cron/health` responde sin token.
+
+---
+
+## Notas de despliegue
+
+- Detrás del proxy de Railway/Render la app necesita `FLASK_ENV=production`
+  para reconocer HTTPS. Sin eso, la conexión con Google Calendar falla y los
+  links de los mails salen con `http://`.
+- Al arrancar se crea un índice único que impide dos turnos activos del mismo
+  profesional a la misma hora. Si ya existen turnos duplicados, el log lo avisa
+  (`No se pudo crear el índice uq_appointment_employee_start_booked`): resolvé
+  esos turnos y reiniciá.
+- Los cambios de esquema en SQLite se aplican solos al arrancar. En Postgres,
+  cualquier cambio futuro de modelos necesita una migración (Alembic).

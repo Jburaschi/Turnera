@@ -36,11 +36,13 @@ def get_google_oauth_config():
     return {"client_id": client_id, "client_secret": client_secret}
 
 
-def build_redirect_uri(request, slug: str) -> str:
+def build_redirect_uri(request) -> str:
+    """URL de retorno de OAuth. Es la misma para todos los negocios y es la
+    que hay que registrar en Google Cloud (ver README)."""
     env = os.getenv("GOOGLE_REDIRECT_URI", "").strip()
     if env:
         return env
-    return request.url_root.rstrip("/") + f"/admin/{slug}/integrations/google/callback"
+    return request.url_root.rstrip("/") + "/admin/integrations/google/callback"
 
 
 def _creds_from_connection(conn: GoogleCalendarConnection) -> Credentials:

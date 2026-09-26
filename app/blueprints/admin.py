@@ -1066,23 +1066,42 @@ def google_connect(slug):
         flash('Faltan variables GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='integrations'))
     from flask import session
     from google_auth_oauthlib.flow import Flow
-    redirect_uri=build_redirect_uri(request,slug)
+    redirect_uri=build_redirect_uri(request)
     flow=Flow.from_client_config({'web':{'client_id':oauth_cfg['client_id'],'client_secret':oauth_cfg['client_secret'],'auth_uri':'https://accounts.google.com/o/oauth2/auth','token_uri':'https://oauth2.googleapis.com/token'}},scopes=GOOGLE_SCOPES)
     flow.redirect_uri=redirect_uri
     authorization_url,state=flow.authorization_url(access_type='offline',include_granted_scopes='true',prompt='consent')
     session['google_oauth_state']=state; session['google_oauth_company_id']=company.id
     return redirect(authorization_url)
 
+@admin_bp.route('/integrations/google/callback')
+@admin_required
+def google_callback_global():
+    """URL de retorno ÚNICA para todos los negocios (la que se registra en
+    Google Cloud). Google exige registrar cada URL exacta, así que no puede
+    llevar el slug: el negocio se toma del usuario logueado."""
+    company = current_user.company
+    if not company:
+        abort(404)
+    return _finish_google_oauth(company)
+
+
 @admin_bp.route('/<slug>/integrations/google/callback')
 @admin_required
 def google_callback(slug):
-    company=get_owned_company_or_404(slug)
+    """Compatibilidad con conexiones iniciadas antes del cambio de URL."""
+    return _finish_google_oauth(get_owned_company_or_404(slug))
+
+
+def _finish_google_oauth(company):
     from flask import session
     from google_auth_oauthlib.flow import Flow
+    slug = company.slug
     oauth_cfg=get_google_oauth_config(); expected_state=session.get('google_oauth_state')
-    if not oauth_cfg or not expected_state:
+    if not oauth_cfg or not expected_state or session.get('google_oauth_company_id') != company.id:
         flash('Sesión OAuth inválida. Intentá conectar nuevamente.','warning'); return redirect(url_for('admin.dashboard',slug=slug,section='integrations'))
-    redirect_uri=build_redirect_uri(request,slug)
+    if request.args.get('error'):
+        flash('Cancelaste la conexión con Google Calendar.','info'); return redirect(url_for('admin.dashboard',slug=slug,section='integrations'))
+    redirect_uri=build_redirect_uri(request)
     flow=Flow.from_client_config({'web':{'client_id':oauth_cfg['client_id'],'client_secret':oauth_cfg['client_secret'],'auth_uri':'https://accounts.google.com/o/oauth2/auth','token_uri':'https://oauth2.googleapis.com/token'}},scopes=GOOGLE_SCOPES,state=expected_state)
     flow.redirect_uri=redirect_uri
     try:

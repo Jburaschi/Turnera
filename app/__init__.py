@@ -1,6 +1,7 @@
 import hmac
 import os
 from flask import Flask, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 from .extensions import db, login_manager, csrf, limiter, mail
 from .models import AdminUser, Customer, PlatformUser, session_fingerprint
 from .blueprints.public import public_bp
@@ -39,6 +40,22 @@ def create_app():
         secret = 'dev-secret-CHANGE-ME-in-production'
 
     app.config['SECRET_KEY'] = secret
+
+    # ── Detrás del proxy de Railway/Render ───────────────────────────────────
+    # El proxy recibe HTTPS y le pasa el pedido a la app por HTTP, avisando el
+    # original en cabeceras X-Forwarded-*. Sin ProxyFix la app se cree en
+    # http:// → la conexión con Google Calendar falla (OAuth exige https), los
+    # links de los mails salen con http:// y el límite de intentos cuenta a
+    # todos los clientes como si fueran la misma IP (la del proxy).
+    # TRUSTED_PROXIES = cantidad de proxies delante de la app (1 en producción).
+    # En 0 no se confía en esas cabeceras (así nadie puede falsificarlas si la
+    # app queda expuesta sin proxy).
+    trusted_proxies = int(os.getenv('TRUSTED_PROXIES', '1' if is_production else '0'))
+    if trusted_proxies > 0:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=trusted_proxies, x_proto=trusted_proxies,
+                                x_host=trusted_proxies, x_port=trusted_proxies)
+    if is_production:
+        app.config['PREFERRED_URL_SCHEME'] = 'https'
     app.config['WTF_CSRF_ENABLED'] = True
     app.config['WTF_CSRF_TIME_LIMIT'] = 3600
 
@@ -78,6 +95,11 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
     mail.init_app(app)
+    if is_production and not app.config['MAIL_USERNAME']:
+        app.logger.warning(
+            'MAIL_USERNAME no está configurado: NO se envían mails (confirmaciones, '
+            'recordatorios, recuperación de contraseña). Ver README > Variables de entorno.'
+        )
 
     @login_manager.user_loader
     def load_user(user_id: str):
