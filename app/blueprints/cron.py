@@ -20,6 +20,7 @@ from ..extensions import db
 from ..models import Appointment
 from ..services.email_service import send_reminder
 from ..services import audit as audit_log
+from ..timeutils import now_ar
 
 cron_bp = Blueprint('cron', __name__, url_prefix='/internal/cron')
 
@@ -40,7 +41,8 @@ def send_reminders():
     if not secret or not hmac.compare_digest(token.encode(), secret.encode()):
         abort(403)
 
-    now      = datetime.utcnow()
+    # Los turnos están en hora de Argentina: la ventana se calcula con esa hora.
+    now      = now_ar()
     win_from = now + timedelta(hours=WINDOW_MIN_HOURS)
     win_to   = now + timedelta(hours=WINDOW_MAX_HOURS)
 

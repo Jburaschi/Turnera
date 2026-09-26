@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from ..services.availability import get_availability_for_day, has_booking_conflict, lock_employee_for_booking
 from ..services.email_service import send_booking_canceled, send_booking_confirmed, send_booking_rescheduled, send_trial_warning
 from ..services import audit as audit_log
+from ..timeutils import now_ar, today_ar
 from ..services.google_calendar import (
     GOOGLE_SCOPES, build_redirect_uri, company_has_google_plan,
     delete_google_event_for_appointment, ensure_google_event_for_appointment, get_google_oauth_config,
@@ -170,7 +171,7 @@ def find_appointments_outside_schedule(employee, blocks):
     guardar, quedarían fuera de cualquier franja (el dueño cambió el horario
     y ese turno viejo ya no entra). No se tocan ni se cancelan solos —
     solo se devuelven para avisarle al dueño."""
-    now = datetime.utcnow()
+    now = now_ar()
     future = Appointment.query.filter(
         Appointment.employee_id == employee.id,
         Appointment.status == 'BOOKED',
@@ -244,7 +245,7 @@ def build_recent_activity(company, limit=6):
                            title='Nuevo cliente registrado', sub=c.full_name))
 
     items.sort(key=lambda x: x['ts'] or datetime.min, reverse=True)
-    now = datetime.now()
+    now = datetime.utcnow()  # los ts de actividad son marcas del sistema (UTC)
     for it in items[:limit]:
         it['relative'] = humanize_delta(now - it['ts']) if it['ts'] else ''
     return items[:limit]
@@ -284,7 +285,7 @@ def dashboard(slug):
     if section not in ADMIN_SECTIONS:
         section = 'overview'
     day                      = request.args.get('day')
-    selected_day             = datetime.strptime(day, '%Y-%m-%d').date() if day else datetime.now().date()
+    selected_day             = datetime.strptime(day, '%Y-%m-%d').date() if day else today_ar()
     selected_professional_id = request.args.get('professional_id', type=int)
     selected_service_id      = request.args.get('service_id', type=int)
     selected_status          = request.args.get('status', '').strip().upper()
@@ -300,7 +301,7 @@ def dashboard(slug):
     elif selected_time_range == 'evening':
         appointments = [a for a in appointments if a.start_dt.hour >= 19]
 
-    today = datetime.now().date()
+    today = today_ar()
 
     # ── Grilla de agenda: columnas por profesional ───────────────────────
     agenda_employees = [e for e in company.employees if e.active]
@@ -317,8 +318,8 @@ def dashboard(slug):
 
     # Si estamos mirando HOY, separamos los turnos ya pasados de los próximos,
     # para mostrar por defecto solo lo que viene (lo pasado queda accesible con un botón).
-    is_today = (selected_day == datetime.now().date())
-    now_dt = datetime.now()
+    is_today = (selected_day == today_ar())
+    now_dt = now_ar()
     if is_today:
         agenda_past = [a for a in agenda_sorted if a.end_dt <= now_dt]
         agenda_upcoming = [a for a in agenda_sorted if a.end_dt > now_dt]
@@ -363,8 +364,8 @@ def dashboard(slug):
     # ── Vista rápida (números reales, no filtrados por día seleccionado) ──
     agenda_today_count = Appointment.query.filter(Appointment.company_id==company.id, Appointment.start_dt>=datetime.combine(today,time.min), Appointment.start_dt<=datetime.combine(today,time.max), Appointment.status.in_(['BOOKED','DONE'])).count()
     agenda_week_count  = Appointment.query.filter(Appointment.company_id==company.id, Appointment.status.in_(['BOOKED','DONE']), Appointment.start_dt>=datetime.combine(today - timedelta(days=today.weekday()),time.min), Appointment.start_dt<datetime.combine(today - timedelta(days=today.weekday()) + timedelta(days=7),time.min)).count()
-    agenda_unconfirmed_count = Appointment.query.filter(Appointment.company_id==company.id, Appointment.status=='BOOKED', Appointment.start_dt>=datetime.utcnow()).count()
-    today = datetime.now().date()
+    agenda_unconfirmed_count = Appointment.query.filter(Appointment.company_id==company.id, Appointment.status=='BOOKED', Appointment.start_dt>=now_ar()).count()
+    today = today_ar()
     ms, nm = month_range(today)
     today_count  = Appointment.query.filter(Appointment.company_id==company.id, Appointment.start_dt>=datetime.combine(today,time.min), Appointment.start_dt<=datetime.combine(today,time.max), Appointment.status=='BOOKED').count()
     month_count  = Appointment.query.filter(Appointment.company_id==company.id, Appointment.start_dt>=datetime.combine(ms,time.min), Appointment.start_dt<datetime.combine(nm,time.min)).count()
@@ -444,7 +445,7 @@ def dashboard(slug):
     payments_pages = max(1, (payments_total_rows+PAYMENTS_PAGE_SIZE-1)//PAYMENTS_PAGE_SIZE)
     unpaid_appointments = (Appointment.query.filter(Appointment.company_id==company.id, Appointment.payment_status.is_(None), Appointment.status.in_(['BOOKED','DONE']))
                             .order_by(Appointment.start_dt.desc()).limit(30).all())
-    upcoming = Appointment.query.filter(Appointment.company_id==company.id, Appointment.start_dt>=datetime.now(), Appointment.status=='BOOKED').order_by(Appointment.start_dt.asc()).limit(8).all()
+    upcoming = Appointment.query.filter(Appointment.company_id==company.id, Appointment.start_dt>=now_ar(), Appointment.status=='BOOKED').order_by(Appointment.start_dt.asc()).limit(8).all()
     svcs_sin_prof  = [s for s in company.services if not s.employees]
     profs_sin_hora = [e for e in company.employees if not e.schedules]
 
@@ -613,7 +614,7 @@ def dashboard(slug):
 def export_agenda_csv(slug):
     company      = get_owned_company_or_404(slug)
     day          = request.args.get('day')
-    selected_day = datetime.strptime(day, '%Y-%m-%d').date() if day else datetime.now().date()
+    selected_day = datetime.strptime(day, '%Y-%m-%d').date() if day else today_ar()
     apps         = build_agenda_query(company, selected_day, request.args.get('professional_id',type=int), request.args.get('service_id',type=int), request.args.get('status','').strip().upper(), request.args.get('q','').strip().lower())
     buf = io.StringIO()
     w   = csv.writer(buf)
@@ -839,9 +840,9 @@ def admin_slots_api(slug):
     employee_id = request.args.get('employee_id', type=int)
     day_str     = request.args.get('day', '')
     try:
-        day = datetime.fromisoformat(day_str).date() if day_str else datetime.today().date()
+        day = datetime.fromisoformat(day_str).date() if day_str else today_ar()
     except ValueError:
-        day = datetime.today().date()
+        day = today_ar()
     if not service_id or not employee_id:
         return jsonify([])
     service  = Service.query.filter_by(company_id=company.id, id=service_id,  active=True).first()

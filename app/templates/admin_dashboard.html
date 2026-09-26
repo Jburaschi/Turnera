@@ -93,7 +93,7 @@
     <div class="admin-plan-card">
       <div class="admin-plan-card-top">{{ ic.icon('crown', 16) }} Plan {{ company.plan_name }}</div>
       {% if company.trial_expires_at %}
-      <div class="admin-plan-card-meta">Renovación: {{ company.trial_expires_at.strftime('%d/%m/%Y') }}</div>
+      <div class="admin-plan-card-meta">Renovación: {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}</div>
       {% endif %}
       <a href="{{ url_for('admin.dashboard', slug=company.slug, section='payments') }}">Ver mi plan →</a>
     </div>

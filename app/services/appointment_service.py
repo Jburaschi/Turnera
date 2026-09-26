@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta
+from ..timeutils import now_ar
 
 
 def can_cancel(appointment, company):
     if appointment.status in ["CANCELED", "RESCHEDULED"]:
         return False
 
-    if appointment.start_dt <= datetime.now():
+    if appointment.start_dt <= now_ar():
         return False
 
     limit_time = appointment.start_dt - timedelta(hours=company.cancelation_limit_hours)
 
-    return datetime.now() < limit_time
+    return now_ar() < limit_time
 
 
 def should_apply_penalty(appointment, company):
@@ -19,7 +20,7 @@ def should_apply_penalty(appointment, company):
 
     limit_time = appointment.start_dt - timedelta(hours=company.cancelation_limit_hours)
 
-    return datetime.now() >= limit_time
+    return now_ar() >= limit_time
 
 
 def cancel_appointment_logic(appointment):
@@ -28,13 +29,13 @@ def cancel_appointment_logic(appointment):
     if appointment.status in ["CANCELED", "RESCHEDULED"]:
         return False, "El turno ya fue modificado"
 
-    if appointment.start_dt <= datetime.now():
+    if appointment.start_dt <= now_ar():
         return False, "No se puede cancelar un turno pasado"
 
     penalty = should_apply_penalty(appointment, company)
 
     appointment.status = "CANCELED"
-    appointment.canceled_at = datetime.now()
+    appointment.canceled_at = datetime.utcnow()
     appointment.penalty_applied = penalty
 
     return True, None

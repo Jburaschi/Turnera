@@ -2,6 +2,7 @@ from datetime import time, datetime, timedelta
 import os
 import secrets
 from .extensions import db
+from .timeutils import now_ar
 from .models import (
     PlatformUser,
     Company,
@@ -110,7 +111,7 @@ def seed_if_empty():
     db.session.add(customer)
     db.session.flush()
 
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = now_ar().replace(hour=0, minute=0, second=0, microsecond=0)
     sample = Appointment(
         company=company,
         service=services[0],

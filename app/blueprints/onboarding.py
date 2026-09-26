@@ -25,6 +25,7 @@ from werkzeug.utils import secure_filename
 from ..extensions import db, limiter
 from ..models import AdminUser, Appointment, Company, CompanyConfig, Service, CompanyHours, Employee, EmployeeSchedule, UploadedImage
 from ..services.email_service import send_welcome_admin
+from ..timeutils import TZ_NAME
 
 TRIAL_DAYS = 14
 LOGO_EXTS  = {'png', 'jpg', 'jpeg'}
@@ -37,15 +38,6 @@ CATEGORIES = [
 ]
 
 WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-
-TIMEZONES = [
-    ('America/Argentina/Buenos_Aires', '(GMT-03:00) Buenos Aires'),
-    ('America/Santiago', '(GMT-04:00) Santiago'),
-    ('America/Montevideo', '(GMT-03:00) Montevideo'),
-    ('America/Sao_Paulo', '(GMT-03:00) São Paulo'),
-    ('America/Mexico_City', '(GMT-06:00) Ciudad de México'),
-    ('America/Bogota', '(GMT-05:00) Bogotá'),
-]
 
 onboarding_bp = Blueprint('onboarding', __name__)
 
@@ -235,7 +227,6 @@ def business():
         'category': company.category or '',
         'phone': company.phone or '',
         'address': company.address or '',
-        'timezone': company.timezone,
     }
 
     if request.method == 'POST':
@@ -244,7 +235,6 @@ def business():
         category = form.get('category', '').strip()
         phone    = form.get('phone', '').strip()
         address  = form.get('address', '').strip()
-        timezone = form.get('timezone', 'America/Argentina/Buenos_Aires').strip()
 
         if not name:
             errors['name'] = 'El nombre del negocio es obligatorio.'
@@ -260,7 +250,7 @@ def business():
             company.category = category
             company.phone = phone or None
             company.address = address or None
-            company.timezone = timezone
+            company.timezone = TZ_NAME  # la app funciona solo en Argentina
             if logo_url:
                 company.logo_url = logo_url
             if company.onboarding_step < 2:
@@ -270,7 +260,7 @@ def business():
 
     return render_template(
         'onboarding_business.html', errors=errors, form=form,
-        categories=CATEGORIES, timezones=TIMEZONES, company=company, active_step=2,
+        categories=CATEGORIES, company=company, active_step=2,
     )
 
 

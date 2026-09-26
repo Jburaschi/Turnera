@@ -612,7 +612,8 @@ if (root) {
 
     for (let day = 1; day <= end.getDate(); day++) {
       const cellDate = new Date(year, month - 1, day);
-      const iso = cellDate.toISOString().slice(0, 10);
+      // Fecha local YYYY-MM-DD (toISOString pasa a UTC y puede correr el día)
+      const iso = `${cellDate.getFullYear()}-${String(cellDate.getMonth() + 1).padStart(2, '0')}-${String(cellDate.getDate()).padStart(2, '0')}`;
       const count = summary[iso] || 0;
       const classes = ['calendar-cell', count > 0 ? 'available' : 'unavailable'];
       if (iso === selectedDate) classes.push('selected');

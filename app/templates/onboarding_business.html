@@ -44,14 +44,6 @@
 
         <div class="ob-field-row">
           <div class="field">
-            <label class="form-label">Zona horaria</label>
-            <select class="form-control" name="timezone">
-              {% for tz_value, tz_label in timezones %}
-                <option value="{{ tz_value }}" {% if form.get('timezone') == tz_value %}selected{% endif %}>{{ tz_label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="field">
             <label class="form-label">Logo <span class="text-muted fw-normal text-sm">— opcional</span></label>
             <label class="ob-file-drop" id="ob-file-drop">
               <input type="file" name="logo" accept=".png,.jpg,.jpeg" id="ob-logo-input" hidden>

@@ -9,6 +9,7 @@ from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 
 from ..extensions import db
+from ..timeutils import TZ_AR
 from ..models import GoogleCalendarConnection, Appointment
 
 
@@ -60,11 +61,8 @@ def get_calendar_service(conn: GoogleCalendarConnection):
 
 
 def _appointment_timezone(company) -> ZoneInfo:
-    tz_name = (company.timezone or "America/Argentina/Buenos_Aires").strip()
-    try:
-        return ZoneInfo(tz_name)
-    except Exception:
-        return ZoneInfo("America/Argentina/Buenos_Aires")
+    # La app funciona solo en Argentina: los turnos están en hora local AR.
+    return TZ_AR
 
 
 def _appointment_event_body(appointment: Appointment):

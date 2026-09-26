@@ -3,6 +3,7 @@ from calendar import monthrange
 from datetime import date, datetime, timedelta
 
 from ..extensions import db
+from ..timeutils import now_ar
 from ..models import Appointment, BlockedPeriod, Employee, Service, SlotHold
 
 SLOT_STEP_MIN = 15
@@ -96,7 +97,7 @@ def get_employee_slots_for_day(company, employee, service, day, ignore_past=Fals
     weekday = day.weekday()
     schedules = [s for s in employee.schedules if s.weekday == weekday]
     results = []
-    now = datetime.now()
+    now = now_ar()
 
     for schedule in schedules:
         if not _schedule_accepts_service(employee, schedule, service):

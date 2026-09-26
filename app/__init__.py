@@ -10,6 +10,7 @@ from .blueprints.onboarding import onboarding_bp
 from .blueprints.cron import cron_bp
 from .blueprints.media import media_bp
 from .seed import seed_if_empty
+from .timeutils import utc_to_ar
 from .sqlite_migrations import run_sqlite_migrations, ensure_booking_indexes
 
 
@@ -97,6 +98,11 @@ def create_app():
     # con CRON_SECRET, no con CSRF. Sin esto, el POST devolvía 400.
     csrf.exempt(cron_bp)
     app.register_blueprint(media_bp)
+
+    # ── Hora de Argentina en plantillas ──────────────────────────────────────
+    # Las marcas del sistema (created_at, vencimientos) se guardan en UTC:
+    # {{ fecha|hora_ar }} las muestra en hora de Argentina.
+    app.add_template_filter(utc_to_ar, 'hora_ar')
 
     # ── Cabeceras de seguridad HTTP ──────────────────────────────────────────
     @app.after_request

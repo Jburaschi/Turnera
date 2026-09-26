@@ -147,7 +147,7 @@
                   {% if admin %} · {{ admin.email }}{% endif %}
                   · {{ company.plan_status }}
                   {% if company.plan_status == 'TRIAL' and company.trial_expires_at %}
-                    — vence {{ company.trial_expires_at.strftime('%d/%m/%Y') }}
+                    — vence {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}
                     {% set days_left = (company.trial_expires_at.date() - now.date()).days %}
                     {% if days_left <= 0 %}
                       <span class="entity-badge ms-1" style="background:#fef2f2;color:#b91c1c;">Vencido</span>
@@ -189,7 +189,7 @@
                       Días de trial
                       {% if company.trial_expires_at %}
                         <span class="text-secondary fw-normal small">
-                          — vence {{ company.trial_expires_at.strftime('%d/%m/%Y') }}
+                          — vence {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}
                         </span>
                       {% endif %}
                     </label>

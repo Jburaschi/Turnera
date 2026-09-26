@@ -59,7 +59,7 @@
             {% for entry in logs %}
             <tr>
               <td style="white-space:nowrap;color:#71717a;">
-                {{ entry.created_at.strftime('%d/%m/%Y %H:%M') }}
+                {{ (entry.created_at|hora_ar).strftime('%d/%m/%Y %H:%M') }}
               </td>
               <td>
                 {% set action_labels = {

@@ -3,10 +3,30 @@ from flask_login import login_user, logout_user, current_user
 from ..extensions import db, limiter
 from ..models import Company, AdminUser, Customer, PlatformUser
 import secrets
+from urllib.parse import urlsplit
 from datetime import datetime, timedelta
 from ..services.email_service import send_password_reset
+from ..timeutils import today_ar
 
 auth_bp = Blueprint('auth', __name__)
+
+
+def safe_next_url(target, fallback: str) -> str:
+    """Devuelve `target` solo si es una ruta interna de la app (ej: /pepito/booking).
+    Cualquier otra cosa (https://otro-sitio.com, //otro-sitio.com, /\\otro-sitio,
+    javascript:...) se descarta y se usa `fallback`. Evita que un link de login
+    armado por un tercero mande al cliente a un sitio falso después de ingresar."""
+    if not target:
+        return fallback
+    target = target.strip()
+    if any(ord(ch) < 32 for ch in target):
+        return fallback
+    normalized = target.replace('\\', '/')
+    parts = urlsplit(normalized)
+    if parts.scheme or parts.netloc or not normalized.startswith('/') or normalized.startswith('//'):
+        return fallback
+    return target
+
 
 RESET_TOKEN_HOURS = 2
 SETUP_TOKEN_HOURS = 72
@@ -113,8 +133,8 @@ def customer_login(slug):
             flash('Credenciales invalidas.', 'danger')
             return render_template('customer_login.html', company=company)
         login_user(customer)
-        next_url = request.args.get('next') or url_for('public.company_page', slug=slug)
-        return redirect(next_url)
+        return redirect(safe_next_url(request.args.get('next'),
+                                      url_for('public.company_page', slug=slug)))
     return render_template('customer_login.html', company=company)
 
 
@@ -132,27 +152,27 @@ def customer_register(slug):
 
         if not first_name or not last_name or not email:
             flash('Nombre, apellido y email son obligatorios.', 'danger')
-            return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+            return render_template('customer_register.html', company=company, today=today_ar().isoformat())
         if 'terms' not in request.form:
             flash('Tenés que aceptar los términos y condiciones para continuar.', 'danger')
-            return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+            return render_template('customer_register.html', company=company, today=today_ar().isoformat())
         if len(password) < 6:
             flash('La contraseña debe tener al menos 6 caracteres.', 'danger')
-            return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+            return render_template('customer_register.html', company=company, today=today_ar().isoformat())
         if Customer.query.filter_by(company_id=company.id, email=email).first():
             flash('Ya existe una cuenta con ese email.', 'warning')
-            return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+            return render_template('customer_register.html', company=company, today=today_ar().isoformat())
 
         birth_date = None
         if birth_date_raw:
             try:
                 birth_date = datetime.strptime(birth_date_raw, '%Y-%m-%d').date()
-                if birth_date > datetime.utcnow().date():
+                if birth_date > today_ar():
                     flash('La fecha de nacimiento no puede ser futura.', 'danger')
-                    return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+                    return render_template('customer_register.html', company=company, today=today_ar().isoformat())
             except ValueError:
                 flash('Revisá la fecha de nacimiento.', 'danger')
-                return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+                return render_template('customer_register.html', company=company, today=today_ar().isoformat())
 
         customer = Customer(
             company=company,
@@ -165,7 +185,7 @@ def customer_register(slug):
         db.session.commit()
         login_user(customer)
         return redirect(url_for('public.company_page', slug=slug))
-    return render_template('customer_register.html', company=company, today=datetime.utcnow().date().isoformat())
+    return render_template('customer_register.html', company=company, today=today_ar().isoformat())
 
 
 # ── Recuperación de contraseña — Admin ────────────────────────────────────────

@@ -11,6 +11,7 @@ from ..services.appointment_service import cancel_appointment_logic
 from ..services.google_calendar import ensure_google_event_for_appointment, delete_google_event_for_appointment
 from ..services.email_service import send_booking_confirmed, send_booking_canceled, send_booking_rescheduled
 from ..services import audit as audit_log
+from ..timeutils import TZ_LABEL, today_ar
 
 
 def _session_hold_key() -> str:
@@ -60,7 +61,7 @@ def faq():
 
 @public_bp.route('/')
 def home():
-    return render_template('home.html', current_year=datetime.now().year)
+    return render_template('home.html', current_year=today_ar().year)
 
 
 @public_bp.route('/directory')
@@ -108,23 +109,12 @@ def _build_hours_summary(company):
     return ' · '.join(groups)
 
 
-TIMEZONE_LABELS = {
-    'America/Argentina/Buenos_Aires': 'Argentina (GMT-3)',
-    'America/Santiago': 'Chile (GMT-4)',
-    'America/Montevideo': 'Uruguay (GMT-3)',
-    'America/Sao_Paulo': 'Brasil (GMT-3)',
-    'America/Mexico_City': 'México (GMT-6)',
-    'America/Bogota': 'Colombia (GMT-5)',
-}
-
-
 @public_bp.route('/<slug>/booking')
 def booking_page(slug):
     company = get_company_or_404(slug)
     if not _company_accepts_bookings(company):
         return render_template('booking_unavailable.html', company=company)
-    timezone_label = TIMEZONE_LABELS.get(company.timezone, company.timezone)
-    return render_template('booking.html', company=company, timezone_label=timezone_label)
+    return render_template('booking.html', company=company, timezone_label=TZ_LABEL)
 
 
 @public_bp.route('/api/<slug>/services')
