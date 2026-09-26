@@ -408,19 +408,12 @@ body {
 @media (max-width: 480px) {
   .cp-trust-bar { grid-template-columns: 1fr; }
   .cp-trust-bar .cp-trust-item { border-left: 0 !important; }
-  .cp-contact-groups { grid-template-columns: 1fr; }
 }
 
 /* ── Section head link ─────────────────────────────────────────── */
 .cp-link-more { font-size: .82rem; font-weight: 600; color: var(--brand); text-decoration: none; white-space: nowrap; }
 .cp-link-more:hover { text-decoration: underline; }
 
-@media (max-width: 900px) {
-  .cp-contact-card { grid-template-columns: 1fr; align-items: stretch; text-align: left; }
-  .cp-contact-groups { gap: 1.3rem 1.5rem; }
-  .cp-contact-actions { flex-direction: row; flex-wrap: wrap; min-width: 0; }
-  .cp-contact-actions .cp-btn-outline, .cp-contact-actions .cp-btn-whatsapp { flex: 1; min-width: 130px; }
-}
 .cp-empty { grid-column: 1/-1; background: #fff; border: 1px dashed #e4e7ec; border-radius: 12px; padding: 2rem; color: #a1a1aa; text-align: center; }
 
 /* ── Contacto (reemplaza el mapa) ─────────────────────────────── */
@@ -440,6 +433,18 @@ body {
 .cp-contact-group-value--sm { font-size: .9rem; font-weight: 600; }
 .cp-contact-group-value--empty { color: #a1a1aa; font-weight: 500; font-style: italic; }
 .cp-contact-social-inline { grid-column: 1 / -1; }
+
+/* Contacto en pantallas chicas: apilar y evitar que el texto se parta */
+@media (max-width: 900px) {
+  .cp-contact-card { grid-template-columns: 1fr; align-items: stretch; gap: 1.5rem; padding: 1.5rem 1.3rem; }
+  .cp-contact-actions { flex-direction: row; flex-wrap: wrap; min-width: 0; }
+  .cp-contact-actions .cp-btn-outline, .cp-contact-actions .cp-btn-whatsapp { flex: 1; min-width: 140px; }
+}
+@media (max-width: 620px) {
+  .cp-contact-groups { grid-template-columns: 1fr; gap: 1.2rem; }
+  .cp-contact-group-value { font-size: .95rem; }
+  .cp-contact-group-icon { width: 40px; height: 40px; flex: 0 0 40px; }
+}
 .cp-contact-group-sub { display: block; font-size: .82rem; color: #71717a; margin-top: .1rem; }
 .cp-contact-group-sub--empty { color: #b4b4b8; font-style: italic; }
 .cp-social-row { display: flex; gap: .5rem; }
@@ -494,7 +499,7 @@ body {
 .cp-footer-bottom a { color: rgba(255,255,255,.7); font-weight: 600; }
 
 @media (max-width: 768px) {
-  .cp-contact-card { margin-top: 1.25rem; flex-direction: column; align-items: flex-start; }
+  .cp-contact-card { margin-top: 1.25rem; }
   .cp-final-cta { flex-direction: column; align-items: flex-start; }
 }
 
@@ -1142,7 +1147,7 @@ body {
   .hl-why-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 768px) {
-  .cp-hero, .hl-hero { padding: 2.5rem 0 2rem; }
+  .cp-hero, .hl-hero { padding: 5.5rem 0 2rem; }
   .cp-title, .hl-title { font-size: 2.1rem; max-width: none; }
   .cp-section, .hl-section { padding: 2.5rem 0; }
   .cp-services-grid { grid-template-columns: 1fr; }
@@ -1180,3 +1185,40 @@ body {
 
 /* Sidebar nav dot */
 .admin-nav-icon { display: none; }
+
+/* ═══════════ Flujo de reserva en móvil ═══════════ */
+@media (max-width: 880px) {
+  .booking-layout { grid-template-columns: 1fr; gap: 1.2rem; }
+  .booking-side { position: static; }
+}
+@media (max-width: 600px) {
+  /* Barra de pasos: que no desborde */
+  .booking-steps, .step-chips { flex-wrap: wrap; gap: .4rem; }
+  .booking-panel { padding: 1.2rem 1rem; }
+  .booking-panel-title { font-size: 1.15rem; }
+  .booking-panel-sub { font-size: .85rem; }
+
+  /* Resumen "Tu selección" en fila: que se acomode */
+  .booking-side-card { padding: 1.1rem 1rem; }
+
+  /* Cards de servicio / opciones: ancho completo y sin desborde */
+  .option-grid, .mode-options-grid { grid-template-columns: 1fr; }
+  .service-row, .employee-row { flex-wrap: wrap; gap: .6rem; }
+
+  /* Botones de acción: ancho completo, nunca cortados */
+  .booking-actions, .ob-mini-actions { flex-direction: column-reverse; gap: .6rem; }
+  .booking-actions > *, .ob-mini-actions > * { width: 100%; }
+
+  /* Calendario: celdas más chicas para que entren los 7 días */
+  .calendar-cell { min-height: 46px; padding: .35rem .3rem; font-size: .9rem; border-radius: 9px; }
+  .cal-weekday { font-size: .72rem; }
+  .calendar-grid { gap: .3rem; }
+  .cal-nav-title { min-width: 0; font-size: .9rem; }
+  .cal-head { gap: .7rem; }
+
+  /* Horarios: más por fila en pantallas chicas */
+  .time-slots-row { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: .5rem; }
+  .slot-btn { padding: .6rem .3rem; font-size: .88rem; }
+}
+/* Evitar desbordes horizontales en toda la página pública */
+.cp-page, .booking-page { overflow-x: hidden; }
