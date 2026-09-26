@@ -8,6 +8,21 @@ from ..services.email_service import send_password_reset
 
 auth_bp = Blueprint('auth', __name__)
 
+RESET_TOKEN_HOURS = 2
+SETUP_TOKEN_HOURS = 72
+
+
+def send_password_setup_link(customer, slug) -> None:
+    """Genera un token de un solo uso y le manda al cliente el link para crear
+    su contraseña. Lo usan el primer login y el alta de clientes desde el panel.
+    El caller no necesita hacer commit."""
+    customer.reset_token = secrets.token_urlsafe(32)
+    customer.reset_token_expires = datetime.utcnow() + timedelta(hours=SETUP_TOKEN_HOURS)
+    db.session.commit()
+    reset_url = url_for('auth.customer_reset_password', slug=slug,
+                        token=customer.reset_token, _external=True)
+    send_password_reset(customer, reset_url)
+
 
 @auth_bp.route('/admin')
 def admin_root():
@@ -88,15 +103,12 @@ def customer_login(slug):
             flash('Credenciales invalidas.', 'danger')
             return render_template('customer_login.html', company=company)
         if getattr(customer, 'needs_password_setup', False):
-            if len(password.strip()) < 6:
-                flash('Es tu primer acceso. Elegí una contraseña de al menos 6 caracteres.', 'warning')
-                return render_template('customer_login.html', company=company, preset_email=email)
-            customer.set_password(password)
-            customer.needs_password_setup = False
-            db.session.commit()
-            login_user(customer)
-            next_url = request.args.get('next') or url_for('public.company_page', slug=slug)
-            return redirect(next_url)
+            # Primer acceso de un cliente dado de alta sin contraseña: NO se acepta
+            # la contraseña tipeada (cualquiera que conozca el email podría tomar la
+            # cuenta). Se manda un link al email del cliente para que la cree él.
+            send_password_setup_link(customer, slug)
+            flash('Es tu primer acceso: te enviamos un email con un link para crear tu contraseña.', 'info')
+            return render_template('customer_login.html', company=company, preset_email=email)
         if not customer.check_password(password):
             flash('Credenciales invalidas.', 'danger')
             return render_template('customer_login.html', company=company)

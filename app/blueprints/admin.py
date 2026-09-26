@@ -11,7 +11,8 @@ from ..models import (
     WEEKDAY_LABELS, AdminUser, Appointment, AppointmentLog, BlockedPeriod, Company, CompanyHours, Customer,
     Employee, EmployeeSchedule, GoogleCalendarConnection, Service, SubscriptionPayment, UploadedImage,
 )
-from ..services.availability import get_availability_for_day
+from sqlalchemy.exc import IntegrityError
+from ..services.availability import get_availability_for_day, has_booking_conflict, lock_employee_for_booking
 from ..services.email_service import send_booking_canceled, send_booking_confirmed, send_booking_rescheduled, send_trial_warning
 from ..services import audit as audit_log
 from ..services.google_calendar import (
@@ -869,8 +870,12 @@ def create_manual_appointment(slug):
     raw=request.form.get('start_dt','').strip()
     if not raw:
         flash('Seleccioná un horario válido.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='agenda'))
-    start_dt=datetime.fromisoformat(raw)
+    try:
+        start_dt=datetime.fromisoformat(raw)
+    except ValueError:
+        flash('Seleccioná un horario válido.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='agenda'))
     ignore_blocks = request.form.get('ignore_blocks') == '1'
+    lock_employee_for_booking(employee.id)
     slots=get_availability_for_day(company,service,start_dt.date(),employee.id,ignore_past=True,ignore_blocks=ignore_blocks)
     selected=next((s for s in slots if s['start']==start_dt),None)
     if not selected:
@@ -888,7 +893,12 @@ def create_manual_appointment(slug):
         appointment.guest_email=request.form.get('guest_email','').strip() or None; appointment.guest_dni=request.form.get('guest_dni','').strip() or None
     db.session.add(appointment); db.session.flush()
     audit_log.log_created(appointment, notes=f'Alta manual desde panel{override_note}')
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash('Ese horario acaba de ser reservado por otra persona.','danger')
+        return redirect(url_for('admin.dashboard',slug=slug,section='agenda',day=start_dt.date().isoformat()))
     ensure_google_event_for_appointment(appointment)
     send_booking_confirmed(appointment,manage_url=url_for('public.manage_appointment',slug=slug,token=appointment.manage_token,_external=True),company_url=url_for('public.company_page',slug=slug,_external=True))
     flash('Turno creado manualmente.','success')
@@ -902,11 +912,22 @@ def update_appointment_status(slug, appointment_id):
     if status not in STATUS_OPTIONS:
         flash('Estado inválido.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='agenda',day=appointment.start_dt.date().isoformat()))
     old_status = appointment.status
+    if status == 'BOOKED' and old_status != 'BOOKED':
+        # Reactivar un turno cancelado no puede pisar otro que se reservó en ese horario.
+        lock_employee_for_booking(appointment.employee_id)
+        if has_booking_conflict(appointment.employee_id, appointment.start_dt, appointment.end_dt, exclude_appointment_id=appointment.id):
+            flash('No se puede reactivar: ese horario ya lo ocupa otro turno.','danger')
+            return redirect(url_for('admin.dashboard',slug=slug,section='agenda',day=appointment.start_dt.date().isoformat()))
     appointment.status = status
     if request.form.get('notes','').strip(): appointment.notes=request.form['notes'].strip()
     audit_log.log_status_changed(appointment, old_status, status,
                                  notes=request.form.get('notes','').strip())
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash('No se puede reactivar: ese horario ya lo ocupa otro turno.','danger')
+        return redirect(url_for('admin.dashboard',slug=slug,section='agenda',day=appointment.start_dt.date().isoformat()))
     if status=='CANCELED':
         delete_google_event_for_appointment(appointment)
         send_booking_canceled(appointment,company_url=url_for('public.company_page',slug=slug,_external=True))
@@ -944,7 +965,12 @@ def reschedule_appointment(slug, appointment_id):
     raw=request.form.get('start_dt','').strip()
     if not raw:
         flash('Seleccioná una nueva fecha y hora.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='agenda',day=appointment.start_dt.date().isoformat()))
-    start_dt=datetime.fromisoformat(raw); original_status=appointment.status; appointment.status='CANCELED'; db.session.flush()
+    try:
+        start_dt=datetime.fromisoformat(raw)
+    except ValueError:
+        flash('Seleccioná una fecha y hora válidas.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='agenda',day=appointment.start_dt.date().isoformat()))
+    lock_employee_for_booking(employee.id)
+    original_status=appointment.status; appointment.status='CANCELED'; db.session.flush()
     slots=get_availability_for_day(company,service,start_dt.date(),employee.id,ignore_past=True)
     selected=next((s for s in slots if s['start']==start_dt),None)
     if not selected:
@@ -954,7 +980,13 @@ def reschedule_appointment(slug, appointment_id):
     appointment.status='BOOKED'; appointment.service=service; appointment.employee=employee
     appointment.start_dt=selected['start']; appointment.end_dt=selected['end']
     audit_log.log_rescheduled(appointment, old_dt, selected['start'])
-    db.session.commit(); ensure_google_event_for_appointment(appointment)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash('No se pudo reprogramar — ese horario acaba de ser reservado.','danger')
+        return redirect(url_for('admin.dashboard',slug=slug,section='agenda',day=old_dt.date().isoformat()))
+    ensure_google_event_for_appointment(appointment)
     send_booking_rescheduled(appointment,manage_url=url_for('public.manage_appointment',slug=slug,token=appointment.manage_token,_external=True))
     flash('Turno reprogramado.','success'); return redirect(url_for('admin.dashboard',slug=slug,section='agenda',day=start_dt.date().isoformat()))
 
@@ -968,7 +1000,10 @@ def create_customer(slug):
         flash('Ya existe un cliente con ese email.','warning'); return redirect(url_for('admin.dashboard',slug=slug,section='customers'))
     customer=Customer(company=company,full_name=full_name,email=email,phone=request.form.get('phone','').strip() or None,dni=request.form.get('dni','').strip() or None,tags=request.form.get('tags','').strip() or None,notes=request.form.get('notes','').strip() or None,needs_password_setup=not bool(password))
     customer.set_password(password if password else secrets.token_urlsafe(32)); db.session.add(customer); db.session.commit()
-    flash('Cliente creado.' + ('' if password else ' Podrá definir su contraseña la primera vez que ingrese.'),'success')
+    if not password:
+        from .auth import send_password_setup_link
+        send_password_setup_link(customer, company.slug)
+    flash('Cliente creado.' + ('' if password else ' Le enviamos un email para que cree su contraseña.'),'success')
     return redirect(url_for('admin.dashboard',slug=slug,section='customers'))
 
 @admin_bp.route('/<slug>/customers/<int:customer_id>/update', methods=['POST'])

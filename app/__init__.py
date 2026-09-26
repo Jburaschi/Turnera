@@ -10,7 +10,7 @@ from .blueprints.onboarding import onboarding_bp
 from .blueprints.cron import cron_bp
 from .blueprints.media import media_bp
 from .seed import seed_if_empty
-from .sqlite_migrations import run_sqlite_migrations
+from .sqlite_migrations import run_sqlite_migrations, ensure_booking_indexes
 
 
 def create_app():
@@ -93,6 +93,9 @@ def create_app():
     app.register_blueprint(platform_bp)
     app.register_blueprint(onboarding_bp)
     app.register_blueprint(cron_bp)
+    # El cron lo llama un servicio externo (sin sesión ni formulario): se protege
+    # con CRON_SECRET, no con CSRF. Sin esto, el POST devolvía 400.
+    csrf.exempt(cron_bp)
     app.register_blueprint(media_bp)
 
     # ── Cabeceras de seguridad HTTP ──────────────────────────────────────────
@@ -140,6 +143,7 @@ def create_app():
             run_sqlite_migrations(db.engine)
         except Exception as e:
             print(f'⚠ Error corriendo migraciones: {e}')
+        ensure_booking_indexes(db.engine)
         seed_if_empty()
 
     return app

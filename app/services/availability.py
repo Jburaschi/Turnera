@@ -2,6 +2,7 @@ from __future__ import annotations
 from calendar import monthrange
 from datetime import date, datetime, timedelta
 
+from ..extensions import db
 from ..models import Appointment, BlockedPeriod, Employee, Service, SlotHold
 
 SLOT_STEP_MIN = 15
@@ -10,6 +11,30 @@ HOLD_MINUTES = 10
 
 def overlaps(s1, e1, s2, e2):
     return s1 < e2 and e1 > s2
+
+
+def lock_employee_for_booking(employee_id) -> None:
+    """Toma un lock de fila (SELECT ... FOR UPDATE) sobre el profesional hasta el
+    commit/rollback de la transacción actual. Así, dos reservas simultáneas para
+    el mismo profesional se procesan de a una: la segunda espera, vuelve a
+    calcular la disponibilidad y ve el turno que confirmó la primera.
+    Llamarlo ANTES de verificar disponibilidad y crear/mover el turno.
+    En SQLite no hay FOR UPDATE (SQLAlchemy lo omite); ahí el respaldo es el
+    índice único uq_appointment_employee_start_booked."""
+    Employee.query.filter_by(id=employee_id).with_for_update().first()
+
+
+def has_booking_conflict(employee_id, start, end, exclude_appointment_id=None) -> bool:
+    """True si el profesional ya tiene un turno BOOKED que se superpone con [start, end)."""
+    q = Appointment.query.filter(
+        Appointment.employee_id == employee_id,
+        Appointment.status == 'BOOKED',
+        Appointment.start_dt < end,
+        Appointment.end_dt > start,
+    )
+    if exclude_appointment_id:
+        q = q.filter(Appointment.id != exclude_appointment_id)
+    return db.session.query(q.exists()).scalar()
 
 
 def _appointments_for_employee(employee_id, start, end):

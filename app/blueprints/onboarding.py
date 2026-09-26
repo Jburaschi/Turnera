@@ -19,11 +19,11 @@ import re
 import unicodedata
 import uuid
 from datetime import datetime, time, timedelta
-from flask import Blueprint, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_user, current_user
 from werkzeug.utils import secure_filename
 from ..extensions import db, limiter
-from ..models import AdminUser, Company, CompanyConfig, Service, CompanyHours, Employee, EmployeeSchedule, UploadedImage
+from ..models import AdminUser, Appointment, Company, CompanyConfig, Service, CompanyHours, Employee, EmployeeSchedule, UploadedImage
 from ..services.email_service import send_welcome_admin
 
 TRIAL_DAYS = 14
@@ -48,6 +48,32 @@ TIMEZONES = [
 ]
 
 onboarding_bp = Blueprint('onboarding', __name__)
+
+# Pasos que modifican la configuración del negocio (servicios, horarios, equipo).
+EDITING_STEPS = {
+    'onboarding.business', 'onboarding.staffing', 'onboarding.services',
+    'onboarding.hours', 'onboarding.publish',
+}
+PUBLISHED_STEP = 6
+
+
+@onboarding_bp.before_request
+def guard_onboarding():
+    """- Solo el dueño (role 'admin') puede usar el asistente: el personal
+         ('staff') podía entrar y borrar servicios y horarios.
+       - Una vez publicado el negocio, los pasos de edición quedan cerrados:
+         reenviar el paso de servicios borraba todo, aunque ya hubiera turnos.
+         Los cambios posteriores se hacen desde el panel."""
+    if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
+        return None
+    company = current_user.company
+    if getattr(current_user, 'role', 'admin') != 'admin':
+        flash('Solo el dueño del negocio puede usar el asistente de configuración.', 'warning')
+        return redirect(url_for('admin.dashboard', slug=company.slug))
+    if request.endpoint in EDITING_STEPS and company.onboarding_step >= PUBLISHED_STEP:
+        flash('Tu negocio ya está publicado. Hacé los cambios desde el panel.', 'info')
+        return redirect(url_for('admin.dashboard', slug=company.slug))
+    return None
 
 
 # ── helpers ────────────────────────────────────────────────────────────
@@ -348,7 +374,13 @@ def services():
             for employee in company.employees:
                 employee.services = [s for s in employee.services if s not in old_services]
             db.session.flush()
-            Service.query.filter_by(company_id=company.id).delete()
+            # Los servicios que ya tienen turnos no se borran (se perdería el
+            # historial o fallaría la base): se ocultan, igual que en el panel.
+            for old in old_services:
+                if Appointment.query.filter_by(service_id=old.id).first():
+                    old.active = False
+                else:
+                    db.session.delete(old)
             db.session.flush()
             valid_employee_ids = {e.id for e in employees}
             for n, d_val, p_val, emp_ids in rows:
@@ -366,7 +398,7 @@ def services():
             db.session.commit()
             return redirect(url_for('onboarding.hours'))
 
-    services_list = Service.query.filter_by(company_id=company.id).order_by(Service.id).all()
+    services_list = Service.query.filter_by(company_id=company.id, active=True).order_by(Service.id).all()
     return render_template('onboarding_services.html', errors=errors, services=services_list, employees=employees, company=company, active_step=4)
 
 

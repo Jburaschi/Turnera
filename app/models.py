@@ -324,6 +324,18 @@ class Appointment(db.Model):
     payment_notes  = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    # Garantía en la base de datos: un profesional no puede tener dos turnos
+    # activos (BOOKED) que empiecen a la misma hora. Es el respaldo del lock de
+    # fila que se toma al reservar (ver lock_employee_for_booking).
+    __table_args__ = (
+        db.Index(
+            'uq_appointment_employee_start_booked', 'employee_id', 'start_dt',
+            unique=True,
+            sqlite_where=db.text("status = 'BOOKED'"),
+            postgresql_where=db.text("status = 'BOOKED'"),
+        ),
+    )
+
     company  = db.relationship('Company',  back_populates='appointments')
     service  = db.relationship('Service',  back_populates='appointments')
     employee = db.relationship('Employee', back_populates='appointments')

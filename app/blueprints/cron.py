@@ -12,6 +12,7 @@ Comportamiento:
   - Devuelve JSON con el resultado
 """
 from __future__ import annotations
+import hmac
 import os
 from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request, abort, url_for
@@ -34,8 +35,9 @@ def _get_cron_secret() -> str:
 def send_reminders():
     # Validar token — si no hay CRON_SECRET configurado en producción, bloquear
     secret = _get_cron_secret()
-    token  = request.args.get('token', '')
-    if not secret or token != secret:
+    # El token puede venir por query string (?token=) o por cabecera X-Cron-Token.
+    token  = request.headers.get('X-Cron-Token') or request.args.get('token', '')
+    if not secret or not hmac.compare_digest(token.encode(), secret.encode()):
         abort(403)
 
     now      = datetime.utcnow()

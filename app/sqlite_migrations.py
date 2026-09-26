@@ -261,3 +261,22 @@ def run_sqlite_migrations(engine) -> None:
         for col in ("show_address_public", "show_phone_public", "show_email_public"):
             if not _column_exists(engine, "company_config", col):
                 _add_column(engine, "company_config", f"{col} BOOLEAN NOT NULL DEFAULT 1")
+
+
+def ensure_booking_indexes(engine) -> None:
+    """Crea el índice único parcial que impide dos turnos BOOKED del mismo
+    profesional a la misma hora. `db.create_all()` solo lo crea en tablas
+    nuevas; esto lo agrega en bases existentes (SQLite y Postgres).
+    Si ya hay turnos duplicados cargados, la creación falla: se avisa en el log
+    y la app sigue funcionando (el lock de fila igual protege en Postgres)."""
+    sql = text(
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_appointment_employee_start_booked "
+        "ON appointment (employee_id, start_dt) WHERE status = 'BOOKED'"
+    )
+    try:
+        with engine.begin() as conn:
+            conn.execute(sql)
+    except Exception as exc:
+        print('⚠ No se pudo crear el índice uq_appointment_employee_start_booked '
+              '(¿hay turnos BOOKED duplicados para el mismo profesional y hora?): '
+              f'{exc}')

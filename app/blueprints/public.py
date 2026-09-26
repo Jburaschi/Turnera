@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from ..extensions import db, limiter
 from ..models import Appointment, Company, CompanyHours, Employee, Service, SlotHold, WEEKDAY_LABELS
 MONTH_LABELS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-from ..services.availability import get_availability_for_day, get_month_summary, HOLD_MINUTES
+from ..services.availability import get_availability_for_day, get_month_summary, lock_employee_for_booking, HOLD_MINUTES
 from ..services.appointment_service import cancel_appointment_logic
 from ..services.google_calendar import ensure_google_event_for_appointment, delete_google_event_for_appointment
 from ..services.email_service import send_booking_confirmed, send_booking_canceled, send_booking_rescheduled
@@ -269,7 +269,13 @@ def create_appointment(slug):
         flash('El profesional elegido no realiza esa prestacion.', 'danger')
         return redirect(url_for('public.booking_page', slug=slug))
 
-    start_dt  = datetime.fromisoformat(request.form['start_dt'])
+    try:
+        start_dt = datetime.fromisoformat(request.form.get('start_dt', ''))
+    except ValueError:
+        flash('Elegí un horario válido.', 'danger')
+        return redirect(url_for('public.booking_page', slug=slug))
+    # Serializa reservas simultáneas del mismo profesional (ver lock_employee_for_booking)
+    lock_employee_for_booking(employee.id)
     day_slots = get_availability_for_day(company, service, start_dt.date(), employee.id, exclude_session_key=_session_hold_key())
     selected  = next((s for s in day_slots if s['start'] == start_dt), None)
     if not selected:
@@ -321,7 +327,13 @@ def create_appointment(slug):
     db.session.flush()
     audit_log.log_created(appointment, notes='Reserva online por el cliente')
     SlotHold.query.filter_by(company_id=company.id, session_key=_session_hold_key()).delete()
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Otra reserva ganó este mismo horario en el mismo instante.
+        db.session.rollback()
+        flash('Ese horario ya no esta disponible.', 'danger')
+        return redirect(url_for('public.booking_page', slug=slug))
     ensure_google_event_for_appointment(appointment)
 
     manage_url  = url_for('public.manage_appointment', slug=slug, token=appointment.manage_token, _external=True)
@@ -381,6 +393,7 @@ def manage_appointment_reschedule(slug, token):
     except Exception:
         flash('Formato de fecha invalido.', 'danger')
         return redirect(url_for('public.manage_appointment', slug=slug, token=token))
+    lock_employee_for_booking(appointment.employee_id)
     slots    = get_availability_for_day(company, appointment.service, start_dt.date(), appointment.employee.id)
     selected = next((s for s in slots if s['start'] == start_dt), None)
     if not selected:
@@ -391,7 +404,12 @@ def manage_appointment_reschedule(slug, token):
     appointment.end_dt   = selected['end']
     audit_log.log_rescheduled(appointment, old_dt, selected['start'],
                               notes='Reprogramado por el cliente')
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash('Ese horario ya no esta disponible.', 'danger')
+        return redirect(url_for('public.manage_appointment', slug=slug, token=token))
     ensure_google_event_for_appointment(appointment)
     manage_url = url_for('public.manage_appointment', slug=slug, token=token, _external=True)
     send_booking_rescheduled(appointment, manage_url=manage_url)

@@ -6,6 +6,7 @@
      id="booking-root"
      style="--brand: #3654f0;"
      data-slug="{{ company.slug }}"
+     data-csrf="{{ csrf_token() }}"
      data-login-required="{{ 1 if company.config.require_customer_login else 0 }}"
      data-allow-availability="{{ 1 if company.config.allow_booking_by_availability else 0 }}"
      data-allow-employee="{{ 1 if company.config.allow_booking_by_employee else 0 }}"

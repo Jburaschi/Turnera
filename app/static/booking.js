@@ -2,6 +2,7 @@ const root = document.getElementById('booking-root');
 
 if (root) {
   const slug = root.dataset.slug;
+  const csrfToken = root.dataset.csrf || '';
   let allowAvailability = root.dataset.allowAvailability === '1';
   let allowEmployee = root.dataset.allowEmployee === '1';
   if (!allowAvailability && !allowEmployee) {
@@ -220,7 +221,7 @@ if (root) {
     try {
       const res = await fetch(`/${slug}/hold-slot`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken },
         body: new URLSearchParams({
           service_id: selectedService.id,
           employee_id: selectedEmployeeId,
@@ -261,7 +262,8 @@ if (root) {
   function releaseSlotHold() {
     if (holdCountdownTimer) { clearInterval(holdCountdownTimer); holdCountdownTimer = null; }
     if (navigator.sendBeacon) {
-      const data = new Blob([], { type: 'application/x-www-form-urlencoded' });
+      // sendBeacon no permite cabeceras: el token CSRF va en el cuerpo del form.
+      const data = new Blob([`csrf_token=${encodeURIComponent(csrfToken)}`], { type: 'application/x-www-form-urlencoded' });
       navigator.sendBeacon(`/${slug}/release-hold`, data);
     }
   }
