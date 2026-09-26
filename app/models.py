@@ -1,4 +1,5 @@
 from __future__ import annotations
+import hashlib
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -17,6 +18,13 @@ employee_schedule_services = db.Table(
     db.Column('schedule_id', db.Integer, db.ForeignKey('employee_schedule.id', ondelete='CASCADE'), primary_key=True),
     db.Column('service_id', db.Integer, db.ForeignKey('service.id', ondelete='CASCADE'), primary_key=True),
 )
+
+
+def session_fingerprint(password_hash: str | None) -> str:
+    """Huella corta del hash de contraseña que viaja en la sesión. Si la
+    contraseña cambia, la huella deja de coincidir y las sesiones abiertas
+    con la contraseña vieja se cierran solas (ver load_user)."""
+    return hashlib.sha256((password_hash or '').encode()).hexdigest()[:16]
 
 
 class PasswordMixin:
@@ -45,7 +53,7 @@ class PlatformUser(UserMixin, PasswordMixin, db.Model):
         return True
 
     def get_id(self):
-        return f'platform:{self.id}'
+        return f'platform:{self.id}:{session_fingerprint(self.password_hash)}'
 
 
 class Company(db.Model):
@@ -144,7 +152,7 @@ class AdminUser(UserMixin, PasswordMixin, db.Model):
         return False
 
     def get_id(self):
-        return f'admin:{self.id}'
+        return f'admin:{self.id}:{session_fingerprint(self.password_hash)}'
 
 
 class Customer(UserMixin, db.Model):
@@ -183,7 +191,7 @@ class Customer(UserMixin, db.Model):
         return False
 
     def get_id(self):
-        return f'customer:{self.id}'
+        return f'customer:{self.id}:{session_fingerprint(self.password_hash)}'
 
 
 class Employee(db.Model):

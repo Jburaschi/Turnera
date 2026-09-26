@@ -3,8 +3,10 @@ Servicio de notificaciones por email.
 Usa Flask-Mail. Si MAIL_USERNAME no esta configurado, imprime en consola (util en dev).
 """
 from __future__ import annotations
+from concurrent.futures import ThreadPoolExecutor
 from flask import current_app, render_template_string
-from flask_mail import Message
+import smtplib
+from flask_mail import Connection, Message
 from ..extensions import mail
 
 
@@ -73,8 +75,45 @@ def _render(template: str, **ctx) -> str:
     return render_template_string(template, **ctx)
 
 
+# Los mails se mandan en segundo plano: el cliente no espera la respuesta del
+# servidor SMTP (Flask-Mail no tiene timeout: si el SMTP no responde, antes el
+# pedido quedaba colgado hasta que gunicorn lo cortaba con error).
+# Pool chico y acotado por proceso para no abrir hilos sin límite.
+_mail_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix='mail')
+
+
+SMTP_TIMEOUT_SECONDS = 20
+
+
+class _TimeoutConnection(Connection):
+    """Igual que la conexión de Flask-Mail pero con timeout: si el servidor
+    SMTP no responde, se corta a los SMTP_TIMEOUT_SECONDS en vez de colgar
+    el hilo para siempre."""
+    def configure_host(self):
+        m = self.mail
+        cls = smtplib.SMTP_SSL if m.use_ssl else smtplib.SMTP
+        host = cls(m.server, m.port, timeout=SMTP_TIMEOUT_SECONDS)
+        host.set_debuglevel(int(m.debug))
+        if m.use_tls:
+            host.starttls()
+        if m.username and m.password:
+            host.login(m.username, m.password)
+        return host
+
+
+def _deliver(app, subject: str, recipients: list[str], body: str) -> None:
+    with app.app_context():
+        try:
+            msg = Message(subject=subject, recipients=recipients, body=body)
+            with _TimeoutConnection(app.extensions['mail']) as conn:
+                conn.send(msg)
+        except Exception:
+            app.logger.exception('Error al enviar email a %s (%s)', recipients, subject)
+
+
 def _send(subject: str, recipients: list[str], body: str) -> None:
-    if not recipients or not any(r for r in recipients if r):
+    recipients = [r for r in (recipients or []) if r]
+    if not recipients:
         return
     if not _mail_configured():
         current_app.logger.info(
@@ -82,11 +121,15 @@ def _send(subject: str, recipients: list[str], body: str) -> None:
             recipients, subject, body,
         )
         return
+    app = current_app._get_current_object()
+    if app.config.get('MAIL_SEND_SYNC'):
+        # Para tests o scripts: mandar en el momento.
+        _deliver(app, subject, recipients, body)
+        return
     try:
-        msg = Message(subject=subject, recipients=recipients, body=body)
-        mail.send(msg)
-    except Exception as exc:
-        current_app.logger.error('Error al enviar email: %s', exc)
+        _mail_pool.submit(_deliver, app, subject, recipients, body)
+    except Exception:
+        app.logger.exception('No se pudo encolar el email a %s', recipients)
 
 
 # ── API pública ───────────────────────────────────────────────────────────────

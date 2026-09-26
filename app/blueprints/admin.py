@@ -3,7 +3,7 @@ import csv, io, os, secrets, uuid
 from datetime import datetime, time, timedelta
 from functools import wraps
 from flask import Blueprint, Response, abort, current_app, flash, jsonify, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask_login import current_user, login_user
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
 from ..extensions import db
@@ -29,6 +29,7 @@ ADMIN_SECTIONS = {
     'settings': 'Reglas de reserva', 'integrations': 'Integraciones',
 }
 STATUS_OPTIONS = ['BOOKED', 'CANCELED', 'DONE', 'NO_SHOW']
+TEAM_ROLES = ('admin', 'staff')
 PAGE_SIZE = 50
 MONTH_LABELS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 TRIAL_WARNING_DAYS = 7  # mostrar banner cuando faltan ≤7 días
@@ -1083,7 +1084,14 @@ def google_callback(slug):
         flash('Sesión OAuth inválida. Intentá conectar nuevamente.','warning'); return redirect(url_for('admin.dashboard',slug=slug,section='integrations'))
     redirect_uri=build_redirect_uri(request,slug)
     flow=Flow.from_client_config({'web':{'client_id':oauth_cfg['client_id'],'client_secret':oauth_cfg['client_secret'],'auth_uri':'https://accounts.google.com/o/oauth2/auth','token_uri':'https://oauth2.googleapis.com/token'}},scopes=GOOGLE_SCOPES,state=expected_state)
-    flow.redirect_uri=redirect_uri; flow.fetch_token(authorization_response=request.url); creds=flow.credentials
+    flow.redirect_uri=redirect_uri
+    try:
+        flow.fetch_token(authorization_response=request.url)
+    except Exception:
+        current_app.logger.exception('Google OAuth: falló el intercambio del código (empresa %s)', company.id)
+        flash('No se pudo conectar Google Calendar. Probá de nuevo.','danger')
+        return redirect(url_for('admin.dashboard',slug=slug,section='integrations'))
+    creds=flow.credentials
     conn=GoogleCalendarConnection.query.filter_by(company_id=company.id).first()
     if not conn:
         conn=GoogleCalendarConnection(company_id=company.id); db.session.add(conn)
@@ -1118,6 +1126,8 @@ def team(slug):
         email    = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         role     = request.form.get('role', 'staff')
+        if role not in TEAM_ROLES:
+            role = 'staff'
 
         if not name or not email:
             flash('Nombre y email son obligatorios.', 'danger')
@@ -1154,13 +1164,18 @@ def update_team_member(slug, admin_id):
     member = AdminUser.query.filter_by(company_id=company.id, id=admin_id).first_or_404()
 
     # No puede modificarse a sí mismo de forma destructiva
-    if member.id == current_user.id and request.form.get('role') != 'admin':
+    is_self = member.id == current_user.id
+    if is_self and request.form.get('role') != 'admin':
         flash('No podés quitarte el rol admin a vos mismo.', 'danger')
+        return redirect(url_for('admin.team', slug=slug))
+    if is_self and 'active' not in request.form:
+        flash('No podés desactivarte a vos mismo.', 'danger')
         return redirect(url_for('admin.team', slug=slug))
 
     member.name   = request.form.get('name', member.name).strip() or member.name
     member.active = 'active' in request.form
-    member.role   = request.form.get('role', member.role)
+    new_role = request.form.get('role', member.role)
+    member.role = new_role if new_role in TEAM_ROLES else member.role
 
     new_password = request.form.get('password', '').strip()
     if new_password:
@@ -1170,6 +1185,10 @@ def update_team_member(slug, admin_id):
         member.set_password(new_password)
 
     db.session.commit()
+    if is_self and new_password:
+        # Cambiar la contraseña cierra las sesiones abiertas con la anterior;
+        # la sesión actual se renueva para no sacarlo del panel.
+        login_user(member)
     flash('Usuario actualizado.', 'success')
     return redirect(url_for('admin.team', slug=slug))
 

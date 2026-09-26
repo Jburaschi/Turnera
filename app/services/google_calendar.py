@@ -6,12 +6,16 @@ from zoneinfo import ZoneInfo
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
+from google_auth_httplib2 import AuthorizedHttp, Request as HttpRequest
+import httplib2
+from flask import current_app
 
 from ..extensions import db
 from ..timeutils import TZ_AR
 from ..models import GoogleCalendarConnection, Appointment
 
+
+GOOGLE_TIMEOUT_SECONDS = 10
 
 GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",
@@ -53,11 +57,14 @@ def _creds_from_connection(conn: GoogleCalendarConnection) -> Credentials:
 def get_calendar_service(conn: GoogleCalendarConnection):
     creds = _creds_from_connection(conn)
     if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
+        creds.refresh(HttpRequest(httplib2.Http(timeout=GOOGLE_TIMEOUT_SECONDS)))
         conn.access_token = creds.token
         conn.token_expiry = creds.expiry
         db.session.commit()
-    return build("calendar", "v3", credentials=creds, cache_discovery=False)
+    # Timeout propio: sin esto, una demora de Google dejaba al cliente esperando
+    # hasta 60 s (el mismo límite de gunicorn) y terminaba en error.
+    http = AuthorizedHttp(creds, http=httplib2.Http(timeout=GOOGLE_TIMEOUT_SECONDS))
+    return build("calendar", "v3", http=http, cache_discovery=False)
 
 
 def _appointment_timezone(company) -> ZoneInfo:
@@ -98,6 +105,28 @@ def _appointment_event_body(appointment: Appointment):
 
 
 def ensure_google_event_for_appointment(appointment: Appointment) -> None:
+    """Crea o actualiza el evento en Google Calendar. Nunca rompe el flujo:
+    el turno ya está guardado; si Google falla, queda registrado en el log."""
+    _safely(_ensure_google_event, appointment, "crear/actualizar")
+
+
+def delete_google_event_for_appointment(appointment: Appointment) -> None:
+    """Borra el evento de Google Calendar. Nunca rompe el flujo (ver arriba)."""
+    _safely(_delete_google_event, appointment, "borrar")
+
+
+def _safely(fn, appointment, action: str) -> None:
+    try:
+        fn(appointment)
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Google Calendar: no se pudo %s el evento del turno %s (empresa %s)",
+            action, getattr(appointment, "id", "?"), getattr(appointment, "company_id", "?"),
+        )
+
+
+def _ensure_google_event(appointment: Appointment) -> None:
     company = appointment.company
     if not company_has_google_plan(company):
         return
@@ -125,7 +154,7 @@ def ensure_google_event_for_appointment(appointment: Appointment) -> None:
     db.session.commit()
 
 
-def delete_google_event_for_appointment(appointment: Appointment) -> None:
+def _delete_google_event(appointment: Appointment) -> None:
     company = appointment.company
     if not company_has_google_plan(company):
         return

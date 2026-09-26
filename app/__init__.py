@@ -1,7 +1,8 @@
+import hmac
 import os
 from flask import Flask, render_template
 from .extensions import db, login_manager, csrf, limiter, mail
-from .models import AdminUser, Customer, PlatformUser
+from .models import AdminUser, Customer, PlatformUser, session_fingerprint
 from .blueprints.public import public_bp
 from .blueprints.admin import admin_bp
 from .blueprints.auth import auth_bp
@@ -80,13 +81,23 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id: str):
-        if user_id.startswith('platform:'):
-            return PlatformUser.query.get(int(user_id.split(':', 1)[1]))
-        if user_id.startswith('admin:'):
-            return AdminUser.query.get(int(user_id.split(':', 1)[1]))
-        if user_id.startswith('customer:'):
-            return Customer.query.get(int(user_id.split(':', 1)[1]))
-        return None
+        """Se ejecuta en cada request con sesión. Formato: 'tipo:id:huella'.
+        Devuelve None (= sesión cerrada) si el usuario ya no existe, fue
+        desactivado o cambió su contraseña desde que inició sesión."""
+        try:
+            kind, raw_id, fingerprint = user_id.split(':', 2)
+            uid = int(raw_id)
+        except (ValueError, AttributeError):
+            return None  # sesiones con el formato viejo: se pide volver a ingresar
+        model = {'platform': PlatformUser, 'admin': AdminUser, 'customer': Customer}.get(kind)
+        user = db.session.get(model, uid) if model else None
+        if user is None:
+            return None
+        if not getattr(user, 'active', True):
+            return None
+        if not hmac.compare_digest(fingerprint, session_fingerprint(user.password_hash)):
+            return None
+        return user
 
     # ── Blueprints ────────────────────────────────────────────────────────────
     app.register_blueprint(public_bp)
