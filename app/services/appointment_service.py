@@ -22,8 +22,15 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from ..timeutils import now_ar
+from ..plans import CANCEL_PENALTY, plan_has
 
 DEFAULT_LIMIT_HOURS = 24
+
+
+def penalty_enabled(company) -> bool:
+    """La penalidad está activada por el negocio y su plan la incluye (PRO o
+    más). Si baja de plan, la configuración se conserva pero deja de aplicarse."""
+    return bool(company.cancelation_penalty_enabled) and plan_has(company, CANCEL_PENALTY)
 
 
 @dataclass
@@ -60,8 +67,8 @@ def customer_change_policy(appointment, now: datetime | None = None) -> Customer
     if now < deadline:
         return CustomerChangePolicy(True, True, False, 0.0, deadline, limit, None)
 
-    # Cancelación tardía
-    penalty_on = bool(company.cancelation_penalty_enabled)
+    # Cancelación tardía (la penalidad solo aplica si el plan la incluye)
+    penalty_on = penalty_enabled(company)
     amount = float(company.cancelation_penalty_amount or 0) if penalty_on else 0.0
     contact = 'Para cambiarlo, comunicate con el negocio.'
     if penalty_on:
@@ -80,7 +87,7 @@ def cancel_appointment_logic(appointment, now: datetime | None = None):
 
     appointment.status = 'CANCELED'
     appointment.canceled_at = datetime.utcnow()
-    appointment.penalty_applied = policy.is_late and bool(appointment.company.cancelation_penalty_enabled)
+    appointment.penalty_applied = policy.is_late and penalty_enabled(appointment.company)
 
     if appointment.penalty_applied and policy.penalty_amount > 0:
         # Queda como deuda del cliente para que el negocio la vea en Pagos.

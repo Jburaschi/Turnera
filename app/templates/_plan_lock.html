@@ -1,0 +1,30 @@
+{# ───────────────────────────────────────────────────────────────────────
+   Candados de plan. Lo que el plan no incluye no se esconde: se muestra con
+   la etiqueta del plan que lo incluye y lleva a "Mi plan".
+   {% import '_plan_lock.html' as pl %}
+   {{ pl.lock(company, PF.csv) }}             → etiqueta chica "🔒 PRO"
+   {{ pl.upsell(company, PF.payments, 'Título', 'Texto') }} → tarjeta completa
+   ─────────────────────────────────────────────────────────────────────── #}
+{% import '_icons.html' as ic %}
+
+{% macro lock(company, feature) -%}
+<a href="{{ url_for('admin.dashboard', slug=company.slug, section='plan') }}" class="plan-lock"
+   title="Incluido desde el plan {{ minimum_plan_for(feature) }}">{{ ic.icon('lock', 11) }} {{ minimum_plan_for(feature) }}</a>
+{%- endmacro %}
+
+{% macro upsell(company, feature, title, text) -%}
+<div class="admin-card plan-upsell">
+  <div class="admin-card-body">
+    <span class="plan-upsell-icon">{{ ic.icon('lock', 20) }}</span>
+    <h2 class="admin-card-title mb-1">{{ title }}</h2>
+    <p class="text-secondary small mb-3">{{ text }} Está incluido desde el plan {{ minimum_plan_for(feature) }}.</p>
+    <a class="btn btn-primary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='plan') }}">Ver planes</a>
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro limit_notice(company, key, what) -%}
+<a href="{{ url_for('admin.dashboard', slug=company.slug, section='plan') }}" class="plan-limit-notice">
+  {{ ic.icon('lock', 13) }} Tu plan {{ plan_code(company) }} incluye {{ plan_limit(company, key) }} {{ what }}. Ver planes →
+</a>
+{%- endmacro %}

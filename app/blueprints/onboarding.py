@@ -26,6 +26,7 @@ from ..extensions import db, limiter
 from ..models import AdminUser, Appointment, Company, CompanyConfig, Service, CompanyHours, Employee, EmployeeSchedule, UploadedImage
 from ..services.email_service import send_welcome_admin
 from ..timeutils import TZ_NAME
+from ..plans import plan_code, plan_limit
 
 TRIAL_DAYS = 30
 PLANES_REGISTRO = ('BASE', 'PRO', 'PREMIUM')
@@ -286,6 +287,12 @@ def staffing():
         mode = request.form.get('staffing_mode')
         if mode not in ('solo', 'team'):
             errors['staffing_mode'] = 'Elegí una opción para continuar.'
+        elif mode == 'team':
+            limit = plan_limit(company, 'professionals')
+            n_names = len([n for n in request.form.getlist('team_professional_name[]') if n.strip()])
+            if limit is not None and n_names > limit:
+                errors['staffing_mode'] = (f'Tu plan {plan_code(company)} incluye hasta {limit} '
+                                           f'profesional{"es" if limit != 1 else ""}. Podés cambiar de plan desde el panel cuando termines.')
 
         if not errors:
             company.staffing_mode = mode

@@ -57,3 +57,11 @@ def safe_url(value) -> str:
     para no mostrar como link un dato viejo inválido guardado antes de la validación."""
     url, err = clean_public_url(value, allow_local_media=True)
     return url or ''
+
+
+def css_color(value, default: str = '#3654f0') -> str:
+    """Filtro de plantillas: devuelve el color solo si es un hex #rrggbb
+    (se usa dentro de un atributo style; cualquier otra cosa → color por defecto)."""
+    import re
+    value = (value or '').strip()
+    return value if re.fullmatch(r'#[0-9a-fA-F]{6}', value) else default

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% import '_icons.html' as ic %}
+{% import '_plan_lock.html' as pl %}
 {% block title %}Equipo · {{ company.name }} · Turnex{% endblock %}
 {% block topnav %}{% endblock %}
 
@@ -32,6 +33,7 @@
         <a href="{{ url_for('admin.dashboard', slug=company.slug, section=section_key) }}" class="admin-nav-item">
           <span class="admin-nav-icon">{{ ic.icon(nav_icons.get(section_key,'home'), 17) }}</span>
           {{ sections[section_key] }}
+          {% if section_key == 'payments' and not plan_has(company, PF.payments) %}<span class="plan-lock">PRO</span>{% endif %}
         </a>
         {% endfor %}
       {% endfor %}
@@ -92,9 +94,14 @@
           <p class="admin-page-sub">Usuarios que pueden acceder al panel de {{ company.name }}.</p>
         </div>
       </div>
+      {% set users_limit = plan_limit(company, 'users') %}
+      {% if users_limit is not none and (admins|selectattr('active')|list|length) >= users_limit %}
+        {{ pl.limit_notice(company, 'users', 'usuario' if users_limit == 1 else 'usuarios') }}
+      {% else %}
       <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-team-form">
         {{ ic.icon('plus', 15) }} Invitar miembro
       </button>
+      {% endif %}
     </div>
 
     <div class="admin-card collapse mb-3" id="new-team-form">

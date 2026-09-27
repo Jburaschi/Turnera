@@ -12,6 +12,7 @@ from flask import current_app
 
 from ..extensions import db
 from ..timeutils import TZ_AR
+from ..plans import GOOGLE_CALENDAR, plan_has, plan_is_usable
 from ..models import GoogleCalendarConnection, Appointment
 
 
@@ -23,9 +24,9 @@ GOOGLE_SCOPES = [
 
 
 def company_has_google_plan(company) -> bool:
-    plan = (company.plan_name or "").strip().upper()
-    status = (company.plan_status or "").strip().upper()
-    return status == "ACTIVE" and plan in {"PRO", "PREMIUM"}
+    """Google Calendar: incluido en PRO y PREMIUM, con el plan activo o en
+    prueba vigente (la prueba incluye todas las funciones del plan)."""
+    return plan_has(company, GOOGLE_CALENDAR) and plan_is_usable(company)
 
 
 def get_google_oauth_config():

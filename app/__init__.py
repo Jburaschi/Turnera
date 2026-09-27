@@ -13,7 +13,7 @@ from .blueprints.cron import cron_bp
 from .blueprints.media import media_bp
 from .seed import seed_if_empty
 from .timeutils import utc_to_ar
-from .utils import format_ars, dia_corto, mes_corto, safe_url
+from .utils import css_color, format_ars, dia_corto, mes_corto, safe_url
 from .sqlite_migrations import run_sqlite_migrations, ensure_booking_indexes
 
 
@@ -141,6 +141,18 @@ def create_app():
     app.add_template_filter(dia_corto, 'dia_corto')
     app.add_template_filter(mes_corto, 'mes_corto')
     app.add_template_filter(safe_url, 'safe_url')
+    app.add_template_filter(css_color, 'css_color')
+
+    # ── Planes: funciones y límites disponibles en todas las plantillas ──────
+    from . import plans as plans_mod
+    app.jinja_env.globals.update(
+        plan_has=plans_mod.plan_has, plan_limit=plans_mod.plan_limit, plan_code=plans_mod.plan_code,
+        plan_bullets=plans_mod.plan_bullets, minimum_plan_for=plans_mod.minimum_plan_for,
+        plan_comparison=plans_mod.COMPARISON, PLAN_CODES=plans_mod.PLAN_CODES,
+        PF={'google': plans_mod.GOOGLE_CALENDAR, 'penalty': plans_mod.CANCEL_PENALTY,
+            'payments': plans_mod.APPOINTMENT_PAYMENTS, 'branding': plans_mod.BRANDING,
+            'csv': plans_mod.EXPORT_CSV, 'audit': plans_mod.AUDIT_LOG},
+    )
 
     # ── Cabeceras de seguridad HTTP ──────────────────────────────────────────
     @app.after_request

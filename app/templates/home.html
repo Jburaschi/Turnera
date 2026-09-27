@@ -326,10 +326,7 @@
               <div class="hl-plan-period">para probar</div>
             </div>
             <ul class="hl-plan-features">
-              <li>URL pública del negocio</li>
-              <li>Servicios, profesionales y horarios</li>
-              <li>Agenda online y alta manual</li>
-              <li>Panel de administración</li>
+              {% for f in plan_bullets('BASE') %}<li>{{ f }}</li>{% endfor %}
             </ul>
             <a class="hl-plan-btn hl-plan-btn--outline" href="{{ url_for('onboarding.register') }}?plan=BASE">
               Empezar gratis
@@ -348,10 +345,7 @@
               <div class="hl-plan-period">por mes</div>
             </div>
             <ul class="hl-plan-features">
-              <li>Todo lo del plan BASE</li>
-              <li><strong>Sincronización Google Calendar</strong></li>
-              <li>Recordatorios automáticos</li>
-              <li>Gestión rápida de agenda diaria</li>
+              {% for f in plan_bullets('PRO') %}<li>{{ f }}</li>{% endfor %}
             </ul>
             <a class="hl-plan-btn hl-plan-btn--primary" href="{{ url_for('onboarding.register') }}?plan=PRO">
               Empezar ahora →
@@ -369,13 +363,10 @@
               <div class="hl-plan-period">por mes</div>
             </div>
             <ul class="hl-plan-features">
-              <li>Todo lo del plan PRO</li>
-              <li>Soporte prioritario</li>
-              <li>Funcionalidades a medida</li>
-              <li>Onboarding personalizado</li>
+              {% for f in plan_bullets('PREMIUM') %}<li>{{ f }}</li>{% endfor %}
             </ul>
-            <a class="hl-plan-btn hl-plan-btn--outline" href="{{ url_for('auth.platform_login') }}">
-              Hablar con ventas
+            <a class="hl-plan-btn hl-plan-btn--outline" href="{{ url_for('onboarding.register') }}?plan=PREMIUM">
+              Empezar ahora →
             </a>
           </div>
 

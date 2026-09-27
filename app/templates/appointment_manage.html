@@ -54,7 +54,7 @@
                 Podés cancelar o reprogramar sin cargo hasta el
                 <strong>{{ policy.deadline.strftime('%d/%m/%Y a las %H:%M') }}</strong>
                 ({{ policy.limit_hours }} h antes del turno).
-                {% if company.cancelation_penalty_enabled and company.cancelation_penalty_amount %}
+                {% if company.cancelation_penalty_enabled and company.cancelation_penalty_amount and plan_has(company, PF.penalty) %}
                   Después de ese momento, cancelar tiene una penalidad de {{ company.cancelation_penalty_amount|ars }}.
                 {% else %}
                   Después, solo el negocio puede modificarlo.

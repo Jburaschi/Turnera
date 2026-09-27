@@ -1,5 +1,5 @@
 from __future__ import annotations
-import csv, io, os, secrets, uuid
+import csv, io, os, re, secrets, uuid
 from datetime import datetime, time, timedelta
 from functools import wraps
 from flask import Blueprint, Response, abort, current_app, flash, jsonify, redirect, render_template, request, url_for
@@ -11,7 +11,10 @@ from ..models import (
     WEEKDAY_LABELS, AdminUser, Appointment, AppointmentLog, BlockedPeriod, Company, CompanyHours, Customer,
     Employee, EmployeeSchedule, GoogleCalendarConnection, PlanRequest, Service, SubscriptionPayment, UploadedImage,
 )
-from ..plans import PLANS, PLAN_CODES, REQUEST_CANCEL, REQUEST_CHANGE
+from ..plans import (
+    APPOINTMENT_PAYMENTS, AUDIT_LOG, BRANDING, CANCEL_PENALTY, EXPORT_CSV, FEATURE_LABELS,
+    PLANS, PLAN_CODES, REQUEST_CANCEL, REQUEST_CHANGE, minimum_plan_for, plan_code, plan_has, plan_limit,
+)
 from sqlalchemy.exc import IntegrityError
 from ..services.availability import get_availability_for_day, has_booking_conflict, lock_employee_for_booking
 from ..services.email_service import send_booking_canceled, send_booking_confirmed, send_booking_rescheduled, send_plan_request, send_trial_warning
@@ -94,6 +97,33 @@ def owner_required(fn):
             return redirect(url_for('admin.dashboard', slug=slug)) if slug else abort(403)
         return fn(*args, **kwargs)
     return wrapper
+
+
+def _plan_redirect(company, feature):
+    """Respuesta cuando se intenta usar algo que el plan no incluye."""
+    flash(f'{FEATURE_LABELS[feature]} está incluido desde el plan {minimum_plan_for(feature)}. '
+          'Podés pedir el cambio desde "Mi plan".', 'warning')
+    return redirect(url_for('admin.dashboard', slug=company.slug, section='plan'))
+
+
+def _active_professionals(company) -> int:
+    return Employee.query.filter_by(company_id=company.id, active=True).count()
+
+
+def _active_users(company) -> int:
+    return AdminUser.query.filter_by(company_id=company.id, active=True).count()
+
+
+def _limit_reached(company, key: str, current: int) -> bool:
+    limit = plan_limit(company, key)
+    return limit is not None and current >= limit
+
+
+def _limit_message(company, key: str) -> str:
+    limit = plan_limit(company, key)
+    what = ('profesional' if limit == 1 else 'profesionales') if key == 'professionals' else ('usuario' if limit == 1 else 'usuarios')
+    return (f'Tu plan {plan_code(company)} incluye {limit} {what} activo{"s" if limit != 1 else ""}. '
+            'Para sumar más, pedí el cambio de plan desde "Mi plan".')
 
 
 @admin_bp.before_request
@@ -625,6 +655,8 @@ def dashboard(slug):
 @admin_required
 def export_agenda_csv(slug):
     company      = get_owned_company_or_404(slug)
+    if not plan_has(company, EXPORT_CSV):
+        return _plan_redirect(company, EXPORT_CSV)
     day          = request.args.get('day')
     selected_day = datetime.strptime(day, '%Y-%m-%d').date() if day else today_ar()
     apps         = build_agenda_query(company, selected_day, request.args.get('professional_id',type=int), request.args.get('service_id',type=int), request.args.get('status','').strip().upper(), request.args.get('q','').strip().lower())
@@ -689,11 +721,12 @@ def update_company(slug):
             company.cancelation_limit_hours = min(720, max(0, int(request.form.get('cancelation_limit_hours', 24))))
         except (ValueError, TypeError):
             pass
-        company.cancelation_penalty_enabled = 'cancelation_penalty_enabled' in request.form
-        try:
-            company.cancelation_penalty_amount = max(0.0, float(request.form.get('cancelation_penalty_amount', 0) or 0))
-        except (ValueError, TypeError):
-            pass
+        if plan_has(company, CANCEL_PENALTY):
+            company.cancelation_penalty_enabled = 'cancelation_penalty_enabled' in request.form
+            try:
+                company.cancelation_penalty_amount = max(0.0, float(request.form.get('cancelation_penalty_amount', 0) or 0))
+            except (ValueError, TypeError):
+                pass
     else:
         company.name=request.form.get('name','').strip() or company.name
         company.category=request.form.get('category','').strip() or company.category
@@ -703,11 +736,15 @@ def update_company(slug):
             company.logo_url = logo_url
         elif 'remove_logo' in request.form:
             company.logo_url = None
-        cover_url = _save_uploaded_image(request.files.get('cover_photo'), company.id)
-        if cover_url:
-            company.cover_photo_url = cover_url
-        elif 'remove_cover_photo' in request.form:
-            company.cover_photo_url = None
+        branding = plan_has(company, BRANDING)
+        if branding:
+            cover_url = _save_uploaded_image(request.files.get('cover_photo'), company.id)
+            if cover_url:
+                company.cover_photo_url = cover_url
+            elif 'remove_cover_photo' in request.form:
+                company.cover_photo_url = None
+        elif request.files.get('cover_photo') and request.files['cover_photo'].filename:
+            return _plan_redirect(company, BRANDING)
         # Estos campos solo se tocan si realmente vinieron en el form que se envió
         # (el de logo y el de portada no los incluyen, y no deben borrarlos).
         if 'description' in request.form:
@@ -718,10 +755,12 @@ def update_company(slug):
             company.phone = request.form.get('phone', '').strip() or None
         if 'email' in request.form:
             company.email = request.form.get('email', '').strip() or None
-        if 'brand_color' in request.form:
-            company.brand_color = request.form.get('brand_color', company.brand_color)
+        if 'brand_color' in request.form and branding:
+            color = (request.form.get('brand_color') or '').strip()
+            if re.fullmatch(r'#[0-9a-fA-F]{6}', color):
+                company.brand_color = color
         for field, label in (('instagram_url', 'Instagram'), ('facebook_url', 'Facebook')):
-            if field in request.form:
+            if field in request.form and branding:
                 url, err = clean_public_url(request.form.get(field))
                 if err:
                     db.session.rollback()
@@ -778,6 +817,8 @@ def create_employee(slug):
     company=get_owned_company_or_404(slug); name=request.form.get('name','').strip()
     if not name:
         flash('El nombre del profesional es obligatorio.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
+    if 'active' in request.form and _limit_reached(company, 'professionals', _active_professionals(company)):
+        flash(_limit_message(company, 'professionals'), 'warning'); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
     employee=Employee(company=company, name=name,
                       color=request.form.get('color','#0d6efd'),
                       active='active' in request.form,
@@ -831,6 +872,9 @@ def update_employee(slug, employee_id):
 def toggle_employee_active(slug, employee_id):
     company = get_owned_company_or_404(slug)
     employee = Employee.query.filter_by(company_id=company.id, id=employee_id).first_or_404()
+    if not employee.active and _limit_reached(company, 'professionals', _active_professionals(company)):
+        flash(_limit_message(company, 'professionals'), 'warning')
+        return redirect(url_for('admin.dashboard', slug=slug, section='professionals'))
     employee.active = not employee.active
     db.session.commit()
     flash(f'{employee.name} ahora está {"activo" if employee.active else "inactivo"}.', 'success')
@@ -957,6 +1001,8 @@ def update_appointment_status(slug, appointment_id):
 @owner_required
 def update_appointment_payment(slug):
     company=get_owned_company_or_404(slug)
+    if not plan_has(company, APPOINTMENT_PAYMENTS):
+        return _plan_redirect(company, APPOINTMENT_PAYMENTS)
     appointment_id = request.form.get('appointment_id', type=int)
     appointment = Appointment.query.filter_by(company_id=company.id, id=appointment_id).first_or_404()
     status = request.form.get('payment_status','').strip().upper()
@@ -1209,6 +1255,8 @@ def team(slug):
             flash('La contraseña debe tener al menos 8 caracteres.', 'danger')
         elif AdminUser.query.filter_by(company_id=company.id, email=email).first():
             flash('Ya existe un usuario con ese email en tu empresa.', 'warning')
+        elif _limit_reached(company, 'users', _active_users(company)):
+            flash(_limit_message(company, 'users'), 'warning')
         else:
             new_admin = AdminUser(
                 company_id=company.id,
@@ -1247,6 +1295,9 @@ def update_team_member(slug, admin_id):
         return redirect(url_for('admin.team', slug=slug))
 
     member.name   = request.form.get('name', member.name).strip() or member.name
+    if 'active' in request.form and not member.active and _limit_reached(company, 'users', _active_users(company)):
+        flash(_limit_message(company, 'users'), 'warning')
+        return redirect(url_for('admin.team', slug=slug))
     member.active = 'active' in request.form
     new_role = request.form.get('role', member.role)
     member.role = new_role if new_role in TEAM_ROLES else member.role
@@ -1292,6 +1343,8 @@ def delete_team_member(slug, admin_id):
 @admin_required
 def appointment_log(slug, appointment_id):
     company     = get_owned_company_or_404(slug)
+    if not plan_has(company, AUDIT_LOG):
+        return _plan_redirect(company, AUDIT_LOG)
     appointment = Appointment.query.filter_by(company_id=company.id, id=appointment_id).first_or_404()
     logs        = appointment.logs.order_by('created_at').all()
     return render_template('appointment_log.html', company=company,

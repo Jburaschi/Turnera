@@ -676,3 +676,20 @@
   /* Títulos de página más compactos */
   .admin-page-title { font-size: 1.4rem; }
 }
+
+/* ── Candados de plan (_plan_lock.html) ───────────────────────────── */
+.plan-lock { display: inline-flex; align-items: center; gap: .25rem; margin-left: .4rem; padding: .12rem .45rem; border-radius: 999px; background: #fff6e4; color: #9a5b00; font-size: .68rem; font-weight: 700; letter-spacing: .03em; text-decoration: none; vertical-align: middle; white-space: nowrap; }
+.plan-lock:hover { background: #fdecc8; color: #7a4700; text-decoration: none; }
+.admin-nav-item .plan-lock { margin-left: auto; background: rgba(232, 169, 59, .16); color: #f3d18c; }
+.plan-upsell .admin-card-body { text-align: center; padding: 2rem 1.25rem; }
+.plan-upsell-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: #fff6e4; color: #c98a1e; margin-bottom: .6rem; }
+.plan-limit-notice { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .75rem; border-radius: 8px; background: #fff6e4; color: #9a5b00; font-size: .82rem; font-weight: 600; text-decoration: none; }
+.plan-limit-notice:hover { background: #fdecc8; color: #7a4700; text-decoration: none; }
+.plan-field-locked { opacity: .55; }
+.plan-compare { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.plan-compare th, .plan-compare td { padding: .55rem .6rem; border-bottom: 1px solid #f1f1f3; text-align: center; }
+.plan-compare th:first-child, .plan-compare td:first-child { text-align: left; color: #52525b; }
+.plan-compare thead th { font-size: .78rem; font-weight: 700; color: #18181b; }
+.plan-compare .is-current { background: #eef1ff; }
+.plan-compare .yes { color: #16a34a; font-weight: 700; }
+.plan-compare .no { color: #a1a1aa; }

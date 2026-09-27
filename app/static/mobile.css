@@ -437,3 +437,11 @@
   /* Botones de avance del asistente */
   .ob-submit-btn { width: 100%; min-height: 46px; font-size: 15px; }
 }
+
+/* Mi plan: tabla comparativa más compacta en el celular */
+@media (max-width: 767.98px) {
+  .plan-compare { font-size: .78rem; }
+  .plan-compare th, .plan-compare td { padding: .45rem .3rem; line-height: 1.25; }
+  .plan-compare th:first-child, .plan-compare td:first-child { width: 44%; padding-left: 0; }
+  .plan-compare thead th { font-size: .7rem; }
+}

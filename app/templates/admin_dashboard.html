@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% import '_icons.html' as ic %}
+{% import '_plan_lock.html' as pl %}
 {% block title %}Panel · {{ company.name }}{% endblock %}
 {% block topnav %}{% endblock %}
 
@@ -73,6 +74,7 @@
              class="admin-nav-item {% if active_section == section_key %}active{% endif %}">
             <span class="admin-nav-icon">{{ ic.icon(nav_icons.get(section_key,'home'), 17) }}</span>
             {{ sections[section_key] }}
+            {% if section_key == 'payments' and not plan_has(company, PF.payments) %}<span class="plan-lock">PRO</span>{% endif %}
           </a>
           {% endfor %}
         {% endif %}
@@ -460,6 +462,11 @@
             {% else %}
             <span class="ag3-clear is-muted">{{ ic.icon('refresh', 15) }} Limpiar filtros</span>
             {% endif %}
+            {% if plan_has(company, PF.csv) %}
+            <a class="ag3-clear" href="{{ url_for('admin.export_agenda_csv', slug=company.slug, day=selected_day.isoformat(), professional_id=selected_professional_id or None, service_id=selected_service_id or None, status=selected_status or None, q=search_customer or None) }}">{{ ic.icon('copy', 15) }} Exportar a Excel</a>
+            {% else %}
+            <span class="ag3-clear is-muted">{{ ic.icon('copy', 15) }} Exportar a Excel {{ pl.lock(company, PF.csv) }}</span>
+            {% endif %}
           </form>
 
           <div class="ag3-layout">
@@ -594,6 +601,11 @@
                 <input type="hidden" name="status" value="CANCELED">
                 <button type="submit" class="ag2-act ag2-act--cancel">{{ ic.icon('x', 15) }} Cancelar turno</button>
               </form>
+              {% if plan_has(company, PF.audit) %}
+              <a class="ag3-clear" id="ag2d-log" href="#">{{ ic.icon('refresh', 15) }} Ver historial del turno</a>
+              {% else %}
+              <span class="ag3-clear is-muted">{{ ic.icon('refresh', 15) }} Historial del turno {{ pl.lock(company, PF.audit) }}</span>
+              {% endif %}
             </div>
           </aside>
         </div><!-- /agenda-main -->
@@ -892,9 +904,14 @@
             <p class="admin-page-sub">Administrá tu equipo de trabajo.</p>
           </div>
         </div>
+        {% set pro_limit = plan_limit(company, 'professionals') %}
+        {% if pro_limit is not none and (company.employees|selectattr('active')|list|length) >= pro_limit %}
+          {{ pl.limit_notice(company, 'professionals', 'profesional' if pro_limit == 1 else 'profesionales') }}
+        {% else %}
         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-employee-form">
           {{ ic.icon('plus', 15) }} Nuevo profesional
         </button>
+        {% endif %}
       </div>
 
       <div class="admin-card collapse mb-3" id="new-employee-form">
@@ -1246,9 +1263,10 @@
             <div class="prof-field"><label class="form-label">Dirección</label><input class="form-control" name="address" value="{{ company.address or '' }}"></div>
             <div class="prof-field"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ company.phone or '' }}"></div>
             <div class="prof-field"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ company.email or '' }}"></div>
-            <div class="prof-field"><label class="form-label">Color principal <span class="text-secondary fw-normal small">— se usa en tu página pública</span></label><input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color }}"></div>
-            <div class="prof-field"><label class="form-label">Instagram <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="instagram_url" value="{{ company.instagram_url or '' }}" placeholder="https://instagram.com/tu_negocio"></div>
-            <div class="prof-field"><label class="form-label">Facebook <span class="text-secondary fw-normal small">— opcional</span></label><input class="form-control" name="facebook_url" value="{{ company.facebook_url or '' }}" placeholder="https://facebook.com/tu_negocio"></div>
+            {% set brand_ok = plan_has(company, PF.branding) %}
+            <div class="prof-field {{ '' if brand_ok else 'plan-field-locked' }}"><label class="form-label">Color principal <span class="text-secondary fw-normal small">— se usa en tu página pública</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label><input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color|css_color }}" {{ '' if brand_ok else 'disabled' }}></div>
+            <div class="prof-field {{ '' if brand_ok else 'plan-field-locked' }}"><label class="form-label">Instagram <span class="text-secondary fw-normal small">— opcional</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label><input class="form-control" name="instagram_url" value="{{ company.instagram_url or '' }}" placeholder="https://instagram.com/tu_negocio" {{ '' if brand_ok else 'disabled' }}></div>
+            <div class="prof-field {{ '' if brand_ok else 'plan-field-locked' }}"><label class="form-label">Facebook <span class="text-secondary fw-normal small">— opcional</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label><input class="form-control" name="facebook_url" value="{{ company.facebook_url or '' }}" placeholder="https://facebook.com/tu_negocio" {{ '' if brand_ok else 'disabled' }}></div>
             <div class="prof-actions"><button class="btn btn-primary">Guardar cambios</button></div>
           </form>
         </div>
@@ -1296,6 +1314,7 @@
             {% else %}
               <div class="prof-cover-placeholder">Sin foto de portada — se usa un fondo con el color de tu marca.</div>
             {% endif %}
+            {% if plan_has(company, PF.branding) %}
             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
               <input type="file" name="cover_photo" accept=".png,.jpg,.jpeg" class="form-control form-control-sm" style="max-width:280px;">
               <button class="btn btn-outline-secondary btn-sm">{{ 'Cambiar foto de portada' if company.cover_photo_url else 'Subir foto de portada' }}</button>
@@ -1306,6 +1325,9 @@
               </label>
               {% endif %}
             </div>
+            {% else %}
+            <div class="mt-2 small text-secondary">La foto de portada se muestra en tu página pública desde el plan PRO. {{ pl.lock(company, PF.branding) }}</div>
+            {% endif %}
           </form>
         </div>
 
@@ -1330,6 +1352,15 @@
       </div>
 
     <!-- ════ PAYMENTS ══════════════════════════════════════ -->
+    {% elif active_section == 'payments' and not plan_has(company, PF.payments) %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('credit-card', 22) }}</span>
+          <div><h1 class="admin-page-title">Pagos</h1><p class="admin-page-sub">Registrá lo que cobrás por cada turno.</p></div>
+        </div>
+      </div>
+      {{ pl.upsell(company, PF.payments, 'Registro de pagos de turnos', 'Anotá qué turnos se cobraron, con qué medio y cuánto, y mirá lo cobrado del mes.') }}
+
     {% elif active_section == 'payments' %}
       <div class="admin-page-header">
         <div class="d-flex align-items-center gap-3">
@@ -1527,16 +1558,18 @@
                 <div class="form-text">0 = se puede cancelar hasta el momento del turno. Pasado el límite, el cliente no puede reprogramar online y solo puede cancelar si activás la penalidad.</div>
               </div>
               <div class="col-md-4">
-                <div class="form-check mt-4">
+                {% set pen_ok = plan_has(company, PF.penalty) %}
+                <div class="form-check mt-4 {{ '' if pen_ok else 'plan-field-locked' }}">
                   <input class="form-check-input" type="checkbox" name="cancelation_penalty_enabled"
-                         {% if company.cancelation_penalty_enabled %}checked{% endif %} id="pen_enabled">
+                         {% if company.cancelation_penalty_enabled and pen_ok %}checked{% endif %} id="pen_enabled" {{ '' if pen_ok else 'disabled' }}>
                   <label class="form-check-label" for="pen_enabled">Aplicar penalidad por cancelación tardía</label>
                 </div>
+                {% if not pen_ok %}{{ pl.lock(company, PF.penalty) }}{% endif %}
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 {{ '' if pen_ok else 'plan-field-locked' }}">
                 <label class="form-label">Monto de penalidad ($)</label>
                 <input class="form-control" type="number" step="0.01" name="cancelation_penalty_amount"
-                       value="{{ company.cancelation_penalty_amount or 0 }}">
+                       value="{{ company.cancelation_penalty_amount or 0 }}" {{ '' if pen_ok else 'disabled' }}>
               </div>
             </div>
           </div>
@@ -1571,7 +1604,8 @@
                 <button class="btn btn-outline-dark btn-sm">Desconectar</button>
               </form>
             {% elif not google_plan_enabled %}
-              <span class="entity-badge entity-badge--inactive mb-2 d-inline-block">Disponible en PRO/PREMIUM</span>
+              <span class="entity-badge entity-badge--inactive mb-2 d-inline-block">Disponible en PRO/PREMIUM</span><br>
+              <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='plan') }}">Ver planes</a>
             {% else %}
               <span class="entity-badge mb-2 d-inline-block" style="background:#fff6e4;color:#c98a1e;">No conectado</span><br>
               <a class="btn btn-primary btn-sm" href="{{ url_for('admin.google_connect', slug=company.slug) }}">Conectar</a>
@@ -1640,11 +1674,32 @@
             {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}.
           </p>
           {% endif %}
-          {% if plans.get(current_code) %}
           <ul class="mb-0 small text-secondary" style="padding-left:1.1rem; line-height:1.8;">
-            {% for f in plans[current_code].features %}<li>{{ f }}</li>{% endfor %}
+            {% for f in plan_bullets(plan_code(company)) %}<li>{{ f }}</li>{% endfor %}
           </ul>
-          {% endif %}
+        </div>
+      </div>
+
+      <div class="admin-card mb-3">
+        <div class="admin-card-header"><h2 class="admin-card-title">Comparar planes</h2></div>
+        <div class="admin-card-body">
+          <div class="table-responsive">
+            <table class="plan-compare">
+              <thead><tr><th></th>{% for code in PLAN_CODES %}<th class="{{ 'is-current' if code == current_code }}">{{ code }}</th>{% endfor %}</tr></thead>
+              <tbody>
+                {% for row in plan_comparison %}
+                <tr>
+                  <td>{{ row[0] }}</td>
+                  {% for v in row[1:] %}
+                  <td class="{{ 'is-current' if PLAN_CODES[loop.index0] == current_code }}">
+                    {% if v is sameas true %}<span class="yes" aria-label="Incluido">✓</span>{% elif v is sameas false %}<span class="no" aria-label="No incluido">—</span>{% else %}{{ v }}{% endif %}
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -1668,7 +1723,7 @@
                     {% if code == current_code %}<span class="entity-badge entity-badge--active">Tu plan</span>{% endif %}
                   </div>
                   <ul class="mb-0 small text-secondary" style="padding-left:1.1rem; line-height:1.7;">
-                    {% for f in plan.features %}<li>{{ f }}</li>{% endfor %}
+                    {% for f in plan_bullets(code) %}<li>{{ f }}</li>{% endfor %}
                   </ul>
                 </label>
               </div>
@@ -1887,6 +1942,8 @@
 
     // Apuntar los formularios de acción a este turno
     const action = '/admin/' + slug + '/appointments/' + d.apId + '/status';
+    const logLink = document.getElementById('ag2d-log');
+    if (logLink) logLink.href = '/admin/' + slug + '/appointments/' + d.apId + '/log';
     ['ag2d-form-done', 'ag2d-form-noshow', 'ag2d-form-cancel'].forEach(id => {
       document.getElementById(id).action = action;
     });
