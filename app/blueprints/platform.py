@@ -4,7 +4,8 @@ from functools import wraps
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import current_user
 from ..extensions import db
-from ..models import Company, CompanyConfig, AdminUser, Appointment, SubscriptionPayment
+from ..models import Company, CompanyConfig, AdminUser, Appointment, PlanRequest, SubscriptionPayment
+from ..utils import clean_public_url
 
 platform_bp = Blueprint('platform', __name__, url_prefix='/platform')
 
@@ -34,8 +35,9 @@ def dashboard():
         'appointments': Appointment.query.count(),
         'paid_total': paid_total,
     }
+    plan_requests = PlanRequest.query.filter_by(status='PENDING').order_by(PlanRequest.created_at.asc()).all()
     return render_template('platform_dashboard.html', companies=companies, stats=stats,
-                           now=datetime.utcnow())
+                           now=datetime.utcnow(), plan_requests=plan_requests)
 
 
 @platform_bp.route('/companies', methods=['POST'])
@@ -54,6 +56,11 @@ def create_company():
         flash('Ese slug ya está en uso.', 'danger')
         return redirect(url_for('platform.dashboard'))
 
+    logo_url, logo_err = clean_public_url(request.form.get('logo_url'), allow_local_media=True)
+    if logo_err:
+        flash(f'Logo: {logo_err}', 'danger')
+        return redirect(url_for('platform.dashboard'))
+
     company = Company(
         name=name,
         slug=slug,
@@ -61,7 +68,7 @@ def create_company():
         phone=request.form.get('phone', '').strip() or None,
         address=request.form.get('address', '').strip() or None,
         description=request.form.get('description', '').strip() or None,
-        logo_url=request.form.get('logo_url', '').strip() or None,
+        logo_url=logo_url,
         brand_color=request.form.get('brand_color', '#198754'),
         plan_name=request.form.get('plan_name', 'BASE'),
         plan_status=request.form.get('plan_status', 'ACTIVE'),
@@ -93,7 +100,12 @@ def update_company(company_id):
     company.phone = request.form.get('phone', '').strip() or None
     company.address = request.form.get('address', '').strip() or None
     company.description = request.form.get('description', '').strip() or None
-    company.logo_url = request.form.get('logo_url', '').strip() or None
+    logo_url, logo_err = clean_public_url(request.form.get('logo_url'), allow_local_media=True)
+    if logo_err:
+        db.session.rollback()
+        flash(f'Logo: {logo_err}', 'danger')
+        return redirect(url_for('platform.dashboard'))
+    company.logo_url = logo_url
     company.brand_color = request.form.get('brand_color', company.brand_color)
     company.plan_name   = request.form.get('plan_name',   company.plan_name).strip()   or company.plan_name
     company.plan_status = request.form.get('plan_status', company.plan_status).strip() or company.plan_status
@@ -120,6 +132,19 @@ def update_company(company_id):
             admin.set_password(new_password)
     db.session.commit()
     flash('Empresa actualizada.', 'success')
+    return redirect(url_for('platform.dashboard'))
+
+
+@platform_bp.route('/plan-requests/<int:request_id>/resolve', methods=['POST'])
+@platform_required
+def resolve_plan_request(request_id):
+    """Marca un pedido de "Mi plan" como resuelto. El cambio en sí (plan,
+    estado, desactivar la empresa) se hace editando la empresa."""
+    req = PlanRequest.query.get_or_404(request_id)
+    req.status = 'DONE'
+    req.resolved_at = datetime.utcnow()
+    db.session.commit()
+    flash(f'Pedido de {req.company.name} marcado como resuelto.', 'success')
     return redirect(url_for('platform.dashboard'))
 
 

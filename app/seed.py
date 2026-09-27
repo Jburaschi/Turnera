@@ -45,9 +45,17 @@ def _ensure_platform_owner():
     db.session.add(owner)
 
 
+def _demo_enabled() -> bool:
+    """El negocio demo (pepito / admin123) solo se crea fuera de producción,
+    o en producción si se pide explícitamente con SEED_DEMO=1 (ej. staging)."""
+    if os.environ.get('SEED_DEMO', '').strip().lower() in ('1', 'true', 'yes'):
+        return True
+    return os.environ.get('FLASK_ENV', '').strip().lower() != 'production'
+
+
 def seed_if_empty():
     _ensure_platform_owner()
-    if Company.query.first():
+    if Company.query.first() or not _demo_enabled():
         db.session.commit()
         return
 

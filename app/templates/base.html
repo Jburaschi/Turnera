@@ -8,8 +8,8 @@
   <meta property="og:title" content="{% if company is defined and company %}{{ company.name }} · Turnex{% else %}Turnex{% endif %}">
   <meta property="og:description" content="{% block og_description %}Reservá tu turno online de forma rápida y sencilla.{% endblock %}">
   <meta property="og:url" content="{{ request.url }}">
-  {% if company is defined and company and company.logo_url %}
-  <meta property="og:image" content="{{ company.logo_url }}">
+  {% if company is defined and company and company.logo_url|safe_url %}
+  <meta property="og:image" content="{{ company.logo_url|safe_url }}">
   {% endif %}
 
   <link href="{{ url_for('static', filename='design.css') }}" rel="stylesheet">
@@ -53,8 +53,8 @@
       <div class="pub-nav-inner">
 
         <a class="pub-brand" href="{% if current_company %}{{ url_for('public.company_page', slug=current_company.slug) }}{% else %}{{ url_for('public.home') }}{% endif %}">
-          {% if current_company and current_company.logo_url %}
-            <img src="{{ current_company.logo_url }}" alt="{{ current_company.name }}" class="pub-brand-logo">
+          {% if current_company and current_company.logo_url|safe_url %}
+            <img src="{{ current_company.logo_url|safe_url }}" alt="{{ current_company.name }}" class="pub-brand-logo">
           {% else %}
             <div class="pub-brand-icon">{{ (current_company.name[0] if current_company and current_company.name else 'T')|upper }}</div>
           {% endif %}

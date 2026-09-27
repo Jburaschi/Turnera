@@ -9,13 +9,15 @@ from werkzeug.utils import secure_filename
 from ..extensions import db
 from ..models import (
     WEEKDAY_LABELS, AdminUser, Appointment, AppointmentLog, BlockedPeriod, Company, CompanyHours, Customer,
-    Employee, EmployeeSchedule, GoogleCalendarConnection, Service, SubscriptionPayment, UploadedImage,
+    Employee, EmployeeSchedule, GoogleCalendarConnection, PlanRequest, Service, SubscriptionPayment, UploadedImage,
 )
+from ..plans import PLANS, PLAN_CODES, REQUEST_CANCEL, REQUEST_CHANGE
 from sqlalchemy.exc import IntegrityError
 from ..services.availability import get_availability_for_day, has_booking_conflict, lock_employee_for_booking
-from ..services.email_service import send_booking_canceled, send_booking_confirmed, send_booking_rescheduled, send_trial_warning
+from ..services.email_service import send_booking_canceled, send_booking_confirmed, send_booking_rescheduled, send_plan_request, send_trial_warning
 from ..services import audit as audit_log
 from ..timeutils import now_ar, today_ar
+from ..utils import clean_public_url
 from ..services.google_calendar import (
     GOOGLE_SCOPES, build_redirect_uri, company_has_google_plan,
     delete_google_event_for_appointment, ensure_google_event_for_appointment, get_google_oauth_config,
@@ -27,6 +29,7 @@ ADMIN_SECTIONS = {
     'professionals': 'Profesionales', 'services': 'Prestaciones', 'blocked': 'Bloqueos',
     'company': 'Perfil del negocio', 'payments': 'Pagos',
     'settings': 'Reglas de reserva', 'integrations': 'Integraciones',
+    'plan': 'Mi plan',
 }
 STATUS_OPTIONS = ['BOOKED', 'CANCELED', 'DONE', 'NO_SHOW']
 TEAM_ROLES = ('admin', 'staff')
@@ -99,7 +102,10 @@ def check_plan_access():
     También dispara el email de aviso cuando quedan ≤7 días de trial."""
     if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
         return
-    if request.endpoint in ('admin.plan_blocked', 'admin.static'):
+    if request.endpoint in ('admin.plan_blocked', 'admin.static', 'admin.plan_request'):
+        return
+    # "Mi plan" sigue accesible con el panel bloqueado: es donde se pide activar un plan.
+    if request.endpoint == 'admin.dashboard' and request.args.get('section') == 'plan':
         return
     company = Company.query.get(current_user.company_id)
     if not company:
@@ -561,8 +567,13 @@ def dashboard(slug):
     if getattr(current_user, 'role', 'admin') == 'staff' and section not in STAFF_ALLOWED:
         flash('No tenés permisos para acceder a esa sección.', 'warning')
         section = 'agenda'
+    pending_plan_requests = (PlanRequest.query.filter_by(company_id=company.id, status='PENDING')
+                             .order_by(PlanRequest.created_at.desc()).all())
     return render_template('admin_dashboard.html',
         company=company, google_plan_enabled=company_has_google_plan(company),
+        plans=PLANS, pending_plan_requests=pending_plan_requests,
+        pending_change=next((r for r in pending_plan_requests if r.kind == REQUEST_CHANGE), None),
+        pending_cancel=next((r for r in pending_plan_requests if r.kind == REQUEST_CANCEL), None),
         appointments=appointments, customers=customers, customers_page=customers_page,
         customers_pages=customers_pages, customers_total=customers_total, customers_search=customers_q_str,
         customers_all_total=all_customers_total, customers_new_month=customers_new_month,
@@ -709,10 +720,14 @@ def update_company(slug):
             company.email = request.form.get('email', '').strip() or None
         if 'brand_color' in request.form:
             company.brand_color = request.form.get('brand_color', company.brand_color)
-        if 'instagram_url' in request.form:
-            company.instagram_url = request.form.get('instagram_url', '').strip() or None
-        if 'facebook_url' in request.form:
-            company.facebook_url = request.form.get('facebook_url', '').strip() or None
+        for field, label in (('instagram_url', 'Instagram'), ('facebook_url', 'Facebook')):
+            if field in request.form:
+                url, err = clean_public_url(request.form.get(field))
+                if err:
+                    db.session.rollback()
+                    flash(f'{label}: {err}', 'danger')
+                    return redirect(url_for('admin.dashboard', slug=slug, section=target_section))
+                setattr(company, field, url)
 
     db.session.commit()
     flash('Configuración actualizada.', 'success')
@@ -1126,6 +1141,46 @@ def google_disconnect(slug):
     if conn:
         conn.enabled=False; conn.refresh_token=conn.access_token=conn.token_expiry=None; db.session.commit()
     flash('Google Calendar desconectado.','success'); return redirect(url_for('admin.dashboard',slug=slug,section='integrations'))
+
+
+# ── Mi plan: pedidos de cambio de plan o baja ─────────────────────────────────
+
+@admin_bp.route('/<slug>/plan/request', methods=['POST'])
+@owner_required
+def plan_request(slug):
+    """El dueño pide cambiar de plan o dar de baja la cuenta. No cambia nada
+    solo: queda registrado y le llega un mail a plataforma, que lo aplica."""
+    company = get_owned_company_or_404(slug)
+    back = redirect(url_for('admin.dashboard', slug=slug, section='plan'))
+    kind = request.form.get('kind', '')
+    message = (request.form.get('message') or '').strip()[:500] or None
+
+    if kind == REQUEST_CHANGE:
+        requested = (request.form.get('requested_plan') or '').strip().upper()
+        if requested not in PLAN_CODES:
+            flash('Elegí un plan válido.', 'danger'); return back
+        if requested == (company.plan_name or '').upper():
+            flash(f'Ya estás en el plan {requested}.', 'info'); return back
+    elif kind == REQUEST_CANCEL:
+        requested = None
+        if 'confirm' not in request.form:
+            flash('Para pedir la baja, confirmá que querés dar de baja tu cuenta.', 'danger'); return back
+    else:
+        abort(400)
+
+    if PlanRequest.query.filter_by(company_id=company.id, kind=kind, status='PENDING').first():
+        flash('Ya tenés un pedido igual pendiente. Te vamos a contactar a la brevedad.', 'info'); return back
+
+    req = PlanRequest(company_id=company.id, admin_user_id=current_user.id, kind=kind,
+                      current_plan=company.plan_name, requested_plan=requested, message=message)
+    db.session.add(req)
+    db.session.commit()
+    send_plan_request(req, platform_url=url_for('platform.dashboard', _external=True))
+    if kind == REQUEST_CHANGE:
+        flash(f'Recibimos tu pedido para pasar al plan {requested}. Te vamos a contactar para confirmarlo.', 'success')
+    else:
+        flash('Recibimos tu pedido de baja. Te vamos a contactar para confirmarlo; hasta entonces tu cuenta sigue activa.', 'success')
+    return back
 
 
 # ── Gestión de usuarios del panel (multi-admin) ───────────────────────────────

@@ -404,6 +404,27 @@ class AppointmentLog(db.Model):
                            order_by='AppointmentLog.created_at'))
 
 
+class PlanRequest(db.Model):
+    """Pedido de un negocio desde "Mi plan": cambiar de plan o dar de baja la
+    cuenta. No cambia nada solo: te llega por mail y lo aplicás desde
+    Plataforma (editando la empresa); después lo marcás como resuelto."""
+    __tablename__ = 'plan_request'
+
+    id             = db.Column(db.Integer, primary_key=True)
+    company_id     = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False, index=True)
+    admin_user_id  = db.Column(db.Integer, db.ForeignKey('admin_user.id'), nullable=True)
+    kind           = db.Column(db.String(20), nullable=False)        # CHANGE | CANCEL
+    current_plan   = db.Column(db.String(50), nullable=True)         # plan que tenía al pedir
+    requested_plan = db.Column(db.String(50), nullable=True)         # solo en CHANGE
+    message        = db.Column(db.String(500), nullable=True)
+    status         = db.Column(db.String(20), default='PENDING', nullable=False, index=True)  # PENDING | DONE
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    resolved_at    = db.Column(db.DateTime, nullable=True)
+
+    company    = db.relationship('Company')
+    admin_user = db.relationship('AdminUser')
+
+
 WEEKDAY_LABELS = {
     0: 'Lunes',
     1: 'Martes',

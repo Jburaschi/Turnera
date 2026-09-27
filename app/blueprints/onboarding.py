@@ -27,7 +27,8 @@ from ..models import AdminUser, Appointment, Company, CompanyConfig, Service, Co
 from ..services.email_service import send_welcome_admin
 from ..timeutils import TZ_NAME
 
-TRIAL_DAYS = 14
+TRIAL_DAYS = 30
+PLANES_REGISTRO = ('BASE', 'PRO', 'PREMIUM')
 LOGO_EXTS  = {'png', 'jpg', 'jpeg'}
 LOGO_MAX_BYTES = 2 * 1024 * 1024
 
@@ -163,6 +164,11 @@ def register():
 
     errors: dict = {}
     form: dict = {}
+    # Plan elegido en la landing (/registrar?plan=PRO). Viaja en un campo oculto
+    # del formulario; cualquier valor desconocido cae en BASE.
+    selected_plan = (request.values.get('plan') or 'BASE').strip().upper()
+    if selected_plan not in PLANES_REGISTRO:
+        selected_plan = 'BASE'
 
     if request.method == 'POST':
         form = request.form.to_dict()
@@ -186,7 +192,7 @@ def register():
             slug = _unique_slug('mi-negocio')
             company = Company(
                 slug=slug, name='Mi negocio', email=email,
-                plan_name='BASE', plan_status='TRIAL',
+                plan_name=selected_plan, plan_status='TRIAL',
                 trial_expires_at=datetime.utcnow() + timedelta(days=TRIAL_DAYS),
                 active=True, brand_color='#3654f0', onboarding_step=1,
             )
@@ -211,7 +217,8 @@ def register():
             login_user(admin)
             return redirect(url_for('onboarding.business'))
 
-    return render_template('onboarding_register.html', errors=errors, form=form)
+    return render_template('onboarding_register.html', errors=errors, form=form,
+                           selected_plan=selected_plan, trial_days=TRIAL_DAYS)
 
 
 # ── Paso 2: información del negocio ────────────────────────────────────

@@ -302,6 +302,46 @@ Te recordamos que mañana tenés un turno en {{ company }}:
 {{ company }}
 """
 
+PLAN_REQUEST_BODY = """\
+Nuevo pedido desde "Mi plan":
+
+  Negocio:      {{ company }} (/{{ slug }})
+  Pedido:       {{ kind_label }}
+  Plan actual:  {{ current_plan }}
+{%- if requested_plan %}
+  Plan pedido:  {{ requested_plan }}
+{%- endif %}
+  Pedido por:   {{ admin_name }} <{{ admin_email }}>
+{%- if message %}
+
+Mensaje:
+{{ message }}
+{%- endif %}
+
+Aplicalo desde Plataforma y marcalo como resuelto:
+  {{ platform_url }}
+"""
+
+
+def send_plan_request(plan_request, platform_url: str) -> None:
+    """Avisa a los usuarios de plataforma de un pedido de cambio de plan o baja."""
+    from ..models import PlatformUser
+    recipients = [u.email for u in PlatformUser.query.filter_by(active=True).all() if u.email]
+    if not recipients:
+        return
+    company = plan_request.company
+    admin = plan_request.admin_user
+    kind_label = 'Cambio de plan' if plan_request.kind == 'CHANGE' else 'Baja de la cuenta'
+    body = _render(
+        PLAN_REQUEST_BODY,
+        company=company.name, slug=company.slug, kind_label=kind_label,
+        current_plan=plan_request.current_plan or '—', requested_plan=plan_request.requested_plan,
+        admin_name=admin.name if admin else '—', admin_email=admin.email if admin else '—',
+        message=plan_request.message, platform_url=platform_url,
+    )
+    _send(f'Turnex · {kind_label}: {company.name}', recipients, body)
+
+
 def send_reminder(appointment, manage_url: str) -> None:
     """Manda el recordatorio 24h antes al cliente (guest o registrado)."""
     recipient = None

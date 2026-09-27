@@ -16,10 +16,11 @@
 
       <div class="ob-form-card">
         <h2 class="ob-form-title">Creá tu cuenta</h2>
-        <p class="ob-form-sub">14 días gratis. Sin tarjeta de crédito.</p>
+        <p class="ob-form-sub">{{ trial_days }} días gratis{% if selected_plan != 'BASE' %} del plan {{ selected_plan }}{% endif %}. Sin tarjeta de crédito.</p>
 
         <form method="post" novalidate>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="plan" value="{{ selected_plan }}">
 
           <div class="field">
             <label class="form-label">Nombre completo *</label>
@@ -80,7 +81,7 @@
       </div>
 
       <div class="ob-pitch">
-        <div class="ob-pitch-badge">14 días gratis · Sin tarjeta</div>
+        <div class="ob-pitch-badge">{{ trial_days }} días gratis · Sin tarjeta</div>
         <h1 class="ob-pitch-title">Tu negocio,<br><span class="hl-title-accent" style="color:#7c93ff;">siempre organizado.</span></h1>
 
         <div class="ob-pitch-mock">

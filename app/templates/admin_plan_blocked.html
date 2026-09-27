@@ -37,6 +37,13 @@
     </p>
 
     <div style="display:flex;flex-direction:column;gap:.75rem;align-items:center;">
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('admin.dashboard', slug=company.slug, section='plan') }}"
+         style="display:inline-flex;align-items:center;padding:.85rem 2rem;border-radius:8px;
+                background:#3654f0;color:#fff;font-weight:700;font-size:.97rem;text-decoration:none;">
+        Elegir un plan
+      </a>
+      {% endif %}
       <a href="mailto:hola@turnex.com?subject=Quiero activar mi plan — {{ company.name }}"
          style="display:inline-flex;align-items:center;padding:.85rem 2rem;border-radius:8px;
                 background:#18181b;color:#fff;font-weight:700;font-size:.97rem;text-decoration:none;">

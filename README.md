@@ -35,9 +35,10 @@ El usuario de plataforma se crea con `PLATFORM_ADMIN_EMAIL` y
 `PLATFORM_ADMIN_PASSWORD`. Si no están definidas, se usa `owner@turnex.com` con
 una contraseña al azar que se imprime **una sola vez** en el log de arranque.
 
-> ⚠️ La empresa demo `pepito` (con `admin123`) se crea en **cualquier** base
-> vacía, también en producción. Después del primer deploy, desactivala o
-> cambiale la contraseña desde plataforma.
+La empresa demo `pepito` (con `admin123`) se crea solo fuera de producción.
+Con `FLASK_ENV=production` no se crea, salvo que definas `SEED_DEMO=1`
+(útil en un ambiente de pruebas). Si tu base de producción se creó antes de
+este cambio, ya tiene `pepito`: desactivala desde Plataforma.
 
 ---
 
@@ -55,6 +56,7 @@ una contraseña al azar que se imprime **una sola vez** en el log de arranque.
 | `CRON_SECRET` | Para recordatorios | Token del endpoint de recordatorios (ver abajo). |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Para Google Calendar | Credenciales OAuth (ver abajo). |
 | `GOOGLE_REDIRECT_URI` | Opcional | Fija la URL de retorno de Google. Por defecto `https://<tu-dominio>/admin/integrations/google/callback`. |
+| `SEED_DEMO` | Opcional | `1` crea la empresa demo `pepito` aunque sea producción (solo para staging). |
 | `TRUSTED_PROXIES` | Opcional | Cantidad de proxies delante de la app. Por defecto `1` en producción (Railway/Render) y `0` en local. |
 
 ---

@@ -76,6 +76,36 @@
       </div>
     </div>
 
+    {% if plan_requests %}
+    <div class="admin-card mb-4">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">Pedidos de plan y bajas</h2>
+        <span class="entity-badge">{{ plan_requests|length }} pendiente{{ 's' if plan_requests|length != 1 }}</span>
+      </div>
+      <div class="admin-card-body">
+        {% for req in plan_requests %}
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap {% if not loop.last %}mb-3 pb-3 border-bottom{% endif %}">
+          <div style="min-width:0;">
+            <div class="fw-semibold">{{ req.company.name }} <span class="text-secondary fw-normal small">/{{ req.company.slug }}</span></div>
+            <div class="small">
+              {% if req.kind == 'CHANGE' %}Cambio de plan: {{ req.current_plan or '—' }} → <strong>{{ req.requested_plan }}</strong>
+              {% else %}<strong>Baja de la cuenta</strong> (plan {{ req.current_plan or '—' }}){% endif %}
+              · {{ (req.created_at|hora_ar).strftime('%d/%m/%Y %H:%M') }}
+              {% if req.admin_user %}· {{ req.admin_user.name }} ({{ req.admin_user.email }}){% endif %}
+            </div>
+            {% if req.message %}<div class="small text-secondary mt-1">“{{ req.message }}”</div>{% endif %}
+          </div>
+          <form method="post" action="{{ url_for('platform.resolve_plan_request', request_id=req.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-secondary btn-sm">Marcar como resuelto</button>
+          </form>
+        </div>
+        {% endfor %}
+        <p class="small text-secondary mt-3 mb-0">Aplicá el cambio editando la empresa (plan, estado o desactivarla) y después marcá el pedido como resuelto.</p>
+      </div>
+    </div>
+    {% endif %}
+
     <div class="row g-4 align-items-start">
 
       <!-- Formulario nueva empresa -->

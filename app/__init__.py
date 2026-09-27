@@ -13,7 +13,7 @@ from .blueprints.cron import cron_bp
 from .blueprints.media import media_bp
 from .seed import seed_if_empty
 from .timeutils import utc_to_ar
-from .utils import format_ars, dia_corto, mes_corto
+from .utils import format_ars, dia_corto, mes_corto, safe_url
 from .sqlite_migrations import run_sqlite_migrations, ensure_booking_indexes
 
 
@@ -140,6 +140,7 @@ def create_app():
     app.add_template_filter(format_ars, 'ars')
     app.add_template_filter(dia_corto, 'dia_corto')
     app.add_template_filter(mes_corto, 'mes_corto')
+    app.add_template_filter(safe_url, 'safe_url')
 
     # ── Cabeceras de seguridad HTTP ──────────────────────────────────────────
     @app.after_request

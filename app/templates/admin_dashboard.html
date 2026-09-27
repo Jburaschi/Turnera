@@ -95,7 +95,7 @@
       {% if company.trial_expires_at %}
       <div class="admin-plan-card-meta">Renovación: {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}</div>
       {% endif %}
-      <a href="{{ url_for('admin.dashboard', slug=company.slug, section='payments') }}">Ver mi plan →</a>
+      <a href="{{ url_for('admin.dashboard', slug=company.slug, section='plan') }}">Ver mi plan →</a>
     </div>
   </aside>
 
@@ -1604,6 +1604,107 @@
             <li>Al reprogramar → actualiza fecha y hora</li>
             <li>Al cancelar → elimina el evento</li>
           </ul>
+        </div>
+      </div>
+
+    {% elif active_section == 'plan' %}
+      {% set current_code = (company.plan_name or 'BASE')|upper %}
+      <div class="admin-page-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="admin-section-icon">{{ ic.icon('crown', 22) }}</span>
+          <div>
+            <h1 class="admin-page-title">Mi plan</h1>
+            <p class="admin-page-sub">Tu plan actual y pedidos para cambiarlo o dar de baja la cuenta.</p>
+          </div>
+        </div>
+      </div>
+
+      {% for req in pending_plan_requests %}
+      <div class="alert alert-info mb-3">
+        <strong>Pedido pendiente:</strong>
+        {% if req.kind == 'CHANGE' %}pasar al plan {{ req.requested_plan }}{% else %}dar de baja la cuenta{% endif %}
+        (pedido el {{ (req.created_at|hora_ar).strftime('%d/%m/%Y') }}). Te vamos a contactar para confirmarlo.
+      </div>
+      {% endfor %}
+
+      <div class="admin-card mb-3">
+        <div class="admin-card-header"><h2 class="admin-card-title">Plan actual</h2></div>
+        <div class="admin-card-body">
+          <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+            <span class="h4 mb-0">{{ current_code }}</span>
+            <span class="entity-badge {% if plan_state.blocked %}entity-badge--inactive{% else %}entity-badge--active{% endif %}">{{ plan_state.status_label }}</span>
+          </div>
+          {% if company.trial_expires_at %}
+          <p class="text-secondary small mb-2">
+            {% if plan_state.blocked %}La prueba venció el{% else %}La prueba vence el{% endif %}
+            {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}.
+          </p>
+          {% endif %}
+          {% if plans.get(current_code) %}
+          <ul class="mb-0 small text-secondary" style="padding-left:1.1rem; line-height:1.8;">
+            {% for f in plans[current_code].features %}<li>{{ f }}</li>{% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="admin-card mb-3">
+        <div class="admin-card-header"><h2 class="admin-card-title">Cambiar de plan</h2></div>
+        <div class="admin-card-body">
+          {% if pending_change %}
+            <p class="text-secondary mb-0">Ya pediste pasar al plan {{ pending_change.requested_plan }}. Te vamos a contactar para confirmarlo.</p>
+          {% else %}
+          <form method="post" action="{{ url_for('admin.plan_request', slug=company.slug) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="kind" value="CHANGE">
+            <div class="row g-3 mb-3">
+              {% for code, plan in plans.items() %}
+              <div class="col-md-4">
+                <label class="admin-integration-card d-block h-100" style="cursor:{{ 'default' if code == current_code else 'pointer' }};">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <input class="form-check-input" type="radio" name="requested_plan" value="{{ code }}" id="plan_{{ code }}"
+                           {% if code == current_code %}disabled{% endif %} required>
+                    <span class="fw-semibold">{{ plan.name }}</span>
+                    {% if code == current_code %}<span class="entity-badge entity-badge--active">Tu plan</span>{% endif %}
+                  </div>
+                  <ul class="mb-0 small text-secondary" style="padding-left:1.1rem; line-height:1.7;">
+                    {% for f in plan.features %}<li>{{ f }}</li>{% endfor %}
+                  </ul>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="plan_change_message">Mensaje <span class="text-secondary fw-normal small">— opcional</span></label>
+              <textarea class="form-control" id="plan_change_message" name="message" rows="2" maxlength="500" placeholder="Algo que quieras contarnos sobre el cambio"></textarea>
+            </div>
+            <button class="btn btn-primary">Pedir cambio de plan</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-header"><h2 class="admin-card-title">Dar de baja la cuenta</h2></div>
+        <div class="admin-card-body">
+          {% if pending_cancel %}
+            <p class="text-secondary mb-0">Ya pediste dar de baja la cuenta. Te vamos a contactar para confirmarlo; hasta entonces sigue activa.</p>
+          {% else %}
+          <p class="text-secondary small mb-3">Cuando se aplique la baja, tus clientes van a dejar de poder reservar. Te vamos a contactar para confirmarla antes de hacer cualquier cambio.</p>
+          <form method="post" action="{{ url_for('admin.plan_request', slug=company.slug) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="kind" value="CANCEL">
+            <div class="mb-3">
+              <label class="form-label" for="plan_cancel_message">¿Por qué te vas? <span class="text-secondary fw-normal small">— opcional</span></label>
+              <textarea class="form-control" id="plan_cancel_message" name="message" rows="2" maxlength="500" placeholder="Nos ayuda a mejorar"></textarea>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="confirm" id="plan_cancel_confirm" required>
+              <label class="form-check-label" for="plan_cancel_confirm">Quiero dar de baja la cuenta de {{ company.name }}</label>
+            </div>
+            <button class="btn btn-outline-danger">Pedir la baja</button>
+          </form>
+          {% endif %}
         </div>
       </div>
 
