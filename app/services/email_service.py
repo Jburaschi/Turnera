@@ -363,7 +363,7 @@ def send_reminder(appointment, manage_url: str) -> None:
         employee=appointment.employee.name if appointment.employee else '—',
         date=appointment.start_dt.strftime('%d/%m/%Y'),
         time=appointment.start_dt.strftime('%H:%M'),
-        address=company.address or 'A confirmar con el negocio',
+        address=company.full_address or 'A confirmar con el negocio',
         manage_url=manage_url,
     )
     _send(

@@ -1,0 +1,38 @@
+{# Campos de dirección del negocio (alta guiada, perfil y plataforma).
+   Uso: {% import '_address_fields.html' as addr %}{{ addr.fields(valores, error) }}
+   `valores` puede ser la empresa o un dict con address, address_unit, locality,
+   partido, province, postal_code. #}
+{% macro fields(v, error=None, uid='') %}
+{% set get = (v.get if v is mapping else None) %}
+{% macro val(k) %}{{ (get(k) if get else v[k]) or '' }}{% endmacro %}
+<div class="addr-grid">
+  <div class="addr-f addr-f--street">
+    <label class="form-label" for="addr-street{{ uid }}">Calle y número</label>
+    <input class="form-control" id="addr-street{{ uid }}" name="address" value="{{ val('address') }}" maxlength="255" placeholder="Av. San Martín 1234" autocomplete="address-line1">
+  </div>
+  <div class="addr-f addr-f--unit">
+    <label class="form-label" for="addr-unit{{ uid }}">Piso / Depto <span class="text-muted fw-normal text-sm">— opcional</span></label>
+    <input class="form-control" id="addr-unit{{ uid }}" name="address_unit" value="{{ val('address_unit') }}" maxlength="60" placeholder="2º B" autocomplete="address-line2">
+  </div>
+  <div class="addr-f">
+    <label class="form-label" for="addr-loc{{ uid }}">Localidad o barrio</label>
+    <input class="form-control {% if error and not val('locality') %}is-invalid{% endif %}" id="addr-loc{{ uid }}" name="locality" value="{{ val('locality') }}" maxlength="120" placeholder="Santos Lugares" autocomplete="address-level3">
+  </div>
+  <div class="addr-f">
+    <label class="form-label" for="addr-partido{{ uid }}">Partido / Departamento <span class="text-muted fw-normal text-sm">— opcional</span></label>
+    <input class="form-control" id="addr-partido{{ uid }}" name="partido" value="{{ val('partido') }}" maxlength="120" placeholder="Tres de Febrero" autocomplete="address-level2">
+  </div>
+  <div class="addr-f">
+    <label class="form-label" for="addr-prov{{ uid }}">Provincia</label>
+    <select class="form-select form-control {% if error and not val('province') %}is-invalid{% endif %}" id="addr-prov{{ uid }}" name="province" autocomplete="address-level1">
+      <option value="">Elegí la provincia</option>
+      {% for p in PROVINCIAS_AR %}<option value="{{ p }}" {% if val('province') == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="addr-f addr-f--cp">
+    <label class="form-label" for="addr-cp{{ uid }}">Código postal <span class="text-muted fw-normal text-sm">— opcional</span></label>
+    <input class="form-control" id="addr-cp{{ uid }}" name="postal_code" value="{{ val('postal_code') }}" maxlength="12" placeholder="1674" autocomplete="postal-code">
+  </div>
+  {% if error %}<div class="addr-error">{{ error }}</div>{% endif %}
+</div>
+{% endmacro %}

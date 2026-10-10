@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% import '_icons.html' as ic %}
+{% import '_address_fields.html' as addr %}
 {% block title %}Plataforma · Turnex{% endblock %}
 {% block topnav %}{% endblock %}
 
@@ -13,24 +14,7 @@
 {% block content %}
 <div class="admin-shell">
 
-  <!-- ══ SIDEBAR ════════════════════════════════════ -->
-  <aside class="admin-sidebar">
-    <div class="admin-sidebar-brand">
-      <div class="admin-sidebar-company">Turnex</div>
-      <div class="admin-sidebar-meta">Panel plataforma</div>
-    </div>
-    <nav class="admin-nav">
-      <span class="admin-nav-section">Gestión</span>
-      <a href="{{ url_for('platform.dashboard') }}" class="admin-nav-item active">
-        <span class="admin-nav-icon">🏢</span> Empresas
-      </a>
-      <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.08);margin-left:.75rem;margin-right:.75rem;">
-        <a href="{{ url_for('auth.logout') }}" class="admin-nav-item" style="font-size:.82rem;">
-           Cerrar sesión
-        </a>
-      </div>
-    </nav>
-  </aside>
+  {% with platform_active = 'companies' %}{% include '_platform_sidebar.html' %}{% endwith %}
 
   <!-- ══ MAIN ═══════════════════════════════════════ -->
   <main class="admin-main">
@@ -41,6 +25,7 @@
       </div>
     </div>
 
+    <div class="admin-content">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show mb-3 rounded-3" role="alert">
@@ -86,7 +71,7 @@
         {% for req in plan_requests %}
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap {% if not loop.last %}mb-3 pb-3 border-bottom{% endif %}">
           <div style="min-width:0;">
-            <div class="fw-semibold">{{ req.company.name }} <span class="text-secondary fw-normal small">/{{ req.company.slug }}</span></div>
+            <div class="fw-semibold">{{ req.company.name }} <a class="fw-normal small" href="{{ url_for('platform.dashboard', q=req.company.slug) }}">/{{ req.company.slug }} · ver empresa</a></div>
             <div class="small">
               {% if req.kind == 'CHANGE' %}Cambio de plan: {{ req.current_plan or '—' }} → <strong>{{ req.requested_plan }}</strong>
               {% else %}<strong>Baja de la cuenta</strong> (plan {{ req.current_plan or '—' }}){% endif %}
@@ -108,8 +93,8 @@
 
     <div class="row g-4 align-items-start">
 
-      <!-- Formulario nueva empresa -->
-      <div class="col-lg-5">
+      <!-- Formulario nueva empresa (en el celular va después de la lista) -->
+      <div class="col-lg-5 plat-col-form">
         <div class="admin-card">
           <div class="admin-card-header">
             <h2 class="admin-card-title">Nueva empresa</h2>
@@ -122,19 +107,19 @@
                 <div class="nt-section-title" style="font-size:.8rem;color:#64748b;letter-spacing:.04em;text-transform:uppercase;font-weight:800;margin-bottom:.75rem;">Datos del negocio</div>
               </div>
               <div class="col-md-8"><label class="form-label">Nombre comercial</label><input class="form-control" name="name" required></div>
-              <div class="col-md-4"><label class="form-label">Slug / URL</label><input class="form-control" name="slug" placeholder="mi-negocio" required></div>
+              <div class="col-md-4"><label class="form-label">Link</label><input class="form-control" name="slug" placeholder="Se arma con el nombre"></div>
               <div class="col-md-6"><label class="form-label">Email público</label><input class="form-control" name="email" type="email"></div>
               <div class="col-md-6"><label class="form-label">Teléfono</label><input class="form-control" name="phone"></div>
-              <div class="col-12"><label class="form-label">Dirección</label><input class="form-control" name="address"></div>
+              <div class="col-12">{{ addr.fields({}, uid='-new') }}</div>
               <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" rows="2" name="description"></textarea></div>
               <div class="col-md-4"><label class="form-label">Plan</label>
                 <select class="form-select" name="plan_name">
-                  <option>BASE</option><option>PRO</option><option>PREMIUM</option>
+                  {% for code in plan_codes %}<option value="{{ code }}">{{ code }}</option>{% endfor %}
                 </select>
               </div>
               <div class="col-md-4"><label class="form-label">Estado</label>
                 <select class="form-select" name="plan_status">
-                  <option>ACTIVE</option><option>PENDING</option><option>SUSPENDED</option>
+                  {% for key, label in plan_statuses.items() %}<option value="{{ key }}">{{ label }}{% if key == 'TRIAL' %} ({{ trial_days }} días){% endif %}</option>{% endfor %}
                 </select>
               </div>
               <div class="col-md-4"><label class="form-label">Color</label><input class="form-control form-control-color" type="color" name="brand_color" value="#198754"></div>
@@ -143,8 +128,8 @@
                 <div class="nt-section-title" style="font-size:.8rem;color:#64748b;letter-spacing:.04em;text-transform:uppercase;font-weight:800;margin-bottom:.75rem;">Cuenta de administrador</div>
               </div>
               <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="admin_name" value="Administrador" required></div>
-              <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="admin_email" required></div>
-              <div class="col-md-6"><label class="form-label">Contraseña</label><input class="form-control" name="admin_password" required></div>
+              <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="admin_email" type="email" required></div>
+              <div class="col-md-6"><label class="form-label">Contraseña</label><input class="form-control" name="admin_password" minlength="8" placeholder="Mínimo 8 caracteres" required></div>
               <div class="col-md-6 d-flex align-items-end">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" name="active" checked id="company_active">
@@ -159,43 +144,64 @@
       </div>
 
       <!-- Lista de empresas -->
-      <div class="col-lg-7">
+      <div class="col-lg-7 plat-col-list">
         <div class="admin-card">
           <div class="admin-card-header">
             <h2 class="admin-card-title">Empresas registradas</h2>
-            <span class="entity-badge entity-badge--inactive">{{ companies|length }}</span>
+            <span class="entity-badge entity-badge--inactive">{{ companies|length }}{% if companies|length != all_count %} de {{ all_count }}{% endif %}</span>
+          </div>
+          <div class="plat-filters">
+            <form method="get" action="{{ url_for('platform.dashboard') }}" class="plat-search">
+              <input type="hidden" name="f" value="{{ flt }}">
+              <input class="form-control form-control-sm" type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, link, email o teléfono">
+              <button class="btn btn-dark btn-sm">Buscar</button>
+            </form>
+            <div class="plat-chips">
+              {% for key, label in filters.items() %}
+                {% if key == 'all' or filter_counts[key] %}
+                <a href="{{ url_for('platform.dashboard', f=key, q=q or None) }}" class="plat-chip {% if flt == key %}is-active{% endif %}{% if key in ('expiring','expired') and filter_counts[key] %} is-warn{% endif %}">{{ label }} <span>{{ filter_counts[key] }}</span></a>
+                {% endif %}
+              {% endfor %}
+            </div>
           </div>
           <div class="admin-card-body--compact">
             {% for company in companies %}
-            {% set admin = company.admins[0] if company.admins else None %}
-            <div class="entity-row">
-              <div class="entity-avatar" style="background:{{ company.brand_color or '#374151' }};">
+            {% set admin = company_owner(company) %}
+            {% set tstate = trial_state(company, now) %}
+            <div class="entity-row plat-row">
+              <div class="entity-avatar" style="background:{{ company.brand_color|css_color('#374151') }};">
                 {{ company.name[0]|upper }}
               </div>
               <div class="entity-info">
                 <div class="entity-name">
                   {{ company.name }}
-                  <span class="entity-badge ms-1 {% if company.active %}entity-badge--active{% else %}entity-badge--inactive{% endif %}">
-                    {{ company.plan_name }} · {{ 'Activa' if company.active else 'Oculta' }}
+                  <span class="entity-badge ms-1 entity-badge--active">{{ company.plan_name }}</span>
+                  <span class="entity-badge {% if company.plan_status == 'SUSPENDED' or tstate == 'expired' %}plat-badge-danger{% elif tstate == 'expiring' %}plat-badge-warn{% elif company.plan_status == 'ACTIVE' %}entity-badge--active{% else %}entity-badge--inactive{% endif %}">
+                    {% if tstate == 'expired' %}Prueba vencida{% else %}{{ plan_statuses.get(company.plan_status, company.plan_status) }}{% endif %}
                   </span>
+                  {% if not company.active %}<span class="entity-badge plat-badge-danger">Oculta</span>{% endif %}
                 </div>
                 <div class="entity-meta">
                   /{{ company.slug }}
                   {% if admin %} · {{ admin.email }}{% endif %}
-                  · {{ company.plan_status }}
                   {% if company.plan_status == 'TRIAL' and company.trial_expires_at %}
-                    — vence {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}
-                    {% set days_left = (company.trial_expires_at.date() - now.date()).days %}
-                    {% if days_left <= 0 %}
-                      <span class="entity-badge ms-1" style="background:#fef2f2;color:#b91c1c;">Vencido</span>
-                    {% elif days_left <= 7 %}
-                      <span class="entity-badge ms-1" style="background:#fffbeb;color:#92400e;">{{ days_left }}d</span>
-                    {% endif %}
+                    · prueba hasta {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}
                   {% endif %}
+                </div>
+                <div class="entity-meta plat-usage">
+                  {{ usage.appointments_month.get(company.id, 0) }} turnos este mes ·
+                  {{ usage.professionals.get(company.id, 0) }} prof. ·
+                  {{ usage.customers.get(company.id, 0) }} clientes ·
+                  {{ usage.users.get(company.id, 0) }} usuario{{ 's' if usage.users.get(company.id, 0) != 1 }}
+                  · alta {{ (company.created_at|hora_ar).strftime('%d/%m/%Y') }}
                 </div>
               </div>
               <div class="entity-actions">
-                <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Ver página">↗</a>
+                <form method="post" action="{{ url_for('platform.enter_company', company_id=company.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-primary btn-sm" title="Abrir el panel de este negocio como su dueño" {% if not admin or not admin.active %}disabled{% endif %}>Entrar</button>
+                </form>
+                <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Ver página pública">↗</a>
                 <button class="btn btn-outline-dark btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#plat_company_{{ company.id }}">Editar</button>
               </div>
             </div>
@@ -211,19 +217,21 @@
                   <div class="col-md-6"><label class="form-label">Slug</label><input class="form-control" name="slug" value="{{ company.slug }}"></div>
                   <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ company.email or '' }}"></div>
                   <div class="col-md-6"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ company.phone or '' }}"></div>
-                  <div class="col-12"><label class="form-label">Dirección</label><input class="form-control" name="address" value="{{ company.address or '' }}"></div>
+                  <div class="col-12">{{ addr.fields(company, uid='-' ~ company.id) }}</div>
                   <div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" name="description" rows="2">{{ company.description or '' }}</textarea></div>
-                  <div class="col-md-4"><label class="form-label">Plan</label><input class="form-control" name="plan_name" value="{{ company.plan_name }}"></div>
-                  <div class="col-md-4"><label class="form-label">Estado plan</label>
+                  <div class="col-md-4"><label class="form-label">Plan</label>
+                    <select class="form-select" name="plan_name">
+                      {% for code in plan_codes %}<option value="{{ code }}" {% if company.plan_name == code %}selected{% endif %}>{{ code }}</option>{% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-4"><label class="form-label">Estado del plan</label>
                     <select class="form-select" name="plan_status" id="plan_status_{{ company.id }}">
-                      <option value="TRIAL"     {% if company.plan_status=='TRIAL' %}selected{% endif %}>TRIAL</option>
-                      <option value="ACTIVE"    {% if company.plan_status=='ACTIVE' %}selected{% endif %}>ACTIVE</option>
-                      <option value="SUSPENDED" {% if company.plan_status=='SUSPENDED' %}selected{% endif %}>SUSPENDED</option>
+                      {% for key, label in plan_statuses.items() %}<option value="{{ key }}" {% if company.plan_status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
                     </select>
                   </div>
                   <div class="col-md-4" id="trial_days_row_{{ company.id }}" {% if company.plan_status != 'TRIAL' %}style="display:none"{% endif %}>
                     <label class="form-label">
-                      Días de trial
+                      Días de prueba
                       {% if company.trial_expires_at %}
                         <span class="text-secondary fw-normal small">
                           — vence {{ (company.trial_expires_at|hora_ar).strftime('%d/%m/%Y') }}
@@ -231,12 +239,12 @@
                       {% endif %}
                     </label>
                     <input class="form-control" type="number" name="trial_days" min="1" max="365"
-                           placeholder="Ej: 14 — extiende desde hoy">
+                           placeholder="Ej: 14 — cuenta desde hoy">
                   </div>
                   <div class="col-md-4"><label class="form-label">Color</label><input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color }}"></div>
-                  <div class="col-md-6"><label class="form-label">Admin nombre</label><input class="form-control" name="admin_name" value="{{ admin.name if admin else '' }}"></div>
-                  <div class="col-md-6"><label class="form-label">Admin email</label><input class="form-control" name="admin_email" value="{{ admin.email if admin else '' }}"></div>
-                  <div class="col-md-6"><label class="form-label">Nueva contraseña admin</label><input class="form-control" name="admin_password" placeholder="Solo si querés cambiarla"></div>
+                  <div class="col-md-6"><label class="form-label">Dueño: nombre</label><input class="form-control" name="admin_name" value="{{ admin.name if admin else '' }}"></div>
+                  <div class="col-md-6"><label class="form-label">Dueño: email</label><input class="form-control" name="admin_email" value="{{ admin.email if admin else '' }}"></div>
+                  <div class="col-md-6"><label class="form-label">Dueño: nueva contraseña</label><input class="form-control" name="admin_password" minlength="8" placeholder="Solo si querés cambiarla"></div>
                   <div class="col-md-3 d-flex align-items-end">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" name="active" {% if company.active %}checked{% endif %} id="active_{{ company.id }}">
@@ -246,19 +254,31 @@
                   <div class="col-md-3 d-flex align-items-end">
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" name="admin_active" {% if admin and admin.active %}checked{% endif %} id="admin_active_{{ company.id }}">
-                      <label class="form-check-label" for="admin_active_{{ company.id }}">Admin activo</label>
+                      <label class="form-check-label" for="admin_active_{{ company.id }}">Dueño puede entrar</label>
                     </div>
                   </div>
                   <div class="col-12"><button class="btn btn-dark btn-sm">Guardar empresa</button></div>
                 </form>
 
+                <!-- Usuarios de la empresa -->
+                <div class="small fw-bold text-secondary text-uppercase mb-2 mt-3 pt-3 border-top" style="letter-spacing:.05em;font-size:.75rem;">Usuarios del panel</div>
+                <ul class="plat-users">
+                  {% for u in company.admins|sort(attribute='id') %}
+                  <li>
+                    <span class="fw-semibold">{{ u.name }}</span> · {{ u.email }}
+                    <span class="entity-badge ms-1 {% if u.active %}entity-badge--active{% else %}entity-badge--inactive{% endif %}">{{ 'Dueño' if u.id == admin.id else ('Admin' if u.role == 'admin' else 'Staff') }}{% if not u.active %} · inactivo{% endif %}</span>
+                  </li>
+                  {% endfor %}
+                </ul>
+                <p class="small text-secondary mb-0">Los demás usuarios los administra el dueño desde su panel (Equipo). Podés hacerlo vos con "Entrar".</p>
+
                 <!-- Registrar pago -->
                 <div class="small fw-bold text-secondary text-uppercase mb-2 mt-3 pt-3 border-top" style="letter-spacing:.05em;font-size:.75rem;">Registrar pago</div>
                 <form method="post" action="{{ url_for('platform.add_payment', company_id=company.id) }}" class="row g-3">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <div class="col-md-3"><label class="form-label">Monto</label><input class="form-control" name="amount" type="number" step="0.01"></div>
+                  <div class="col-md-3"><label class="form-label">Monto</label><input class="form-control" name="amount" type="number" step="0.01" min="0.01" required></div>
                   <div class="col-md-3"><label class="form-label">Método</label><input class="form-control" name="method" value="Transferencia"></div>
-                  <div class="col-md-3"><label class="form-label">Estado</label><select class="form-select" name="status"><option>PAID</option><option>PENDING</option></select></div>
+                  <div class="col-md-3"><label class="form-label">Estado</label><select class="form-select" name="status"><option value="PAID">Pagado</option><option value="PENDING">Pendiente</option></select></div>
                   <div class="col-md-3"><label class="form-label">Notas</label><input class="form-control" name="notes"></div>
                   <div class="col-12"><button class="btn btn-outline-dark btn-sm">Registrar pago</button></div>
                 </form>
@@ -266,12 +286,13 @@
               </div>
             </div>
             {% else %}
-            <div class="p-5 text-center text-secondary small">Todavía no hay empresas cargadas.</div>
+            <div class="p-5 text-center text-secondary small">{% if all_count %}No hay empresas que coincidan con la búsqueda.{% else %}Todavía no hay empresas cargadas.{% endif %}</div>
             {% endfor %}
           </div>
         </div>
       </div>
 
+    </div>
     </div>
   </main>
   {% with no_tabbar = true %}{% include '_admin_mobile_nav.html' %}{% endwith %}

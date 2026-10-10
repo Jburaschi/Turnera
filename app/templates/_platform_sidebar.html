@@ -1,0 +1,22 @@
+{# Barra lateral del panel de plataforma. Uso: {% with platform_active='companies' %}{% include '_platform_sidebar.html' %}{% endwith %} #}
+<aside class="admin-sidebar">
+  <div class="admin-sidebar-brand">
+    <div class="admin-sidebar-company">Turnex</div>
+    <div class="admin-sidebar-meta">Panel plataforma</div>
+  </div>
+  <nav class="admin-nav">
+    <span class="admin-nav-section">Gestión</span>
+    <a href="{{ url_for('platform.dashboard') }}" class="admin-nav-item {% if platform_active == 'companies' %}active{% endif %}">
+      <span class="admin-nav-icon">🏢</span> Empresas
+    </a>
+    <a href="{{ url_for('platform.account') }}" class="admin-nav-item {% if platform_active == 'account' %}active{% endif %}">
+      <span class="admin-nav-icon">👤</span> Mi cuenta y usuarios
+    </a>
+    <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.08);margin-left:.75rem;margin-right:.75rem;">
+      <div class="small mb-2" style="color:rgba(255,255,255,.55);font-size:.75rem;">{{ current_user.name }}<br>{{ current_user.email }}</div>
+      <a href="{{ url_for('auth.logout') }}" class="admin-nav-item" style="font-size:.82rem;">
+         Cerrar sesión
+      </a>
+    </div>
+  </nav>
+</aside>

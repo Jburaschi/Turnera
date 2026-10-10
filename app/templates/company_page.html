@@ -85,84 +85,83 @@
   ═══════════════════════════════════ -->
   <section class="cp-contact" id="contacto">
     <div class="container">
-      <div class="cp-contact-card">
+      {% set show_addr  = company.config.show_address_public and company.address %}
+      {% set show_phone = company.config.show_phone_public and company.phone %}
+      {% set show_email = company.config.show_email_public and company.email %}
+      {% set show_social = has_branding and (company.instagram_url|safe_url or company.facebook_url|safe_url) %}
+      {% set show_contact = show_phone or show_email or show_social %}
+      {% set wa = (company.phone|whatsapp) if show_phone else None %}
+      {% set n_blocks = [show_addr, hours_groups, show_contact]|select|list|length %}
+      {% if n_blocks %}
+      <div class="cp-info cp-info--{{ n_blocks }}">
 
-        <div class="cp-contact-groups">
-          {% if company.config.show_address_public %}
-          <div class="cp-contact-group">
-            <span class="cp-contact-group-icon">{{ ic.icon('pin', 20) }}</span>
-            <div>
-              <span class="cp-contact-group-label">DIRECCIÓN</span>
-              {% if company.address %}
-              <strong class="cp-contact-group-value">{{ company.address }}</strong>
-              {% else %}
-              <strong class="cp-contact-group-value cp-contact-group-value--empty">Sin dirección cargada</strong>
-              {% endif %}
-            </div>
+        {% if show_addr %}
+        <div class="cp-info-block">
+          <span class="cp-info-icon" aria-hidden="true">{{ ic.icon('pin', 24) }}</span>
+          <div class="cp-info-body">
+            <span class="cp-info-label">Dirección</span>
+            <strong class="cp-info-main">{{ company.address_street }}</strong>
+            {% if company.address_area %}<span class="cp-info-sub">{{ company.address_area }}</span>{% endif %}
+            <a class="cp-info-link" href="https://www.google.com/maps/search/?api=1&query={{ company.maps_query|urlencode }}" target="_blank" rel="noopener">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
+              <span>Cómo llegar</span>
+              <svg class="cp-info-link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
           </div>
-          {% endif %}
-          <div class="cp-contact-group">
-            <span class="cp-contact-group-icon">{{ ic.icon('clock', 20) }}</span>
-            <div>
-              <span class="cp-contact-group-label">HORARIOS</span>
-              {% if hours_summary %}
-              <strong class="cp-contact-group-value cp-contact-group-value--sm">{{ hours_summary }}</strong>
-              {% else %}
-              <strong class="cp-contact-group-value cp-contact-group-value--sm cp-contact-group-value--empty">Sin horario cargado</strong>
-              {% endif %}
-            </div>
-          </div>
-          {% if company.config.show_phone_public %}
-          <div class="cp-contact-group">
-            <span class="cp-contact-group-icon">{{ ic.icon('phone-off', 20) }}</span>
-            <div>
-              <span class="cp-contact-group-label">TELÉFONO</span>
-              {% if company.phone %}
-              <strong class="cp-contact-group-value">{{ company.phone }}</strong>
-              {% else %}
-              <strong class="cp-contact-group-value cp-contact-group-value--empty">Sin teléfono cargado</strong>
-              {% endif %}
-            </div>
-          </div>
-          {% endif %}
-          {% if company.config.show_email_public %}
-          <div class="cp-contact-group">
-            <span class="cp-contact-group-icon">{{ ic.icon('mail', 20) }}</span>
-            <div>
-              <span class="cp-contact-group-label">EMAIL</span>
-              {% if company.email %}
-              <strong class="cp-contact-group-value">{{ company.email }}</strong>
-              {% else %}
-              <strong class="cp-contact-group-value cp-contact-group-value--empty">Sin email cargado</strong>
-              {% endif %}
-            </div>
-          </div>
-          {% endif %}
-          {% if has_branding and (company.instagram_url|safe_url or company.facebook_url|safe_url) %}
-          <div class="cp-social-row cp-social-row--contact cp-contact-social-inline">
-            {% if company.instagram_url|safe_url %}<a href="{{ company.instagram_url|safe_url }}" target="_blank" rel="noopener" class="cp-social-btn" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>{% endif %}
-            {% if company.facebook_url|safe_url %}<a href="{{ company.facebook_url|safe_url }}" target="_blank" rel="noopener" class="cp-social-btn" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 4h-2a4 4 0 00-4 4v3H7v4h2v7h4v-7h3l1-4h-4V8a1 1 0 011-1h3V4z"/></svg></a>{% endif %}
-          </div>
-          {% endif %}
         </div>
+        {% endif %}
 
-        {% if (company.config.show_address_public and company.address) or (company.config.show_phone_public and company.phone) %}
-        <div class="cp-contact-col cp-contact-actions">
-          {% if company.config.show_phone_public and company.phone %}
-          <a href="https://wa.me/{{ company.phone|replace(' ','')|replace('-','')|replace('(','')|replace(')','')|replace('+','') }}" target="_blank" rel="noopener" class="cp-btn-whatsapp">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15L2 22l5.2-1.4A10 10 0 1012 2zm5.7 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.9 2.1c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.6-.7c.2-.3.4-.2.6-.1l1.9.9c.2.1.4.2.4.4.1.2.1.9-.1 1.6z"/></svg>
-            WhatsApp
-          </a>
-          {% endif %}
-          {% if company.config.show_address_public and company.address %}
-          <a href="https://www.google.com/maps/search/?api=1&query={{ company.address|urlencode }}" target="_blank" rel="noopener" class="cp-btn-outline">
-            {{ ic.icon('pin', 15) }} Cómo llegar
-          </a>
-          {% endif %}
+        {% if hours_groups %}
+        <div class="cp-info-block">
+          <span class="cp-info-icon" aria-hidden="true">{{ ic.icon('clock', 24) }}</span>
+          <div class="cp-info-body">
+            <span class="cp-info-label">Horarios</span>
+            <dl class="cp-hours">
+              {% for label, rng in hours_groups %}
+              <div class="cp-hours-row"><dt>{{ label }}</dt><dd><span class="cp-hours-pill">{{ rng }}</span></dd></div>
+              {% endfor %}
+            </dl>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if show_contact %}
+        <div class="cp-info-block">
+          <span class="cp-info-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+          </span>
+          <div class="cp-info-body">
+            <span class="cp-info-label">Contacto</span>
+            {% if show_phone %}
+              {% if company.phone|tel_href %}<a class="cp-info-main cp-info-main--link" href="tel:{{ company.phone|tel_href }}">{{ company.phone }}</a>
+              {% else %}<strong class="cp-info-main">{{ company.phone }}</strong>{% endif %}
+              <span class="cp-info-sub">{{ 'Escribinos por WhatsApp o llamanos.' if wa else 'Llamanos para consultas.' }}</span>
+            {% elif show_email %}
+              <a class="cp-info-main cp-info-main--link cp-info-main--email" href="mailto:{{ company.email }}">{{ company.email }}</a>
+            {% endif %}
+            {% if show_email and show_phone %}
+              <a class="cp-info-mail" href="mailto:{{ company.email }}">{{ ic.icon('mail', 15) }} {{ company.email }}</a>
+            {% endif %}
+            {% if wa %}
+            <a class="cp-info-wa" href="https://wa.me/{{ wa }}?text={{ ('Hola ' ~ company.name ~ ', quería hacer una consulta.')|urlencode }}" target="_blank" rel="noopener">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15L2 22l5.2-1.4A10 10 0 1012 2zm0 1.8a8.2 8.2 0 11-4.2 15.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 0112 3.8zm4.7 11.4c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.6-.7c.2-.3.4-.2.6-.1l1.7.8c.2.1.4.2.4.4.1.2.1.8-.3 1.6z"/></svg>
+              WhatsApp
+            </a>
+            {% elif show_phone and company.phone|tel_href %}
+            <a class="cp-info-wa cp-info-wa--call" href="tel:{{ company.phone|tel_href }}">Llamar</a>
+            {% endif %}
+            {% if show_social %}
+            <div class="cp-info-social">
+              {% if company.instagram_url|safe_url %}<a href="{{ company.instagram_url|safe_url }}" target="_blank" rel="noopener" class="cp-social-btn" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>{% endif %}
+              {% if company.facebook_url|safe_url %}<a href="{{ company.facebook_url|safe_url }}" target="_blank" rel="noopener" class="cp-social-btn" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 4h-2a4 4 0 00-4 4v3H7v4h2v7h4v-7h3l1-4h-4V8a1 1 0 011-1h3V4z"/></svg></a>{% endif %}
+            </div>
+            {% endif %}
+          </div>
         </div>
         {% endif %}
 
       </div>
+      {% endif %}
     </div>
   </section>
 
@@ -306,7 +305,7 @@
       </div>
       <div>
         <div class="cp-footer-title">Contacto</div>
-        {% if company.config.show_address_public and company.address %}<div class="cp-footer-line">{{ company.address }}</div>{% endif %}
+        {% if company.config.show_address_public and company.address %}<div class="cp-footer-line">{{ company.full_address }}</div>{% endif %}
         {% if company.config.show_phone_public and company.phone %}<div class="cp-footer-line">{{ company.phone }}</div>{% endif %}
         {% if company.config.show_email_public and company.email %}<div class="cp-footer-line">{{ company.email }}</div>{% endif %}
       </div>

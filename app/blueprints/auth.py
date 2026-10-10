@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user
 from ..extensions import db, limiter
 from ..models import Company, AdminUser, Customer, PlatformUser
@@ -105,6 +105,7 @@ def platform_login():
 @auth_bp.route('/logout')
 def logout():
     was_platform = current_user.is_authenticated and getattr(current_user, 'is_platform_admin', False)
+    session.pop('impersonator_platform_id', None)
     logout_user()
     if was_platform:
         return redirect(url_for('auth.platform_login'))

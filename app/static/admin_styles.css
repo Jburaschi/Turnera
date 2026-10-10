@@ -693,3 +693,36 @@
 .plan-compare .is-current { background: #eef1ff; }
 .plan-compare .yes { color: #16a34a; font-weight: 700; }
 .plan-compare .no { color: #a1a1aa; }
+
+/* ── Panel de plataforma: buscador, filtros y uso ───────────────────────── */
+.plat-filters { padding: .75rem 1.05rem; border-bottom: 1px solid #f1f1f3; display: flex; flex-direction: column; gap: .6rem; }
+.plat-search { display: flex; gap: .4rem; }
+.plat-search .form-control { flex: 1 1 auto; min-width: 0; }
+.plat-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.plat-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 999px; border: 1px solid #e4e4e7; background: #fff; color: #3f3f46; font-size: .76rem; font-weight: 600; text-decoration: none; }
+.plat-chip span { color: #a1a1aa; font-weight: 700; }
+.plat-chip:hover { background: #f4f4f5; color: #18181b; }
+.plat-chip.is-active { background: #18181b; border-color: #18181b; color: #fff; }
+.plat-chip.is-active span { color: rgba(255,255,255,.7); }
+.plat-chip.is-warn:not(.is-active) { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+.plat-usage { color: #71717a; margin-top: .1rem; }
+.plat-badge-danger { background: #fef2f2 !important; color: #b91c1c !important; }
+.plat-badge-warn { background: #fffbeb !important; color: #92400e !important; }
+.plat-users { list-style: none; padding: 0; margin: 0 0 .5rem; font-size: .84rem; }
+.plat-users li { padding: .3rem 0; border-bottom: 1px dashed #f1f1f3; }
+.plat-row .entity-actions form { margin: 0; }
+
+/* ── Aviso "estás dentro del panel de un negocio" (Entrar como) ─────────── */
+.impersonation-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 2000;
+  display: flex; align-items: center; gap: .75rem; padding: .5rem .6rem .5rem 1rem; border-radius: 999px;
+  background: #18181b; color: #fff; font-size: .82rem; box-shadow: 0 8px 24px rgba(0,0,0,.25); max-width: calc(100vw - 24px); }
+.impersonation-bar strong { font-weight: 700; }
+.impersonation-bar form { margin: 0; flex: 0 0 auto; }
+.impersonation-bar button { border: 0; border-radius: 999px; background: #fbbf24; color: #18181b; font-weight: 700; font-size: .78rem; padding: .35rem .8rem; }
+
+/* ── Campos de dirección (alta guiada, perfil y plataforma) ─────────────── */
+.addr-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: .75rem 1rem; }
+.addr-grid .addr-f { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
+.addr-grid .addr-f .form-label { margin-bottom: .35rem; }
+.addr-grid .addr-f:nth-child(3), .addr-grid .addr-f:nth-child(4) { grid-column: span 1; }
+.addr-grid .addr-error { grid-column: 1 / -1; color: #b91c1c; font-size: .82rem; margin-top: -.25rem; }

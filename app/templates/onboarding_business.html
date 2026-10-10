@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Información del negocio · Turnex{% endblock %}
 {% block topnav %}{% include '_wizard_header.html' %}{% endblock %}
+{% import '_address_fields.html' as addr %}
 {% block content %}
 <div class="ob-wizard">
   <div class="ob-wiz-container">
@@ -31,15 +32,14 @@
           {% if errors.category %}<div class="invalid-feedback">{{ errors.category }}</div>{% endif %}
         </div>
 
-        <div class="ob-field-row">
-          <div class="field">
-            <label class="form-label">Teléfono</label>
-            <input class="form-control" name="phone" value="{{ form.get('phone','') }}" placeholder="11 1234-5678">
-          </div>
-          <div class="field">
-            <label class="form-label">Dirección <span class="text-muted fw-normal text-sm">— opcional</span></label>
-            <input class="form-control" name="address" value="{{ form.get('address','') }}" placeholder="Av. Corrientes 1234, CABA">
-          </div>
+        <div class="field">
+          <label class="form-label">Teléfono</label>
+          <input class="form-control" name="phone" value="{{ form.get('phone','') }}" placeholder="11 1234-5678">
+        </div>
+
+        <div class="field">
+          <div class="ob-addr-title">Dirección <span class="text-muted fw-normal text-sm">Opcional. Si atendés en un local, cargala completa para que tus clientes te encuentren en Google Maps.</span></div>
+          {{ addr.fields(form, errors.address) }}
         </div>
 
         <div class="ob-field-row">

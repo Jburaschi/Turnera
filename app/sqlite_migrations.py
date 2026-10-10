@@ -280,3 +280,37 @@ def ensure_booking_indexes(engine) -> None:
         print('⚠ No se pudo crear el índice uq_appointment_employee_start_booked '
               '(¿hay turnos BOOKED duplicados para el mismo profesional y hora?): '
               f'{exc}')
+
+
+# Columnas agregadas después de que ya había bases en uso (SQLite o Postgres).
+# `db.create_all()` no agrega columnas a tablas que ya existen; esto sí, sin
+# tocar los datos. Solo agrega columnas opcionales (NULL), nunca borra.
+NEW_NULLABLE_COLUMNS = {
+    'company': [
+        ('address_unit', 'VARCHAR(60)'),
+        ('locality', 'VARCHAR(120)'),
+        ('partido', 'VARCHAR(120)'),
+        ('province', 'VARCHAR(60)'),
+        ('postal_code', 'VARCHAR(12)'),
+    ],
+}
+
+
+def ensure_new_columns(engine) -> None:
+    from sqlalchemy import inspect
+    insp = inspect(engine)
+    tables = set(insp.get_table_names())
+    for table, cols in NEW_NULLABLE_COLUMNS.items():
+        if table not in tables:
+            continue
+        existing = {c['name'] for c in insp.get_columns(table)}
+        for name, ddl in cols:
+            if name in existing:
+                continue
+            try:
+                with engine.begin() as conn:
+                    if_not = 'IF NOT EXISTS ' if engine.dialect.name == 'postgresql' else ''
+                    conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {if_not}{name} {ddl}'))
+                print(f'✓ Columna agregada: {table}.{name}')
+            except Exception as e:  # otro proceso pudo haberla agregado al mismo tiempo
+                print(f'⚠ No se pudo agregar la columna {table}.{name}: {e}')

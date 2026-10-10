@@ -9,6 +9,10 @@ from __future__ import annotations
 from datetime import datetime
 
 PLAN_CODES = ('BASE', 'PRO', 'PREMIUM')
+TRIAL_DAYS = 30
+
+# Estados posibles del plan de un negocio (valor guardado -> texto en pantalla)
+PLAN_STATUSES = {'TRIAL': 'Prueba', 'ACTIVE': 'Activo', 'SUSPENDED': 'Suspendido'}
 
 # ── Funciones que se habilitan por plan ─────────────────────────────────────
 GOOGLE_CALENDAR = 'google_calendar'   # sincronización con Google Calendar
@@ -89,10 +93,10 @@ def plan_bullets(code: str) -> list[str]:
         return base + ['Página pública y reservas online', 'Agenda, clientes y bloqueos',
                        'Mails de confirmación y recordatorios']
     if code == 'PRO':
-        return base + ['Todo lo del plan BASE', 'Google Calendar', 'Penalidad por cancelación tardía',
+        return ['Todo lo del plan BASE'] + base + ['Google Calendar', 'Penalidad por cancelación tardía',
                        'Registro de pagos de turnos', 'Portada, color y redes en tu página',
                        'Exportar la agenda a Excel']
-    return base + ['Todo lo del plan PRO', 'Historial de cambios de cada turno', 'Soporte prioritario']
+    return ['Todo lo del plan PRO'] + base + ['Historial de cambios de cada turno', 'Soporte prioritario']
 
 
 # Tipos de pedido desde "Mi plan"

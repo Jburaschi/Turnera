@@ -63,7 +63,12 @@ class Company(db.Model):
     logo_url = db.Column(db.String(500), nullable=True)
     cover_photo_url = db.Column(db.String(500), nullable=True)
     description = db.Column(db.Text, nullable=True)
-    address = db.Column(db.String(255), nullable=True)
+    address = db.Column(db.String(255), nullable=True)        # calle y número
+    address_unit = db.Column(db.String(60), nullable=True)     # piso / depto (no se manda a Maps)
+    locality = db.Column(db.String(120), nullable=True)        # localidad o barrio
+    partido = db.Column(db.String(120), nullable=True)         # partido / departamento
+    province = db.Column(db.String(60), nullable=True)
+    postal_code = db.Column(db.String(12), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(120), nullable=True)
     timezone = db.Column(db.String(80), default='America/Argentina/Buenos_Aires', nullable=False)
@@ -85,6 +90,30 @@ class Company(db.Model):
     active = db.Column(db.Boolean, default=True, nullable=False)
     brand_color = db.Column(db.String(20), default='#198754', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    @property
+    def full_address(self) -> str:
+        """Dirección para mostrar: 'Av. San Martín 1234, 2º B, Santos Lugares, Tres de Febrero, Buenos Aires'."""
+        from .utils import format_address
+        return format_address(self, with_unit=True)
+
+    @property
+    def address_street(self) -> str:
+        """Primera línea: calle y número, con piso/depto."""
+        return ', '.join(p for p in ((self.address or '').strip(), (self.address_unit or '').strip()) if p)
+
+    @property
+    def address_area(self) -> str:
+        """Segunda línea: localidad, partido y provincia."""
+        from .utils import format_address
+        return format_address({'locality': self.locality, 'partido': self.partido,
+                               'province': self.province})
+
+    @property
+    def maps_query(self) -> str:
+        """Texto que se busca en Google Maps (sin piso/depto)."""
+        from .utils import format_address
+        return format_address(self, with_unit=False, with_postal=True)
 
     config = db.relationship('CompanyConfig', uselist=False, back_populates='company', cascade='all, delete-orphan')
     payments = db.relationship('SubscriptionPayment', back_populates='company', cascade='all, delete-orphan')

@@ -11,7 +11,7 @@ from ..services.appointment_service import cancel_appointment_logic, customer_ch
 from ..services.google_calendar import ensure_google_event_for_appointment, delete_google_event_for_appointment
 from ..services.email_service import send_booking_confirmed, send_booking_canceled, send_booking_rescheduled
 from ..services import audit as audit_log
-from ..timeutils import TZ_LABEL, today_ar
+from ..timeutils import TZ_LABEL, parse_iso_date, today_ar
 from ..utils import format_ars
 
 
@@ -74,27 +74,32 @@ def directory():
 @public_bp.route('/<slug>')
 def company_page(slug):
     company = get_company_or_404(slug)
-    hours_summary = _build_hours_summary(company)
-    return render_template('company_page.html', company=company, hours_summary=hours_summary)
+    hours_groups = _build_hours_groups(company)
+    hours_summary = ' · '.join(f'{label} {rng}' for label, rng in hours_groups) or None
+    return render_template('company_page.html', company=company, hours_summary=hours_summary,
+                           hours_groups=hours_groups)
 
 
 WEEKDAY_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 
-def _build_hours_summary(company):
-    """Agrupa CompanyHours en líneas legibles tipo 'Lun a Vie 09:00 - 20:00'."""
+WEEKDAY_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábados', 'Domingos']
+
+
+def _build_hours_groups(company):
+    """Agrupa CompanyHours en filas [('Lun a Vie', '09:00 - 20:00'), ('Sábados', '09:00 - 13:00')].
+    Días seguidos con el mismo horario van juntos. Si un día tiene varias
+    franjas (mañana y tarde) se muestran todas: '09:00 - 13:00 / 16:00 - 20:00'."""
     rows = CompanyHours.query.filter_by(company_id=company.id).order_by(CompanyHours.weekday, CompanyHours.start_time).all()
     if not rows:
-        return None
+        return []
     by_day = {}
     for r in rows:
         by_day.setdefault(r.weekday, []).append(r)
-
-    # Agrupar días consecutivos con el mismo horario (usa la primera franja de cada día)
-    day_ranges = {}
-    for day, entries in by_day.items():
-        day_ranges[day] = f"{entries[0].start_time.strftime('%H:%M')} - {entries[-1].end_time.strftime('%H:%M')}"
-
+    day_ranges = {
+        day: ' / '.join(f"{e.start_time.strftime('%H:%M')} - {e.end_time.strftime('%H:%M')}" for e in entries)
+        for day, entries in by_day.items()
+    }
     groups = []
     days_sorted = sorted(day_ranges.keys())
     i = 0
@@ -104,10 +109,15 @@ def _build_hours_summary(company):
         while j + 1 < len(days_sorted) and days_sorted[j+1] == days_sorted[j] + 1 and day_ranges[days_sorted[j+1]] == day_ranges[start_day]:
             j += 1
         end_day = days_sorted[j]
-        label = WEEKDAY_SHORT[start_day] if start_day == end_day else f"{WEEKDAY_SHORT[start_day]} a {WEEKDAY_SHORT[end_day]}"
-        groups.append(f"{label} {day_ranges[start_day]}")
+        if start_day == end_day:
+            label = WEEKDAY_FULL[start_day]
+        elif end_day == start_day + 1:
+            label = f"{WEEKDAY_SHORT[start_day]} y {WEEKDAY_SHORT[end_day]}"
+        else:
+            label = f"{WEEKDAY_SHORT[start_day]} a {WEEKDAY_SHORT[end_day]}"
+        groups.append((label, day_ranges[start_day]))
         i = j + 1
-    return ' · '.join(groups)
+    return groups
 
 
 @public_bp.route('/<slug>/booking')
@@ -162,6 +172,8 @@ def api_month_availability(slug):
     employee_id = request.args.get('employee_id', type=int)
     if not service_id or not year or not month:
         return jsonify({'error': 'Parametros faltantes'}), 400
+    if not (1 <= month <= 12 and 2000 <= year <= 2100):
+        return jsonify({'error': 'Fecha invalida'}), 400
     service = Service.query.filter_by(company_id=company.id, id=service_id, active=True).first_or_404()
     return jsonify(get_month_summary(company, service, year, month, employee_id))
 
@@ -176,7 +188,9 @@ def api_day_availability(slug):
     if not service_id or not date_str:
         return jsonify({'error': 'Parametros faltantes'}), 400
     service = Service.query.filter_by(company_id=company.id, id=service_id, active=True).first_or_404()
-    day     = datetime.strptime(date_str, '%Y-%m-%d').date()
+    day     = parse_iso_date(date_str)
+    if day is None:
+        return jsonify({'error': 'Fecha invalida'}), 400
     slots   = get_availability_for_day(company, service, day, employee_id, exclude_session_key=_session_hold_key())
     return jsonify([
         {'start': s['start'].isoformat(), 'end': s['end'].isoformat(),

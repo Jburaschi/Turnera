@@ -84,17 +84,25 @@
   .cp-section-sub { font-size: 14px; }
   .cp-eyebrow { font-size: 11px; padding: 4px 8px; }
 
-  /* Tarjeta de contacto: más compacta */
-  .cp-contact-card { padding: 16px; border-radius: 14px; }
-  .cp-contact-groups { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .cp-contact-group { gap: 12px; }
-  .cp-contact-group-icon { width: 36px; height: 36px; flex-basis: 36px; border-radius: 10px; }
-  .cp-contact-group-label { font-size: 11px; }
-  .cp-contact-group-value { font-size: 14px; font-weight: 600; }
-  .cp-contact-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; min-width: 0; margin-top: 4px; }
-  .cp-contact-actions .cp-btn-outline, .cp-contact-actions .cp-btn-whatsapp {
-    justify-content: center; min-width: 0; min-height: 42px; padding: 0 10px; font-size: 14px; border-radius: 10px;
+  /* Información del negocio: bloques apilados, botones a lo ancho */
+  .cp-info, .cp-info--2, .cp-info--3 { grid-template-columns: minmax(0, 1fr); margin-top: -1.75rem; padding: 0 18px; border-radius: 18px; }
+  .cp-info-block { padding: 18px 0; gap: 14px; }
+  .cp-info-block + .cp-info-block { border-left: 0; border-top: 1px solid var(--cpi-line); }
+  .cp-info-icon { flex-basis: 44px; width: 44px; height: 44px; border-radius: 12px; }
+  .cp-info-icon svg { width: 21px; height: 21px; }
+  .cp-info-label { font-size: 11px; margin: 2px 0 6px; }
+  .cp-info-main { font-size: 18px; }
+  .cp-info-main--email { font-size: 15px; }
+  .cp-info-sub { font-size: 14px; margin-top: 3px; }
+  .cp-info-link {
+    align-self: stretch; justify-content: center; margin-top: 12px; min-height: 44px; padding: 0 12px;
+    border: 1.5px solid color-mix(in srgb, var(--brand) 35%, #fff); border-radius: 12px; font-size: 15px;
   }
+  .cp-hours-row { padding: 9px 0; }
+  .cp-hours-row dt { font-size: 15px; }
+  .cp-hours-pill { font-size: 14px; padding: 6px 10px; }
+  .cp-info-wa { min-height: 48px; font-size: 16px; border-radius: 12px; margin-top: 12px; }
+  .cp-info-mail { font-size: 14px; }
 
   /* Servicios: filas compactas (miniatura · nombre, duración y precio · botón) */
   .cp-services-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
@@ -444,4 +452,22 @@
   .plan-compare th, .plan-compare td { padding: .45rem .3rem; line-height: 1.25; }
   .plan-compare th:first-child, .plan-compare td:first-child { width: 44%; padding-left: 0; }
   .plan-compare thead th { font-size: .7rem; }
+}
+
+/* Plataforma y aviso de "Entrar como" en el celular */
+@media (max-width: 767.98px) {
+  .plat-row { flex-wrap: wrap; }
+  .plat-row .entity-info { flex: 1 1 calc(100% - 60px); }
+  .plat-row .entity-actions { width: 100%; justify-content: flex-end; }
+  .impersonation-bar { bottom: 76px; font-size: .76rem; gap: .5rem; padding: .4rem .45rem .4rem .8rem; }
+  .impersonation-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+}
+@media (max-width: 767.98px) {
+  .plat-col-list { order: 1; }
+  .plat-col-form { order: 2; }
+}
+
+/* Dirección en una sola columna en el celular */
+@media (max-width: 767.98px) {
+  .addr-grid { grid-template-columns: minmax(0, 1fr); }
 }

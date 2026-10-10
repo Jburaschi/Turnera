@@ -14,7 +14,7 @@ from .blueprints.media import media_bp
 from .seed import seed_if_empty
 from .timeutils import utc_to_ar
 from .utils import css_color, format_ars, dia_corto, mes_corto, safe_url
-from .sqlite_migrations import run_sqlite_migrations, ensure_booking_indexes
+from .sqlite_migrations import run_sqlite_migrations, ensure_booking_indexes, ensure_new_columns
 
 
 def create_app():
@@ -145,6 +145,10 @@ def create_app():
 
     # ── Planes: funciones y límites disponibles en todas las plantillas ──────
     from . import plans as plans_mod
+    from .utils import PROVINCIAS_AR, tel_href, whatsapp_number
+    app.jinja_env.filters['whatsapp'] = whatsapp_number
+    app.jinja_env.filters['tel_href'] = tel_href
+    app.jinja_env.globals['PROVINCIAS_AR'] = PROVINCIAS_AR
     app.jinja_env.globals.update(
         plan_has=plans_mod.plan_has, plan_limit=plans_mod.plan_limit, plan_code=plans_mod.plan_code,
         plan_bullets=plans_mod.plan_bullets, minimum_plan_for=plans_mod.minimum_plan_for,
@@ -199,6 +203,7 @@ def create_app():
             run_sqlite_migrations(db.engine)
         except Exception as e:
             print(f'⚠ Error corriendo migraciones: {e}')
+        ensure_new_columns(db.engine)
         ensure_booking_indexes(db.engine)
         seed_if_empty()
 

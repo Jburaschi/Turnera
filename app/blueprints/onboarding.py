@@ -26,9 +26,9 @@ from ..extensions import db, limiter
 from ..models import AdminUser, Appointment, Company, CompanyConfig, Service, CompanyHours, Employee, EmployeeSchedule, UploadedImage
 from ..services.email_service import send_welcome_admin
 from ..timeutils import TZ_NAME
-from ..plans import plan_code, plan_limit
+from ..plans import TRIAL_DAYS, plan_code, plan_limit
+from ..utils import ADDRESS_FIELDS, apply_address, is_reserved_slug, read_address_form, slugify
 
-TRIAL_DAYS = 30
 PLANES_REGISTRO = ('BASE', 'PRO', 'PREMIUM')
 LOGO_EXTS  = {'png', 'jpg', 'jpeg'}
 LOGO_MAX_BYTES = 2 * 1024 * 1024
@@ -72,16 +72,13 @@ def guard_onboarding():
 
 # ── helpers ────────────────────────────────────────────────────────────
 def _slugify(text: str) -> str:
-    s = unicodedata.normalize('NFD', text.lower().strip())
-    s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
-    s = re.sub(r'[^a-z0-9\s-]', '', s)
-    s = re.sub(r'[\s]+', '-', s)
-    s = re.sub(r'-+', '-', s)
-    return s[:50].strip('-')
+    return slugify(text)
 
 
 def _unique_slug(base: str, company_id=None) -> str:
     base = base or 'negocio'
+    if is_reserved_slug(base):
+        base = f'{base}-turnos'
     slug = base
     i = 2
     while True:
@@ -234,7 +231,7 @@ def business():
         'name': '' if company.name == 'Mi negocio' else company.name,
         'category': company.category or '',
         'phone': company.phone or '',
-        'address': company.address or '',
+        **{f: getattr(company, f) or '' for f in ADDRESS_FIELDS},
     }
 
     if request.method == 'POST':
@@ -242,12 +239,14 @@ def business():
         name     = form.get('name', '').strip()
         category = form.get('category', '').strip()
         phone    = form.get('phone', '').strip()
-        address  = form.get('address', '').strip()
+        addr_values, addr_error = read_address_form(form)
 
         if not name:
             errors['name'] = 'El nombre del negocio es obligatorio.'
         if not category:
             errors['category'] = 'Elegí una categoría.'
+        if addr_error:
+            errors['address'] = addr_error
 
         if not errors:
             logo_url = _save_logo(request.files.get('logo'), company.id)
@@ -257,7 +256,7 @@ def business():
             company.name = name
             company.category = category
             company.phone = phone or None
-            company.address = address or None
+            apply_address(company, addr_values)
             company.timezone = TZ_NAME  # la app funciona solo en Argentina
             if logo_url:
                 company.logo_url = logo_url
@@ -439,7 +438,8 @@ def hours():
                     try:
                         sh, sm = (int(x) for x in s.split(':'))
                         eh, em_ = (int(x) for x in e.split(':'))
-                    except (ValueError, IndexError):
+                        time(sh, sm); time(eh, em_)   # valida rangos (ej. 25:00)
+                    except (ValueError, IndexError, TypeError):
                         errors['hours'] = 'Revisá los horarios ingresados.'
                         continue
                     limited_ids = set()

@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block title %}Mi cuenta · Plataforma Turnex{% endblock %}
+{% block topnav %}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .public-navbar { display: none !important; }
+  body { background: #f1f5f9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  {% with platform_active = 'account' %}{% include '_platform_sidebar.html' %}{% endwith %}
+
+  <main class="admin-main">
+    <div class="admin-topbar m-only">
+      <div class="admin-topbar-brand">
+        <button type="button" class="admin-m-menu" data-admin-nav-toggle aria-label="Abrir menú" aria-expanded="false">{{ ic.icon('menu', 20) }}</button>
+        <div style="min-width:0;"><div class="admin-topbar-name">Mi cuenta</div></div>
+      </div>
+    </div>
+
+    <div class="admin-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show mb-3 rounded-3" role="alert">
+          {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="admin-page-header">
+      <div>
+        <h1 class="admin-page-title">Mi cuenta y usuarios</h1>
+        <p class="admin-page-sub">Tu contraseña y las personas que pueden entrar al panel de plataforma.</p>
+      </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-5">
+        <div class="admin-card">
+          <div class="admin-card-header"><h2 class="admin-card-title">Cambiar mi contraseña</h2></div>
+          <div class="admin-card-body">
+            <form method="post" action="{{ url_for('platform.change_password') }}" class="row g-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="col-12"><label class="form-label">Contraseña actual</label><input class="form-control" type="password" name="current_password" autocomplete="current-password" required></div>
+              <div class="col-12"><label class="form-label">Nueva contraseña</label><input class="form-control" type="password" name="new_password" minlength="{{ min_password }}" autocomplete="new-password" placeholder="Mínimo {{ min_password }} caracteres" required></div>
+              <div class="col-12"><label class="form-label">Repetir nueva contraseña</label><input class="form-control" type="password" name="confirm_password" minlength="{{ min_password }}" autocomplete="new-password" required></div>
+              <div class="col-12"><button class="btn btn-dark">Guardar contraseña</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="admin-card mb-4">
+          <div class="admin-card-header">
+            <h2 class="admin-card-title">Usuarios de plataforma</h2>
+            <span class="entity-badge entity-badge--inactive">{{ users|length }}</span>
+          </div>
+          <div class="admin-card-body--compact">
+            {% for u in users %}
+            <div class="entity-row">
+              <div class="entity-avatar" style="background:#374151;">{{ u.name[0]|upper }}</div>
+              <div class="entity-info">
+                <div class="entity-name">
+                  {{ u.name }}
+                  {% if u.id == current_user.id %}<span class="entity-badge entity-badge--active ms-1">Vos</span>{% endif %}
+                  {% if not u.active %}<span class="entity-badge entity-badge--inactive ms-1">Inactivo</span>{% endif %}
+                </div>
+                <div class="entity-meta">{{ u.email }} · desde {{ (u.created_at|hora_ar).strftime('%d/%m/%Y') }}</div>
+              </div>
+              {% if u.id != current_user.id %}
+              <div class="entity-actions">
+                <form method="post" action="{{ url_for('platform.toggle_platform_user', user_id=u.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-outline-secondary btn-sm">{{ 'Desactivar' if u.active else 'Activar' }}</button>
+                </form>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-header"><h2 class="admin-card-title">Agregar usuario de plataforma</h2></div>
+          <div class="admin-card-body">
+            <p class="small text-secondary">Tiene los mismos permisos que vos: ve y edita todas las empresas. Dáselo solo a gente de confianza.</p>
+            <form method="post" action="{{ url_for('platform.create_platform_user') }}" class="row g-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" required></div>
+              <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" type="email" name="email" required></div>
+              <div class="col-md-6"><label class="form-label">Contraseña inicial</label><input class="form-control" name="password" minlength="{{ min_password }}" placeholder="Mínimo {{ min_password }} caracteres" required></div>
+              <div class="col-md-6 d-flex align-items-end"><button class="btn btn-dark w-100">Agregar usuario</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </main>
+  {% with no_tabbar = true %}{% include '_admin_mobile_nav.html' %}{% endwith %}
+</div>
+{% endblock %}

@@ -19,8 +19,8 @@ from sqlalchemy.exc import IntegrityError
 from ..services.availability import get_availability_for_day, has_booking_conflict, lock_employee_for_booking
 from ..services.email_service import send_booking_canceled, send_booking_confirmed, send_booking_rescheduled, send_plan_request, send_trial_warning
 from ..services import audit as audit_log
-from ..timeutils import now_ar, today_ar
-from ..utils import clean_public_url
+from ..timeutils import now_ar, parse_iso_date, today_ar
+from ..utils import apply_address, clean_public_url, read_address_form
 from ..services.google_calendar import (
     GOOGLE_SCOPES, build_redirect_uri, company_has_google_plan,
     delete_google_event_for_appointment, ensure_google_event_for_appointment, get_google_oauth_config,
@@ -166,12 +166,18 @@ def get_owned_company_or_404(slug):
 
 def parse_time_or_none(raw):
     raw = (raw or '').strip()
-    return datetime.strptime(raw, '%H:%M').time() if raw else None
+    try:
+        return datetime.strptime(raw, '%H:%M').time() if raw else None
+    except ValueError:
+        return None
 
 def parse_datetime_or_none(raw_date, raw_time):
     if not raw_date or not raw_time:
         return None
-    return datetime.strptime(f'{raw_date} {raw_time}', '%Y-%m-%d %H:%M')
+    try:
+        return datetime.strptime(f'{raw_date} {raw_time}', '%Y-%m-%d %H:%M')
+    except ValueError:
+        return None
 
 def parse_employee_schedule_blocks(company):
     blocks, i = [], 0
@@ -179,7 +185,13 @@ def parse_employee_schedule_blocks(company):
         wd_raw = request.form.get(f'block_{i}_weekday')
         if wd_raw is None or str(wd_raw).strip() == '':
             break
-        wd   = int(wd_raw)
+        try:
+            wd = int(wd_raw)
+        except ValueError:
+            wd = -1
+        if not 0 <= wd <= 6:
+            i += 1
+            continue
         st   = parse_time_or_none(request.form.get(f'block_{i}_start'))
         et   = parse_time_or_none(request.form.get(f'block_{i}_end'))
         sids = {int(x) for x in request.form.getlist(f'block_{i}_service_ids') if str(x).isdigit()}
@@ -322,7 +334,7 @@ def dashboard(slug):
     if section not in ADMIN_SECTIONS:
         section = 'overview'
     day                      = request.args.get('day')
-    selected_day             = datetime.strptime(day, '%Y-%m-%d').date() if day else today_ar()
+    selected_day             = parse_iso_date(day, today_ar())
     selected_professional_id = request.args.get('professional_id', type=int)
     selected_service_id      = request.args.get('service_id', type=int)
     selected_status          = request.args.get('status', '').strip().upper()
@@ -658,7 +670,7 @@ def export_agenda_csv(slug):
     if not plan_has(company, EXPORT_CSV):
         return _plan_redirect(company, EXPORT_CSV)
     day          = request.args.get('day')
-    selected_day = datetime.strptime(day, '%Y-%m-%d').date() if day else today_ar()
+    selected_day = parse_iso_date(day, today_ar())
     apps         = build_agenda_query(company, selected_day, request.args.get('professional_id',type=int), request.args.get('service_id',type=int), request.args.get('status','').strip().upper(), request.args.get('q','').strip().lower())
     buf = io.StringIO()
     w   = csv.writer(buf)
@@ -750,7 +762,10 @@ def update_company(slug):
         if 'description' in request.form:
             company.description = request.form.get('description', '').strip() or None
         if 'address' in request.form:
-            company.address = request.form.get('address', '').strip() or None
+            addr_values, addr_error = read_address_form(request.form)
+            apply_address(company, addr_values)
+            if addr_error:
+                flash(addr_error, 'warning')
         if 'phone' in request.form:
             company.phone = request.form.get('phone', '').strip() or None
         if 'email' in request.form:

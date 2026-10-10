@@ -35,6 +35,25 @@ El usuario de plataforma se crea con `PLATFORM_ADMIN_EMAIL` y
 `PLATFORM_ADMIN_PASSWORD`. Si no están definidas, se usa `owner@turnex.com` con
 una contraseña al azar que se imprime **una sola vez** en el log de arranque.
 
+### Panel de plataforma (dueño de Turnex)
+
+En `/platform/login`. Desde ahí:
+
+- **Empresas**: buscador (nombre, link, email, teléfono), filtros (en prueba,
+  prueba por vencer, vencida, activas, suspendidas, ocultas) y uso de cada una
+  (turnos del mes, profesionales, clientes, usuarios).
+- **Entrar**: abre el panel del negocio como su dueño, para dar soporte sin
+  pedirle la contraseña. Abajo aparece "Volver a plataforma". Lo que se cambie
+  ahí se guarda de verdad y queda registrado a nombre del dueño.
+- **Editar**: plan (BASE/PRO/PREMIUM), estado (Prueba/Activo/Suspendido), días
+  de prueba, datos del dueño, usuarios del panel y pagos recibidos.
+- **Pedidos de plan y bajas** que hacen los negocios desde "Mi plan".
+- **Mi cuenta y usuarios**: cambiar tu contraseña y agregar o desactivar otros
+  usuarios de plataforma.
+
+Los links de negocio que chocan con páginas del sistema (`admin`, `platform`,
+`registrar`, `api`, etc.) están reservados y no se pueden usar.
+
 La empresa demo `pepito` (con `admin123`) se crea solo fuera de producción.
 Con `FLASK_ENV=production` no se crea, salvo que definas `SEED_DEMO=1`
 (útil en un ambiente de pruebas). Si tu base de producción se creó antes de

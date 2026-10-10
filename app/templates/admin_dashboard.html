@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% import '_icons.html' as ic %}
+{% import '_address_fields.html' as addr %}
 {% import '_plan_lock.html' as pl %}
 {% block title %}Panel · {{ company.name }}{% endblock %}
 {% block topnav %}{% endblock %}
@@ -1260,7 +1261,7 @@
               <span class="prof-card-icon">{{ ic.icon('pin', 18) }}</span>
               <div><strong>Contacto y ubicación</strong><span>Esta información ayudará a que tus clientes te encuentren.</span></div>
             </div>
-            <div class="prof-field"><label class="form-label">Dirección</label><input class="form-control" name="address" value="{{ company.address or '' }}"></div>
+            <div class="prof-field">{{ addr.fields(company) }}</div>
             <div class="prof-field"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ company.phone or '' }}"></div>
             <div class="prof-field"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ company.email or '' }}"></div>
             {% set brand_ok = plan_has(company, PF.branding) %}
@@ -1343,7 +1344,7 @@
             <div class="prof-preview-body">
               <div class="prof-preview-name">{{ company.name }}</div>
               <div class="prof-preview-cat">{{ company.category or 'Sin categoría' }}</div>
-              {% if company.address %}<div class="prof-preview-line">{{ ic.icon('pin', 13) }} {{ company.address }}</div>{% endif %}
+              {% if company.address %}<div class="prof-preview-line">{{ ic.icon('pin', 13) }} {{ company.full_address }}</div>{% endif %}
               {% if company.description %}<div class="prof-preview-desc">{{ company.description }}</div>{% endif %}
             </div>
             <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm">Ver página pública {{ ic.icon('external', 13) }}</a>
@@ -1535,7 +1536,7 @@
           <div class="admin-card-body--compact">
             <p class="text-secondary small px-3 pt-2 mb-1">Elegí qué datos de contacto ve cualquiera que visite tu página, sin necesidad de reservar. Vos seguís viendo todo desde tu panel, esto solo afecta lo público.</p>
             {% set v_rows = [
-              ('show_address_public', cfg.show_address_public, 'Dirección', company.address or 'No cargaste una dirección todavía'),
+              ('show_address_public', cfg.show_address_public, 'Dirección', company.full_address or 'No cargaste una dirección todavía'),
               ('show_phone_public', cfg.show_phone_public, 'Teléfono', company.phone or 'No cargaste un teléfono todavía'),
               ('show_email_public', cfg.show_email_public, 'Email', company.email or 'No cargaste un email todavía'),
             ] %}

@@ -41,3 +41,15 @@ def utc_to_ar(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     return dt.replace(tzinfo=timezone.utc).astimezone(TZ_AR).replace(tzinfo=None)
+
+
+def parse_iso_date(raw, default=None):
+    """'2026-09-27' -> date. Si viene vacío o mal escrito (ej. un link editado
+    a mano), devuelve `default` en lugar de romper con un error 500."""
+    raw = (raw or '').strip()
+    if not raw:
+        return default
+    try:
+        return datetime.strptime(raw[:10], '%Y-%m-%d').date()
+    except ValueError:
+        return default
