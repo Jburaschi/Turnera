@@ -91,7 +91,7 @@
   .cp-info-inner { gap: 12px; }
   .cp-info-icon { flex-basis: 34px; width: 34px; height: 34px; border-radius: 9px; }
   .cp-info-icon svg { width: 17px; height: 17px; }
-  .cp-info-label { font-size: 10px; margin: 1px 0 3px; }
+  .cp-info-label { font-size: 11px; margin: 1px 0 3px; }
   .cp-info-main { font-size: 15px; }
   .cp-info-sub { font-size: 13px; }
   .cp-info-link {

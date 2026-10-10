@@ -1217,8 +1217,9 @@ body {
 }
 .cp-info--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .cp-info--1 { grid-template-columns: minmax(0, 1fr); }
-/* Cada columna ocupa todo el alto (para la línea divisoria) y centra su contenido */
-.cp-info-block { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: .1rem 1.9rem; }
+/* Cada columna ocupa todo el alto (para la línea divisoria); el contenido arranca arriba
+   para que los títulos de las tres columnas queden en la misma fila */
+.cp-info-block { display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; padding: .1rem 1.9rem; }
 .cp-info-block + .cp-info-block { border-left: 1px solid var(--cpi-line); }
 .cp-info-inner { display: flex; align-items: flex-start; gap: .85rem; min-width: 0; }
 .cp-info-icon {
@@ -1228,7 +1229,7 @@ body {
 }
 .cp-info-icon svg { width: 18px; height: 18px; }
 .cp-info-body { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
-.cp-info-label { font-size: .64rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: color-mix(in srgb, var(--brand) 80%, #64748b); margin: .05rem 0 .3rem; }
+.cp-info-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: color-mix(in srgb, var(--brand) 80%, #64748b); margin: .05rem 0 .3rem; }
 .cp-info-main { font-size: 1.05rem; font-weight: 700; line-height: 1.25; color: #0f172a; letter-spacing: -.005em; word-break: break-word; text-decoration: none; }
 .cp-info-sub { margin-top: .15rem; font-size: .85rem; color: #64748b; line-height: 1.4; }
 .cp-info-link {
@@ -1243,7 +1244,7 @@ body {
 /* Horarios: días y horas en dos columnas alineadas, horas discretas */
 .cp-hours { margin: 0; display: flex; flex-direction: column; max-width: 17rem; }
 .cp-hours-row { display: grid; grid-template-columns: 6.25rem minmax(0, 1fr); align-items: center; gap: .75rem; padding: .4rem 0; }
-.cp-hours-row:first-child { padding-top: .1rem; }
+.cp-hours-row:first-child { padding-top: 0; }
 .cp-hours-row + .cp-hours-row { border-top: 1px solid var(--cpi-line); }
 .cp-hours-row dt { font-weight: 600; font-size: .86rem; color: #0f172a; }
 .cp-hours-row dd { margin: 0; }
