@@ -99,21 +99,27 @@ class Company(db.Model):
 
     @property
     def address_street(self) -> str:
-        """Primera línea: calle y número, con piso/depto."""
-        return ', '.join(p for p in ((self.address or '').strip(), (self.address_unit or '').strip()) if p)
+        """Primera línea: calle y número (con mayúscula inicial) y piso/depto."""
+        street = (self.address or '').strip()
+        street = street[:1].upper() + street[1:]
+        return ', '.join(p for p in (street, (self.address_unit or '').strip()) if p)
 
     @property
     def address_area(self) -> str:
-        """Segunda línea: localidad, partido y provincia."""
+        """Segunda línea: 'Santos Lugares, Tres de Febrero, Buenos Aires, Argentina'.
+        La Ciudad de Buenos Aires se muestra como CABA. Si el negocio todavía no
+        cargó localidad ni provincia (cuentas anteriores), queda 'Argentina'."""
         from .utils import format_address
-        return format_address({'locality': self.locality, 'partido': self.partido,
-                               'province': self.province})
+        province = 'CABA' if self.province == 'Ciudad Autónoma de Buenos Aires' else self.province
+        area = format_address({'locality': self.locality, 'partido': self.partido, 'province': province})
+        return f'{area}, Argentina' if area else 'Argentina'
 
     @property
     def maps_query(self) -> str:
         """Texto que se busca en Google Maps (sin piso/depto)."""
         from .utils import format_address
-        return format_address(self, with_unit=False, with_postal=True)
+        query = format_address(self, with_unit=False, with_postal=True)
+        return f'{query}, Argentina' if query else ''
 
     config = db.relationship('CompanyConfig', uselist=False, back_populates='company', cascade='all, delete-orphan')
     payments = db.relationship('SubscriptionPayment', back_populates='company', cascade='all, delete-orphan')

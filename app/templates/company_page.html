@@ -89,30 +89,30 @@
       {% set show_phone = company.config.show_phone_public and company.phone %}
       {% set show_email = company.config.show_email_public and company.email %}
       {% set show_social = has_branding and (company.instagram_url|safe_url or company.facebook_url|safe_url) %}
-      {% set show_contact = show_phone or show_email or show_social %}
+      {% set show_contact = show_phone or show_social %}
       {% set wa = ((company.phone|whatsapp) or (company.phone|digits)) if show_phone else None %}
       {% set n_blocks = [show_addr, hours_groups, show_contact]|select|list|length %}
       {% if n_blocks %}
       <div class="cp-info cp-info--{{ n_blocks }}">
 
         {% if show_addr %}
-        <div class="cp-info-block">
+        <div class="cp-info-block"><div class="cp-info-inner">
           <span class="cp-info-icon" aria-hidden="true">{{ ic.icon('pin', 24) }}</span>
           <div class="cp-info-body">
             <span class="cp-info-label">Dirección</span>
             <strong class="cp-info-main">{{ company.address_street }}</strong>
-            {% if company.address_area %}<span class="cp-info-sub">{{ company.address_area }}</span>{% endif %}
+            <span class="cp-info-sub">{{ company.address_area }}</span>
             <a class="cp-info-link" href="https://www.google.com/maps/search/?api=1&query={{ company.maps_query|urlencode }}" target="_blank" rel="noopener">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
               <span>Cómo llegar</span>
               <svg class="cp-info-link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </a>
           </div>
-        </div>
+        </div></div>
         {% endif %}
 
         {% if hours_groups %}
-        <div class="cp-info-block">
+        <div class="cp-info-block"><div class="cp-info-inner">
           <span class="cp-info-icon" aria-hidden="true">{{ ic.icon('clock', 24) }}</span>
           <div class="cp-info-body">
             <span class="cp-info-label">Horarios</span>
@@ -122,11 +122,11 @@
               {% endfor %}
             </dl>
           </div>
-        </div>
+        </div></div>
         {% endif %}
 
         {% if show_contact %}
-        <div class="cp-info-block">
+        <div class="cp-info-block"><div class="cp-info-inner">
           <span class="cp-info-icon" aria-hidden="true">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
           </span>
@@ -135,11 +135,6 @@
             {% if show_phone %}
               <strong class="cp-info-main">{{ company.phone }}</strong>
               <span class="cp-info-sub">Atención por WhatsApp.</span>
-            {% elif show_email %}
-              <a class="cp-info-main cp-info-main--link cp-info-main--email" href="mailto:{{ company.email }}">{{ company.email }}</a>
-            {% endif %}
-            {% if show_email and show_phone %}
-              <a class="cp-info-mail" href="mailto:{{ company.email }}">{{ ic.icon('mail', 14) }} {{ company.email }}</a>
             {% endif %}
             {% if show_phone %}
             <a class="cp-info-wa" href="https://wa.me/{{ wa }}?text={{ ('Hola ' ~ company.name ~ ', quería hacer una consulta.')|urlencode }}" target="_blank" rel="noopener">
@@ -154,7 +149,7 @@
             </div>
             {% endif %}
           </div>
-        </div>
+        </div></div>
         {% endif %}
 
       </div>
