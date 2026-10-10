@@ -90,7 +90,7 @@
       {% set show_email = company.config.show_email_public and company.email %}
       {% set show_social = has_branding and (company.instagram_url|safe_url or company.facebook_url|safe_url) %}
       {% set show_contact = show_phone or show_email or show_social %}
-      {% set wa = (company.phone|whatsapp) if show_phone else None %}
+      {% set wa = ((company.phone|whatsapp) or (company.phone|digits)) if show_phone else None %}
       {% set n_blocks = [show_addr, hours_groups, show_contact]|select|list|length %}
       {% if n_blocks %}
       <div class="cp-info cp-info--{{ n_blocks }}">
@@ -133,22 +133,19 @@
           <div class="cp-info-body">
             <span class="cp-info-label">Contacto</span>
             {% if show_phone %}
-              {% if company.phone|tel_href %}<a class="cp-info-main cp-info-main--link" href="tel:{{ company.phone|tel_href }}">{{ company.phone }}</a>
-              {% else %}<strong class="cp-info-main">{{ company.phone }}</strong>{% endif %}
-              <span class="cp-info-sub">{{ 'Escribinos por WhatsApp o llamanos.' if wa else 'Llamanos para consultas.' }}</span>
+              <strong class="cp-info-main">{{ company.phone }}</strong>
+              <span class="cp-info-sub">Atención por WhatsApp.</span>
             {% elif show_email %}
               <a class="cp-info-main cp-info-main--link cp-info-main--email" href="mailto:{{ company.email }}">{{ company.email }}</a>
             {% endif %}
             {% if show_email and show_phone %}
-              <a class="cp-info-mail" href="mailto:{{ company.email }}">{{ ic.icon('mail', 15) }} {{ company.email }}</a>
+              <a class="cp-info-mail" href="mailto:{{ company.email }}">{{ ic.icon('mail', 14) }} {{ company.email }}</a>
             {% endif %}
-            {% if wa %}
+            {% if show_phone %}
             <a class="cp-info-wa" href="https://wa.me/{{ wa }}?text={{ ('Hola ' ~ company.name ~ ', quería hacer una consulta.')|urlencode }}" target="_blank" rel="noopener">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15L2 22l5.2-1.4A10 10 0 1012 2zm0 1.8a8.2 8.2 0 11-4.2 15.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 0112 3.8zm4.7 11.4c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.6-.7c.2-.3.4-.2.6-.1l1.7.8c.2.1.4.2.4.4.1.2.1.8-.3 1.6z"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15L2 22l5.2-1.4A10 10 0 1012 2zm0 1.8a8.2 8.2 0 11-4.2 15.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 0112 3.8zm4.7 11.4c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.6-.7c.2-.3.4-.2.6-.1l1.7.8c.2.1.4.2.4.4.1.2.1.8-.3 1.6z"/></svg>
               WhatsApp
             </a>
-            {% elif show_phone and company.phone|tel_href %}
-            <a class="cp-info-wa cp-info-wa--call" href="tel:{{ company.phone|tel_href }}">Llamar</a>
             {% endif %}
             {% if show_social %}
             <div class="cp-info-social">

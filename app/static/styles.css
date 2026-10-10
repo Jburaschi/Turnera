@@ -1213,57 +1213,56 @@ body {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
   background: #fff; border: 1px solid #eef0f4; border-radius: 22px;
   box-shadow: 0 18px 40px -24px rgba(15, 23, 42, .28), 0 2px 6px rgba(15, 23, 42, .04);
-  padding: 2.1rem 0;
+  padding: 1.5rem 0;
 }
 .cp-info--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .cp-info--1 { grid-template-columns: minmax(0, 1fr); }
-.cp-info-block { display: flex; align-items: flex-start; gap: 1.25rem; min-width: 0; padding: .2rem 2.4rem; }
+.cp-info-block { display: flex; align-items: flex-start; gap: .9rem; min-width: 0; padding: .1rem 1.75rem; }
 .cp-info-block + .cp-info-block { border-left: 1px solid var(--cpi-line); }
+.cp-info-icon svg { width: 20px; height: 20px; }
 .cp-info-icon {
-  flex: 0 0 56px; width: 56px; height: 56px; border-radius: 16px;
+  flex: 0 0 42px; width: 42px; height: 42px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   background: var(--cpi-soft); color: var(--brand);
 }
 .cp-info-body { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
-.cp-info-label { font-size: .74rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--brand); margin: .15rem 0 .55rem; }
-.cp-info-main { font-size: 1.45rem; font-weight: 800; line-height: 1.2; color: #0f172a; letter-spacing: -.01em; word-break: break-word; text-decoration: none; }
+.cp-info-label { font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); margin: .1rem 0 .35rem; }
+.cp-info-main { font-size: 1.08rem; font-weight: 700; line-height: 1.2; color: #0f172a; letter-spacing: -.01em; word-break: break-word; text-decoration: none; }
 .cp-info-main--link:hover { color: var(--brand); }
-.cp-info-main--email { font-size: 1.1rem; }
-.cp-info-sub { margin-top: .35rem; font-size: .98rem; color: #64748b; line-height: 1.4; }
+.cp-info-main--email { font-size: .95rem; }
+.cp-info-sub { margin-top: .2rem; font-size: .85rem; color: #64748b; line-height: 1.4; }
 .cp-info-link {
   align-self: flex-start; display: inline-flex; align-items: center; gap: .55rem;
-  margin-top: 1.15rem; padding-bottom: .3rem; border-bottom: 2px solid var(--brand);
-  color: var(--brand); font-weight: 600; font-size: 1rem; text-decoration: none;
+  margin-top: .75rem; padding-bottom: .2rem; border-bottom: 1.5px solid var(--brand);
+  color: var(--brand); font-weight: 600; font-size: .88rem; text-decoration: none;
 }
 .cp-info-link-arrow { transition: transform .15s ease; }
 .cp-info-link:hover { color: var(--brand); }
 .cp-info-link:hover .cp-info-link-arrow { transform: translateX(3px); }
 .cp-hours { margin: 0; display: flex; flex-direction: column; }
-.cp-hours-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem 0; }
+.cp-hours-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .45rem 0; }
 .cp-hours-row:first-child { padding-top: 0; }
 .cp-hours-row + .cp-hours-row { border-top: 1px solid var(--cpi-line); }
-.cp-hours-row dt { font-weight: 600; font-size: 1.02rem; color: #0f172a; }
+.cp-hours-row dt { font-weight: 600; font-size: .88rem; color: #0f172a; }
 .cp-hours-row dd { margin: 0; text-align: right; }
-.cp-hours-pill { display: inline-block; padding: .45rem .85rem; border-radius: 10px; background: var(--cpi-soft); color: #0f172a; font-size: .98rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.cp-info-mail { display: inline-flex; align-items: center; gap: .4rem; margin-top: .5rem; color: #475569; font-size: .9rem; text-decoration: none; word-break: break-all; }
+.cp-hours-pill { display: inline-block; padding: .28rem .6rem; border-radius: 8px; background: var(--cpi-soft); color: #0f172a; font-size: .84rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cp-info-mail { display: inline-flex; align-items: center; gap: .35rem; margin-top: .35rem; color: #475569; font-size: .82rem; text-decoration: none; word-break: break-all; }
 .cp-info-mail:hover { color: var(--brand); }
 .cp-info-wa {
   display: flex; align-items: center; justify-content: center; gap: .65rem;
-  margin-top: 1rem; min-height: 54px; padding: .7rem 1.2rem; border-radius: 14px;
-  background: #1fb355; color: #fff; font-weight: 700; font-size: 1.05rem; text-decoration: none;
-  box-shadow: 0 8px 18px -10px rgba(31, 179, 85, .7); transition: filter .15s ease, transform .15s ease;
+  margin-top: .75rem; min-height: 40px; padding: .45rem 1rem; border-radius: 10px;
+  background: #1fb355; color: #fff; font-weight: 600; font-size: .9rem; text-decoration: none;
+  box-shadow: 0 6px 14px -10px rgba(31, 179, 85, .7); transition: filter .15s ease, transform .15s ease;
 }
+.cp-info-wa { align-self: flex-start; min-width: 180px; }
 .cp-info-wa:hover { color: #fff; filter: brightness(.95); transform: translateY(-1px); }
-.cp-info-wa--call { background: var(--brand); box-shadow: none; }
-.cp-info-social { display: flex; gap: .5rem; margin-top: .9rem; }
+.cp-info-social { display: flex; gap: .4rem; margin-top: .6rem; }
 
 /* Tablet: dirección y horarios arriba, contacto abajo a lo ancho */
 @media (min-width: 768px) and (max-width: 1099.98px) {
-  .cp-info { padding: 1.6rem 0; }
-  .cp-info-block { padding: .2rem 1.6rem; gap: 1rem; }
-  .cp-info-icon { flex-basis: 48px; width: 48px; height: 48px; border-radius: 14px; }
-  .cp-info-main { font-size: 1.25rem; }
-  .cp-info--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 1.6rem; }
-  .cp-info--3 .cp-info-block:nth-child(3) { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--cpi-line); padding-top: 1.6rem; }
-  .cp-info--3 .cp-info-block:nth-child(3) .cp-info-wa { align-self: flex-start; min-width: 260px; }
+  .cp-info { padding: 1.3rem 0; }
+  .cp-info-block { padding: .1rem 1.3rem; }
+  .cp-info--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 1.3rem; }
+  .cp-info--3 .cp-info-block:nth-child(3) { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--cpi-line); padding-top: 1.3rem; }
+  .cp-info--3 .cp-info-block:nth-child(3) .cp-info-wa { align-self: flex-start; min-width: 200px; }
 }

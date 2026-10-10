@@ -145,7 +145,8 @@ def create_app():
 
     # ── Planes: funciones y límites disponibles en todas las plantillas ──────
     from . import plans as plans_mod
-    from .utils import PROVINCIAS_AR, tel_href, whatsapp_number
+    from .utils import PROVINCIAS_AR, phone_digits, tel_href, whatsapp_number
+    app.jinja_env.filters['digits'] = phone_digits
     app.jinja_env.filters['whatsapp'] = whatsapp_number
     app.jinja_env.filters['tel_href'] = tel_href
     app.jinja_env.globals['PROVINCIAS_AR'] = PROVINCIAS_AR
