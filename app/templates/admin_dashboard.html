@@ -13,29 +13,6 @@
 </style>
 {% endblock %}
 
-{% macro schedule_row(block_index, weekday, start_t, end_t, limited_ids) %}
-<tr class="schedule-block-row">
-  <td>
-    <select class="form-select form-select-sm" name="block_{{ block_index }}_weekday" data-field="weekday">
-      {% for wd, label in weekday_labels.items() %}<option value="{{ wd }}" {% if wd == weekday %}selected{% endif %}>{{ label }}</option>{% endfor %}
-    </select>
-  </td>
-  <td><input class="form-control form-control-sm" type="time" name="block_{{ block_index }}_start" value="{{ start_t }}" data-field="start"></td>
-  <td><input class="form-control form-control-sm" type="time" name="block_{{ block_index }}_end" value="{{ end_t }}" data-field="end"></td>
-  <td>
-    <div class="schedule-service-chips">
-      {% for service in company.services %}
-      <label class="schedule-service-chip {% if not limited_ids %}is-checked{% elif service.id in limited_ids %}is-checked{% endif %}">
-        <input type="checkbox" name="block_{{ block_index }}_service_ids" value="{{ service.id }}" {% if not limited_ids or service.id in limited_ids %}checked{% endif %}>
-        {{ service.name }}
-      </label>
-      {% endfor %}
-    </div>
-    <div class="small text-secondary lh-sm mt-1">Todas tildadas = disponible para cualquier prestación en esta franja.</div>
-  </td>
-  <td class="align-top"><button type="button" class="btn btn-sm btn-outline-danger schedule-row-remove" title="Quitar fila">×</button></td>
-</tr>
-{% endmacro %}
 {% block content %}
 <div class="admin-shell">
 
@@ -654,7 +631,25 @@
                     </div>
                     <div class="col-md-4">
                       <label class="form-label">Fecha *</label>
-                      <input class="form-control" type="date" id="nt-date" value="{{ selected_day.isoformat() }}" required>
+                      <div class="ntc" data-ntc>
+                        <input type="hidden" id="nt-date" value="{{ selected_day.isoformat() }}">
+                        <button type="button" class="form-control ntc-field" data-ntc-field aria-haspopup="dialog" aria-expanded="false">
+                          <span data-ntc-label>{{ selected_day.strftime('%d/%m/%Y') }}</span>{{ ic.icon('calendar', 16) }}
+                        </button>
+                        <div class="ntc-pop" data-ntc-pop hidden role="dialog" aria-label="Elegir fecha">
+                          <div class="ntc-head">
+                            <button type="button" class="ntc-nav" data-ntc-prev aria-label="Mes anterior">{{ ic.icon('chevron-left', 16) }}</button>
+                            <strong data-ntc-month></strong>
+                            <button type="button" class="ntc-nav" data-ntc-next aria-label="Mes siguiente">{{ ic.icon('chevron-right', 16) }}</button>
+                          </div>
+                          <div class="ntc-week"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+                          <div class="ntc-days" data-ntc-days></div>
+                          <div class="ntc-foot">
+                            <span class="ntc-legend" data-ntc-legend><i></i> Con turnos libres</span>
+                            <button type="button" class="ntc-today" data-ntc-today>Hoy</button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -897,6 +892,9 @@
 
     <!-- ════ PROFESSIONALS ═══════════════════════════════ -->
     {% elif active_section == 'professionals' %}
+    {% if pro_form %}
+      {% include '_professional_form.html' %}
+    {% else %}
       <div class="admin-page-header">
         <div class="d-flex align-items-center gap-3">
           <span class="admin-section-icon">{{ ic.icon('user', 22) }}</span>
@@ -909,43 +907,10 @@
         {% if pro_limit is not none and (company.employees|selectattr('active')|list|length) >= pro_limit %}
           {{ pl.limit_notice(company, 'professionals', 'profesional' if pro_limit == 1 else 'profesionales') }}
         {% else %}
-        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#new-employee-form">
+        <a class="btn btn-primary btn-sm" href="{{ url_for('admin.dashboard', slug=company.slug, section='professionals', pro='new') }}">
           {{ ic.icon('plus', 15) }} Nuevo profesional
-        </button>
+        </a>
         {% endif %}
-      </div>
-
-      <div class="admin-card collapse mb-3" id="new-employee-form">
-        <div class="admin-card-header"><h2 class="admin-card-title">Nuevo profesional</h2></div>
-        <div class="admin-card-body">
-          <p class="small text-secondary mb-3">Podés agregar varias franjas el mismo día. En cada franja podés limitar prestaciones o dejarlas vacías para aplicar todas.</p>
-          <form method="post" action="{{ url_for('admin.create_employee', slug=company.slug) }}" class="row g-3" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" required></div>
-            <div class="col-md-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" role="switch" type="checkbox" name="active" checked id="new_employee_active"><label class="form-check-label" for="new_employee_active">Activo</label></div></div>
-            <div class="col-md-8"><label class="form-label">Foto <span class="text-secondary fw-normal small">— opcional, PNG o JPG (máx. 2MB)</span></label><input class="form-control" name="photo_file" type="file" accept="image/png,image/jpeg"></div>
-            <div class="col-md-4"><label class="form-label">Descripción breve</label><input class="form-control" name="bio" maxlength="300" placeholder="Aparece en la página pública"></div>
-            <div class="col-12"><label class="form-label">Prestaciones</label>
-              <div class="border rounded-3 p-3 bg-light" style="max-height:200px;overflow-y:auto;">
-                {% if company.services %}<div class="row g-2">{% for service in company.services %}
-                <div class="col-md-4"><div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="service_ids" value="{{ service.id }}" id="new_svc_{{ service.id }}">
-                  <label class="form-check-label" for="new_svc_{{ service.id }}"><strong>{{ service.name }}</strong> <span class="text-secondary small">· {{ service.duration_min }} min</span></label>
-                </div></div>
-                {% endfor %}</div>{% else %}<span class="text-secondary small">Primero creá prestaciones.</span>{% endif %}
-              </div>
-            </div>
-            <div class="col-12"><label class="form-label fw-semibold">Franjas horarias</label></div>
-            <div class="col-12 table-responsive"><table class="table table-sm align-middle mb-2 m-schedule"><thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Prestaciones en esta franja</th><th></th></tr></thead>
-              <tbody id="schedule-rows-new" data-schedule-tbody>{{ schedule_row(0, 0, '09:00', '17:00', []) }}</tbody>
-            </table></div>
-            <div class="col-12 d-flex flex-wrap gap-2">
-              <button type="button" class="btn btn-outline-secondary btn-sm schedule-add-row" data-schedule-tbody="schedule-rows-new">+ Franja</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm schedule-replicate-mon-fri" data-schedule-tbody="schedule-rows-new">Replicar lu → mar–vie</button>
-            </div>
-            <div class="col-12"><button class="btn btn-primary">Crear profesional</button></div>
-          </form>
-        </div>
       </div>
 
       <div class="admin-card">
@@ -980,62 +945,9 @@
                   {% else %}<span class="text-muted">Sin horario</span>{% endif %}
                 </td>
                 <td style="text-align:right;">
-                  <button class="admin-icon-btn" type="button" data-bs-toggle="collapse" data-bs-target="#employee_{{ professional.id }}" title="Editar">{{ ic.icon('grip', 15) }}</button>
+                  <a class="admin-icon-btn" href="{{ url_for('admin.dashboard', slug=company.slug, section='professionals', pro=professional.id) }}" title="Editar" aria-label="Editar a {{ professional.name }}">{{ ic.icon('edit', 15) }}</a>
                 </td>
               </tr>
-              <tr class="collapse" id="employee_{{ professional.id }}"><td colspan="5">
-              <div class="expand-panel">
-              <form method="post" action="{{ url_for('admin.update_employee', slug=company.slug, employee_id=professional.id) }}" class="row g-3" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="col-md-6"><label class="form-label">Nombre</label><input class="form-control" name="name" value="{{ professional.name }}"></div>
-                <div class="col-12 col-md-9">
-                  <label class="form-label">Foto <span class="text-secondary fw-normal small">— opcional, PNG o JPG (máx. 2MB)</span></label>
-                  <div class="d-flex align-items-center gap-3">
-                    {% if professional.photo_url %}
-                    <img src="{{ professional.photo_url }}" alt="{{ professional.name }}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex:0 0 52px;">
-                    {% else %}
-                    <span style="width:52px;height:52px;border-radius:50%;background:#eef1ff;color:#3654f0;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 52px;">{{ professional.name[:1]|upper }}</span>
-                    {% endif %}
-                    <div class="flex-grow-1">
-                      <input class="form-control" name="photo_file" type="file" accept="image/png,image/jpeg">
-                      {% if professional.photo_url %}
-                      <div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="remove_photo" value="1" id="rmphoto_{{ professional.id }}"><label class="form-check-label text-secondary small" for="rmphoto_{{ professional.id }}">Quitar la foto actual</label></div>
-                      {% endif %}
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 col-md-9"><label class="form-label">Descripción breve</label><input class="form-control" name="bio" maxlength="300" value="{{ professional.bio or '' }}" placeholder="Aparece públicamente"></div>
-                <div class="col-12"><label class="form-label">Prestaciones</label>
-                  <div class="border rounded-3 p-3 bg-light" style="max-height:180px;overflow-y:auto;">
-                    {% if company.services %}<div class="row g-2">{% for service in company.services %}
-                    <div class="col-md-4"><div class="form-check">
-                      <input class="form-check-input" type="checkbox" name="service_ids" value="{{ service.id }}" id="edit_svc_{{ professional.id }}_{{ service.id }}" {% if service in professional.services %}checked{% endif %}>
-                      <label class="form-check-label" for="edit_svc_{{ professional.id }}_{{ service.id }}"><strong>{{ service.name }}</strong> <span class="text-secondary small">· {{ service.duration_min }} min</span></label>
-                    </div></div>
-                    {% endfor %}</div>{% else %}<span class="text-secondary small">Sin prestaciones cargadas.</span>{% endif %}
-                  </div>
-                </div>
-                <div class="col-12"><label class="form-label fw-semibold">Franjas horarias</label></div>
-                <div class="col-12 table-responsive"><table class="table table-sm align-middle mb-2 m-schedule"><thead class="table-light"><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Prestaciones en esta franja</th><th></th></tr></thead>
-                  <tbody id="schedule-rows-{{ professional.id }}" data-schedule-tbody>
-                  {% if professional.schedules %}{% for sch in professional.schedules %}{% set lids = sch.limited_services|map(attribute='id')|list if sch.limited_services else [] %}{{ schedule_row(loop.index0, sch.weekday, sch.start_time.strftime('%H:%M'), sch.end_time.strftime('%H:%M'), lids) }}{% endfor %}
-                  {% else %}{{ schedule_row(0, 0, '09:00', '17:00', []) }}{% endif %}
-                  </tbody>
-                </table></div>
-                <div class="col-12 d-flex flex-wrap gap-2 mb-2">
-                  <button type="button" class="btn btn-outline-secondary btn-sm schedule-add-row" data-schedule-tbody="schedule-rows-{{ professional.id }}">+ Franja</button>
-                  <button type="button" class="btn btn-outline-secondary btn-sm schedule-replicate-mon-fri" data-schedule-tbody="schedule-rows-{{ professional.id }}">Replicar lu → mar–vie</button>
-                </div>
-                <div class="col-12"><hr class="my-2" style="border-color:#eee;"></div>
-                <div class="col-12 d-flex justify-content-between align-items-center gap-2">
-                  <button type="submit" class="btn btn-primary">Guardar cambios</button></form>
-                  <form method="post" action="{{ url_for('admin.delete_employee', slug=company.slug, employee_id=professional.id) }}" onsubmit="return confirm('¿Eliminar a {{ professional.name }}? Si tiene historial de turnos, se desactivará en vez de borrarse.')">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
-                  </form>
-                </div>
-              </div>
-              </td></tr>
               {% else %}
               <tr><td colspan="5" class="p-4 text-center text-secondary small">Todavía no hay profesionales cargados.</td></tr>
               {% endfor %}
@@ -1043,7 +955,7 @@
           </table>
         </div>
       </div>
-      <p class="text-muted text-sm mt-2">{{ ic.icon('grip', 13) }} Podés arrastrar y soltar para ordenar cómo se muestran en la agenda.</p>
+    {% endif %}
 
     <!-- ════ SERVICES ════════════════════════════════════ -->
     {% elif active_section == 'services' %}
@@ -1196,6 +1108,46 @@
         </div>
       </div>
 
+      {% if upcoming_holidays and blocked_type_filter in ('', 'holiday') %}
+      <section class="admin-card hol-card mb-3">
+        <div class="hol-head">
+          <span class="pf-card-icon" style="background:#fef2f2;color:#dc2626;">{{ ic.icon('calendar-off', 18) }}</span>
+          <div>
+            <h2 class="pf-card-title">Feriados nacionales</h2>
+            <p class="pf-card-sub">Se cargan solos: esos días tu agenda queda cerrada y no se ofrecen turnos. Si atendés algún feriado, tocá «Eliminar» y ese día se habilitan los turnos.</p>
+          </div>
+        </div>
+        <ul class="hol-list">
+          {% for h in upcoming_holidays %}
+          <li class="hol-row {{ 'is-open' if h.open }} {{ 'hol-row--extra' if loop.index > 6 }}">
+            <span class="hol-date"><strong>{{ h.day.strftime('%d/%m') }}</strong><small>{{ ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][h.day.weekday()] }}</small></span>
+            <span class="hol-name">
+              {{ h.name }}
+              {% if h.booked and not h.open %}<small class="hol-warn">{{ h.booked }} turno{{ 's' if h.booked != 1 }} reservado{{ 's' if h.booked != 1 }} ese día — no se cancelan solos</small>{% endif %}
+            </span>
+            {% if h.open %}
+              <span class="entity-badge entity-badge--active">Abierto</span>
+              <form method="post" action="{{ url_for('admin.toggle_holiday', slug=company.slug, day=h.day.isoformat(), action='close') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="pf-btn-soft hol-btn">Volver a cerrar</button>
+              </form>
+            {% else %}
+              <span class="entity-badge" style="background:#fef2f2;color:#dc2626;">Cerrado</span>
+              <form method="post" action="{{ url_for('admin.toggle_holiday', slug=company.slug, day=h.day.isoformat(), action='open') }}"
+                    onsubmit="return confirm('¿Atendés el {{ h.day.strftime('%d/%m') }} ({{ h.name }})? Ese día se van a poder reservar turnos.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="admin-icon-btn hol-del" title="Eliminar este feriado y habilitar turnos">{{ ic.icon('trash', 15) }}<span>Eliminar</span></button>
+              </form>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% if upcoming_holidays|length > 6 %}
+        <button type="button" class="hol-more" onclick="this.closest('.hol-card').classList.add('is-expanded'); this.remove();">Ver los {{ upcoming_holidays|length }} feriados de los próximos 12 meses</button>
+        {% endif %}
+      </section>
+      {% endif %}
+
       <div class="admin-tabs mb-3">
         <a class="admin-tab {{ 'active' if not blocked_type_filter }}" href="{{ url_for('admin.dashboard', slug=company.slug, section='blocked') }}">Todos</a>
         {% for key, label in block_type_labels.items() %}
@@ -1242,115 +1194,132 @@
           </div>
         </div>
       </div>
-      <div class="prof-single">
-        <!-- Información básica -->
-        <div class="admin-card prof-card">
-          <div class="prof-card-head">
-            <span class="prof-card-icon">{{ ic.icon('building', 18) }}</span>
-            <div><strong>Información básica</strong><span>Datos principales de tu negocio.</span></div>
-          </div>
-          <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" class="prof-form" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="target_section" value="company">
-            <div class="prof-field"><label class="form-label">Nombre del negocio</label><input class="form-control" name="name" value="{{ company.name }}"></div>
-            <div class="prof-field"><label class="form-label">Categoría</label><input class="form-control" name="category" value="{{ company.category or '' }}"></div>
-            <div class="prof-field"><label class="form-label">Descripción</label><textarea class="form-control" rows="3" name="description" maxlength="300">{{ company.description or '' }}</textarea></div>
-
-            <div class="prof-section-sep"></div>
-            <div class="prof-card-head prof-card-head--inline">
-              <span class="prof-card-icon">{{ ic.icon('pin', 18) }}</span>
-              <div><strong>Contacto y ubicación</strong><span>Esta información ayudará a que tus clientes te encuentren.</span></div>
-            </div>
-            <div class="prof-field">{{ addr.fields(company) }}</div>
-            <div class="prof-field"><label class="form-label">Teléfono</label><input class="form-control" name="phone" value="{{ company.phone or '' }}"></div>
-            <div class="prof-field"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ company.email or '' }}"></div>
-            {% set brand_ok = plan_has(company, PF.branding) %}
-            <div class="prof-field {{ '' if brand_ok else 'plan-field-locked' }}"><label class="form-label">Color principal <span class="text-secondary fw-normal small">— se usa en tu página pública</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label><input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color|css_color }}" {{ '' if brand_ok else 'disabled' }}></div>
-            <div class="prof-field {{ '' if brand_ok else 'plan-field-locked' }}"><label class="form-label">Instagram <span class="text-secondary fw-normal small">— opcional</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label><input class="form-control" name="instagram_url" value="{{ company.instagram_url or '' }}" placeholder="https://instagram.com/tu_negocio" {{ '' if brand_ok else 'disabled' }}></div>
-            <div class="prof-field {{ '' if brand_ok else 'plan-field-locked' }}"><label class="form-label">Facebook <span class="text-secondary fw-normal small">— opcional</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label><input class="form-control" name="facebook_url" value="{{ company.facebook_url or '' }}" placeholder="https://facebook.com/tu_negocio" {{ '' if brand_ok else 'disabled' }}></div>
-            <div class="prof-actions"><button class="btn btn-primary">Guardar cambios</button></div>
-          </form>
-        </div>
-
-        <!-- Imagen de marca (logo) -->
-        <div class="admin-card prof-card">
-          <div class="prof-card-head">
-            <span class="prof-card-icon">{{ ic.icon('image', 18) }}</span>
-            <div><strong>Imagen de marca</strong><span>El logo se mostrará en tu página pública y en las comunicaciones.</span></div>
-          </div>
-          <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="target_section" value="company">
-            <div class="prof-logo-row">
-              {% if company.logo_url %}
-                <img src="{{ company.logo_url }}" alt="{{ company.name }}" class="prof-logo-img">
-              {% else %}
-                <div class="prof-logo-placeholder">{{ company.name[:2]|upper }}</div>
-              {% endif %}
-              <div class="prof-logo-actions">
-                <input type="file" name="logo" accept=".png,.jpg,.jpeg" class="form-control form-control-sm mb-2">
-                <button class="btn btn-outline-secondary btn-sm">{{ 'Cambiar logo' if company.logo_url else 'Subir logo' }}</button>
-                <div class="text-secondary small mt-1">Formatos: JPG, PNG o SVG. Máx. 2 MB.</div>
-                {% if company.logo_url %}
-                <label class="d-flex align-items-center gap-2 text-danger small mt-2" style="cursor:pointer;">
-                  <input type="checkbox" name="remove_logo" value="1" onchange="this.form.submit()"> Quitar logo actual
-                </label>
-                {% endif %}
+      {% set brand_ok = plan_has(company, PF.branding) %}
+      <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data" id="company-form" class="cpf">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="target_section" value="company">
+        <div class="cpf-grid">
+          <div class="cpf-col">
+            <!-- Información básica -->
+            <section class="admin-card pf-card">
+              <div class="pf-card-head">
+                <span class="pf-card-icon">{{ ic.icon('building', 18) }}</span>
+                <div><h2 class="pf-card-title">Información básica</h2><p class="pf-card-sub">Datos principales de tu negocio.</p></div>
               </div>
-            </div>
-          </form>
+              <div class="cpf-row cpf-row--2">
+                <div class="pf-field"><label class="form-label" for="cpf-name">Nombre del negocio</label><input class="form-control" id="cpf-name" name="name" value="{{ company.name }}" maxlength="120" required data-preview="name"></div>
+                <div class="pf-field"><label class="form-label" for="cpf-cat">Categoría</label>
+                  <select class="form-select" id="cpf-cat" name="category" data-preview="category">
+                    <option value="">Elegí una categoría</option>
+                    {% for c in company_categories %}<option value="{{ c }}" {% if company.category == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                    {% if company.category and company.category not in company_categories %}<option value="{{ company.category }}" selected>{{ company.category }}</option>{% endif %}
+                  </select>
+                </div>
+              </div>
+              <div class="pf-field cpf-mt">
+                <label class="form-label" for="cpf-desc">Descripción</label>
+                <textarea class="form-control cpf-desc" id="cpf-desc" name="description" maxlength="300" rows="3" data-counter placeholder="Contá en pocas palabras qué hacés y qué te diferencia.">{{ company.description or '' }}</textarea>
+                <div class="pf-counter"><span data-counter-value>0</span> / 300</div>
+              </div>
+            </section>
+
+            <!-- Identidad visual -->
+            <section class="admin-card pf-card">
+              <div class="pf-card-head">
+                <span class="pf-card-icon">{{ ic.icon('image', 18) }}</span>
+                <div><h2 class="pf-card-title">Identidad visual</h2><p class="pf-card-sub">Tu logo y foto de portada se mostrarán en tu página pública.</p></div>
+              </div>
+              <div class="cpf-media">
+                <div class="cpf-media-box">
+                  <strong>Logo del negocio</strong>
+                  <small>JPG o PNG. Máx. 2 MB.</small>
+                  <div class="cpf-logo-row">
+                    <span class="cpf-logo" data-logo-frame>
+                      <img src="{{ company.logo_url or '' }}" alt="" data-logo-img {% if not company.logo_url %}hidden{% endif %}>
+                      <span data-logo-ph {% if company.logo_url %}hidden{% endif %}>{{ company.name[:2]|upper }}</span>
+                    </span>
+                    <div class="cpf-logo-actions">
+                      <label class="pf-btn-soft cpf-file">{{ ic.icon('image', 14) }} {{ 'Cambiar logo' if company.logo_url else 'Subir logo' }}
+                        <input type="file" name="logo" accept=".png,.jpg,.jpeg" hidden data-file-preview="logo"></label>
+                      <span class="cpf-file-name" data-file-name="logo"></span>
+                      {% if company.logo_url %}
+                      <label class="cpf-remove"><input type="checkbox" name="remove_logo" value="1"> {{ ic.icon('trash', 13) }} Quitar logo actual</label>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="cpf-media-box {{ '' if brand_ok else 'plan-field-locked' }}">
+                  <strong>Foto de portada {% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</strong>
+                  <small>Recomendado 1200 × 400 px. Máx. 2 MB.</small>
+                  <div class="cpf-cover" {% if company.cover_photo_url %}style="background-image:url('{{ company.cover_photo_url }}')"{% endif %} data-cover-frame>
+                    {% if not company.cover_photo_url %}<span data-cover-ph>{{ ic.icon('image', 22) }}<em>Sin portada: se usa un fondo con el color de tu marca.</em></span>{% endif %}
+                  </div>
+                  {% if brand_ok %}
+                  <div class="cpf-cover-actions">
+                    <label class="pf-btn-soft cpf-file">{{ ic.icon('image', 14) }} {{ 'Cambiar portada' if company.cover_photo_url else 'Subir portada' }}
+                      <input type="file" name="cover_photo" accept=".png,.jpg,.jpeg" hidden data-file-preview="cover"></label>
+                    {% if company.cover_photo_url %}<label class="cpf-remove"><input type="checkbox" name="remove_cover_photo" value="1"> {{ ic.icon('trash', 13) }} Quitar</label>{% endif %}
+                  </div>
+                  <span class="cpf-file-name" data-file-name="cover"></span>
+                  {% endif %}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="cpf-col">
+            <!-- Contacto y ubicación -->
+            <section class="admin-card pf-card">
+              <div class="pf-card-head">
+                <span class="pf-card-icon">{{ ic.icon('pin', 18) }}</span>
+                <div><h2 class="pf-card-title">Contacto y ubicación</h2><p class="pf-card-sub">Esta información ayudará a que tus clientes te encuentren.</p></div>
+              </div>
+              <div class="cpf-addr">{{ addr.fields(company) }}</div>
+              <div class="cpf-row cpf-row--2 cpf-mt">
+                <div class="pf-field"><label class="form-label" for="cpf-phone">Teléfono / WhatsApp</label><input class="form-control" id="cpf-phone" name="phone" value="{{ company.phone or '' }}" placeholder="11 5555-1234" inputmode="tel"></div>
+                <div class="pf-field"><label class="form-label" for="cpf-email">Email</label><input class="form-control" id="cpf-email" type="email" name="email" value="{{ company.email or '' }}" placeholder="hola@tunegocio.com"></div>
+              </div>
+              <div class="cpf-sep"></div>
+              <div class="pf-field {{ '' if brand_ok else 'plan-field-locked' }}">
+                <label class="form-label">Color principal <span class="text-secondary fw-normal small">— se usa en tu página pública</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label>
+                <div class="cpf-color">
+                  <input class="form-control form-control-color" type="color" name="brand_color" value="{{ company.brand_color|css_color }}" {{ '' if brand_ok else 'disabled' }} data-color-input>
+                  <span class="cpf-color-hex" data-color-hex>{{ (company.brand_color|css_color)|upper }}</span>
+                </div>
+              </div>
+              <div class="cpf-row cpf-row--2 cpf-mt">
+                <div class="pf-field {{ '' if brand_ok else 'plan-field-locked' }}"><label class="form-label">Instagram <span class="text-secondary fw-normal small">— opcional</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label><input class="form-control" name="instagram_url" value="{{ company.instagram_url or '' }}" placeholder="https://instagram.com/tu_negocio" {{ '' if brand_ok else 'disabled' }}></div>
+                <div class="pf-field {{ '' if brand_ok else 'plan-field-locked' }}"><label class="form-label">Facebook <span class="text-secondary fw-normal small">— opcional</span>{% if not brand_ok %}{{ pl.lock(company, PF.branding) }}{% endif %}</label><input class="form-control" name="facebook_url" value="{{ company.facebook_url or '' }}" placeholder="https://facebook.com/tu_negocio" {{ '' if brand_ok else 'disabled' }}></div>
+              </div>
+            </section>
+          </div>
         </div>
 
-        <!-- Foto de portada -->
-        <div class="admin-card prof-card">
-          <div class="prof-card-head">
-            <span class="prof-card-icon">{{ ic.icon('image', 18) }}</span>
-            <div><strong>Foto de portada</strong><span>Imagen principal de tu página pública.</span></div>
+        <!-- Vista previa (se actualiza mientras escribís) -->
+        <section class="admin-card pf-card">
+          <div class="pf-card-head pf-card-head--action">
+            <span class="pf-card-icon">{{ ic.icon('eye', 18) }}</span>
+            <div><h2 class="pf-card-title">Vista previa</h2><p class="pf-card-sub">Así se verá tu negocio en la página pública.</p></div>
+            <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="pf-btn-soft cpf-view-public">Ver página pública {{ ic.icon('external', 13) }}</a>
           </div>
-          <form method="post" action="{{ url_for('admin.update_company', slug=company.slug) }}" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="target_section" value="company">
-            {% if company.cover_photo_url %}
-              <img src="{{ company.cover_photo_url }}" alt="Portada" class="prof-cover-img">
-            {% else %}
-              <div class="prof-cover-placeholder">Sin foto de portada — se usa un fondo con el color de tu marca.</div>
-            {% endif %}
-            {% if plan_has(company, PF.branding) %}
-            <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
-              <input type="file" name="cover_photo" accept=".png,.jpg,.jpeg" class="form-control form-control-sm" style="max-width:280px;">
-              <button class="btn btn-outline-secondary btn-sm">{{ 'Cambiar foto de portada' if company.cover_photo_url else 'Subir foto de portada' }}</button>
-              <span class="text-secondary small">Recomendado 1200 × 400 px.</span>
-              {% if company.cover_photo_url %}
-              <label class="d-flex align-items-center gap-2 text-danger small" style="cursor:pointer;">
-                <input type="checkbox" name="remove_cover_photo" value="1" onchange="this.form.submit()"> Quitar
-              </label>
-              {% endif %}
+          <div class="cpf-preview">
+            <span class="cpf-preview-logo">
+              <img src="{{ company.logo_url or '' }}" alt="" data-pv-logo {% if not company.logo_url %}hidden{% endif %}>
+              <span data-pv-logo-ph {% if company.logo_url %}hidden{% endif %}>{{ company.name[:2]|upper }}</span>
+            </span>
+            <div class="cpf-preview-body">
+              <strong data-pv="name">{{ company.name }}</strong>
+              <span data-pv="category">{{ company.category or 'Sin categoría' }}</span>
+              <span class="cpf-preview-addr" {% if not company.address %}hidden{% endif %}>{{ ic.icon('pin', 13) }} <span data-pv="address">{{ company.address_street }}{% if company.locality %} · {{ company.locality }}{% endif %}</span></span>
             </div>
-            {% else %}
-            <div class="mt-2 small text-secondary">La foto de portada se muestra en tu página pública desde el plan PRO. {{ pl.lock(company, PF.branding) }}</div>
-            {% endif %}
-          </form>
-        </div>
+          </div>
+        </section>
+      </form>
 
-        <!-- Vista previa -->
-        <div class="admin-card prof-card">
-          <div class="prof-card-head">
-            <span class="prof-card-icon">{{ ic.icon('eye', 18) }}</span>
-            <div><strong>Vista previa</strong><span>Así se verá tu negocio en la página pública.</span></div>
-          </div>
-          <div class="prof-preview">
-            {% if company.logo_url %}<img src="{{ company.logo_url }}" class="prof-preview-logo">
-            {% else %}<span class="prof-preview-logo prof-preview-logo--ph">{{ company.name[:2]|upper }}</span>{% endif %}
-            <div class="prof-preview-body">
-              <div class="prof-preview-name">{{ company.name }}</div>
-              <div class="prof-preview-cat">{{ company.category or 'Sin categoría' }}</div>
-              {% if company.address %}<div class="prof-preview-line">{{ ic.icon('pin', 13) }} {{ company.full_address }}</div>{% endif %}
-              {% if company.description %}<div class="prof-preview-desc">{{ company.description }}</div>{% endif %}
-            </div>
-            <a href="{{ url_for('public.company_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-secondary btn-sm">Ver página pública {{ ic.icon('external', 13) }}</a>
-          </div>
-        </div>
+      <div class="pf-actions">
+        <div class="pf-actions-inner"><button type="submit" form="company-form" class="btn btn-primary">Guardar cambios</button></div>
       </div>
+      <script src="{{ url_for('static', filename='admin_company_form.js') }}"></script>
 
     <!-- ════ PAYMENTS ══════════════════════════════════════ -->
     {% elif active_section == 'payments' and not plan_has(company, PF.payments) %}
@@ -1635,12 +1604,46 @@
         <div class="admin-card-header"><h2 class="admin-card-title">Qué se sincroniza con Google Calendar</h2></div>
         <div class="admin-card-body">
           <ul class="mb-0 small text-secondary" style="padding-left:1.1rem; line-height:1.8;">
-            <li>Al reservar → crea evento en Google Calendar</li>
-            <li>Al reprogramar → actualiza fecha y hora</li>
+            <li>Al reservar → crea el evento en tu calendario (título: prestación · cliente · profesional)</li>
+            <li>Al reprogramar → actualiza fecha, hora y profesional</li>
             <li>Al cancelar → elimina el evento</li>
+            <li>Si el profesional tiene cargado su email, el turno también le aparece en su calendario</li>
           </ul>
         </div>
       </div>
+
+      {% if google_plan_enabled %}
+      {% set gconn = company.google_calendar %}
+      <div class="admin-card gstaff-card">
+        <div class="admin-card-header"><h2 class="admin-card-title">Profesionales en Google Calendar</h2></div>
+        <div class="admin-card-body">
+          <p class="small text-secondary mb-3">Cada profesional tiene un color en tu calendario. Para que sus turnos le aparezcan en su propio calendario, cargá su email en la ficha del profesional.</p>
+          <ul class="gstaff-list">
+            {% for p in company.employees if p.active %}
+            {% set gc = google_color(p) %}
+            <li>
+              <span class="gstaff-color" style="background:{{ gc[1] }}" title="{{ gc[0] }}"></span>
+              <span class="gstaff-name">{{ p.name }}</span>
+              <span class="gstaff-mail">{% if p.calendar_email %}{{ ic.icon('check', 12) }} {{ p.calendar_email }}{% else %}<span class="text-secondary">Sin email: solo en tu calendario</span>{% endif %}</span>
+              <a class="pf-btn-soft gstaff-edit" href="{{ url_for('admin.dashboard', slug=company.slug, section='professionals', pro=p.id) }}">{{ 'Cambiar' if p.calendar_email else 'Cargar email' }}</a>
+            </li>
+            {% else %}
+            <li class="text-secondary small">Todavía no hay profesionales activos.</li>
+            {% endfor %}
+          </ul>
+          {% if gconn and gconn.enabled and gconn.refresh_token %}
+          <form method="post" action="{{ url_for('admin.google_settings', slug=company.slug) }}" class="gstaff-notify">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="d-flex align-items-start gap-2 m-0">
+              <input type="checkbox" name="notify_staff" value="1" {% if gconn.notify_staff %}checked{% endif %} onchange="this.form.submit()" style="margin-top:.2rem;">
+              <span><strong>Avisar por mail a los profesionales</strong><br><span class="small text-secondary">Google les manda un mail de invitación por cada turno nuevo, cambio o cancelación. Si está apagado, el turno solo aparece en su calendario.</span></span>
+            </label>
+          </form>
+          <p class="small text-secondary mt-3 mb-0">Si a un profesional con Gmail no le aparecen los turnos: en Google Calendar → Configuración → «Agregar invitaciones a mi calendario», que elija «De todos», o activá el aviso por mail de arriba.</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
 
     {% elif active_section == 'plan' %}
       {% set current_code = (company.plan_name or 'BASE')|upper %}
@@ -1776,9 +1779,10 @@
   window.TURNEX_EMPLOYEES_BY_SERVICE = {{ employees_by_service|tojson }};
   window.TURNEX_SELECTED_MANUAL_EMPLOYEE_ID = {{ manual_employee_id|tojson }};
   window.TURNEX_ADMIN_SLOTS_URL = "{{ url_for('admin.admin_slots_api', slug=company.slug) }}";
+  window.TURNEX_ADMIN_MONTH_URL = "{{ url_for('admin.admin_month_slots_api', slug=company.slug) }}";
 </script>
-<script src="{{ url_for('static', filename='admin_schedule_rows.js') }}"></script>
 <script src="{{ url_for('static', filename='admin_agenda.js') }}"></script>
+<script src="{{ url_for('static', filename='admin_nt_calendar.js') }}"></script>
 <script>
 // ── Nuevo Turno Panel ──────────────────────────────────────
 (function () {
@@ -1853,7 +1857,7 @@
   function showConfirm() {
     const emp = ntEmployee.options[ntEmployee.selectedIndex]?.text || '';
     const svc = ntService.options[ntService.selectedIndex]?.text || '';
-    const date = ntDate.value;
+    const date = ntDate.value.split('-').reverse().join('/');
     ntConfirmSum.textContent =
       `✓ ${svc} con ${emp} el ${date} a las ${selectedSlotLabel}`;
     ntConfirmBar.style.display = 'flex';
@@ -1903,9 +1907,9 @@
     }
   }
 
-  ntService.addEventListener('change', filterEmployees);
-  ntEmployee.addEventListener('change', loadSlots);
-  ntDate.addEventListener('change', loadSlots);
+  ntService?.addEventListener('change', filterEmployees);
+  ntEmployee?.addEventListener('change', loadSlots);
+  ntDate?.addEventListener('change', loadSlots);
   document.getElementById('nt-ignore-blocks')?.addEventListener('change', loadSlots);
 
   // Autocompletar campos desde cliente existente

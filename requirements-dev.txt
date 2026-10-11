@@ -1,0 +1,2 @@
+# Solo para correr las pruebas (python tests/run_all.py)
+aiosmtpd==1.4.6

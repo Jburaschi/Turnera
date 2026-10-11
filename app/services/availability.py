@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from ..extensions import db
 from ..timeutils import now_ar
 from ..models import Appointment, BlockedPeriod, Employee, Service, SlotHold
+from .holidays_ar import is_closed_for_holiday
 
 SLOT_STEP_MIN = 15
 HOLD_MINUTES = 10
@@ -94,6 +95,10 @@ def get_employee_slots_for_day(company, employee, service, day, ignore_past=Fals
     excepción — nunca desde la reserva pública. Los turnos ya reservados
     (Appointment) siempre siguen respetándose, eso no se puede forzar.
     """
+    # Feriado nacional: el negocio cierra, salvo que lo haya abierto desde Bloqueos.
+    # Forzar desde el panel (ignore_blocks) también permite cargar turnos ese día.
+    if not ignore_blocks and is_closed_for_holiday(company, day):
+        return []
     weekday = day.weekday()
     schedules = [s for s in employee.schedules if s.weekday == weekday]
     results = []

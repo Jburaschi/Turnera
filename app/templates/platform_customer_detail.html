@@ -1,0 +1,51 @@
+{% extends '_platform_layout.html' %}
+{% import '_platform_macros.html' as pm with context %}
+{% set platform_active = 'customers' %}
+{% block title %}{{ customer.full_name }} · Plataforma Turnex{% endblock %}
+{% block mtitle %}Cliente{% endblock %}
+{% block page %}
+<nav class="pf-crumbs"><a href="{{ url_for('platform.customers') }}">Clientes</a><span>/</span><span>{{ customer.full_name }}</span></nav>
+<div class="pf-head">
+  <div>
+    <h1 class="admin-page-title">{{ customer.full_name }}</h1>
+    <p class="admin-page-sub">Cliente de <strong>{{ customer.company.name }}</strong> (/{{ customer.company.slug }}) · desde {{ (customer.created_at|hora_ar).strftime('%d/%m/%Y') }}</p>
+  </div>
+  {{ pm.enter_form(customer.company, 'Abrir en su negocio', section='customers', q=customer.email) }}
+</div>
+
+<div class="cpf-grid">
+  <section class="admin-card pf-card">
+    <div class="pf-card-head"><span class="pf-card-icon">👤</span><div><h2 class="pf-card-title">Datos del cliente</h2><p class="pf-card-sub">Los cambios quedan registrados en Actividad.</p></div></div>
+    <form method="post" class="cpf-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="cpf-row cpf-row--2">
+        <div class="pf-field"><label class="form-label" for="c-name">Nombre</label><input class="form-control" id="c-name" name="full_name" value="{{ customer.full_name }}" required maxlength="120"></div>
+        <div class="pf-field"><label class="form-label" for="c-mail">Email</label><input class="form-control" id="c-mail" type="email" name="email" value="{{ customer.email }}" required maxlength="120"></div>
+      </div>
+      <div class="cpf-row cpf-row--2 cpf-mt">
+        <div class="pf-field"><label class="form-label" for="c-phone">Teléfono</label><input class="form-control" id="c-phone" name="phone" value="{{ customer.phone or '' }}" maxlength="50"></div>
+        <div class="pf-field"><label class="form-label" for="c-dni">DNI</label><input class="form-control" id="c-dni" name="dni" value="{{ customer.dni or '' }}" maxlength="40"></div>
+      </div>
+      <div class="pf-field cpf-mt"><label class="form-label" for="c-tags">Etiquetas</label><input class="form-control" id="c-tags" name="tags" value="{{ customer.tags or '' }}" maxlength="255" placeholder="VIP, frecuente…"></div>
+      <div class="pf-field cpf-mt"><label class="form-label" for="c-notes">Notas</label><textarea class="form-control" id="c-notes" name="notes" rows="3">{{ customer.notes or '' }}</textarea></div>
+      <div class="pf-field cpf-mt"><label class="form-label" for="c-pw">Nueva contraseña <span class="text-secondary fw-normal">(opcional)</span></label><input class="form-control" id="c-pw" name="password" minlength="6" autocomplete="new-password" placeholder="Solo si el cliente pidió que se la cambies"></div>
+      <div class="plat-form-actions"><button class="btn btn-primary">Guardar cambios</button></div>
+    </form>
+  </section>
+
+  <section class="admin-card pf-card">
+    <div class="pf-card-head"><span class="pf-card-icon">📅</span><div><h2 class="pf-card-title">Turnos</h2><p class="pf-card-sub">Los últimos {{ appts|length }}{{ ' (de los más recientes)' if appts|length == 30 }}.</p></div></div>
+    {% if appts %}
+    <ul class="plat-appt-list">
+      {% for ap in appts %}
+      <li>
+        <span class="plat-appt-date"><strong>{{ ap.start_dt.strftime('%d/%m/%Y') }}</strong><small>{{ ap.start_dt.strftime('%H:%M') }}</small></span>
+        <span class="plat-appt-body">{{ ap.service.name if ap.service else 'Turno' }}<small>{{ ap.employee.name if ap.employee else '' }}</small></span>
+        {{ pm.status_badge(ap.status, status_labels) }}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="text-secondary small mb-0">Todavía no tiene turnos.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

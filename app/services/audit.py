@@ -17,6 +17,11 @@ def _actor_info() -> tuple[str, int | None, str]:
         if getattr(current_user, 'is_platform_admin', False):
             return 'platform', current_user.id, current_user.name
         if getattr(current_user, 'is_admin', False):
+            from .platform_audit import IMPERSONATOR_KEY, acting_platform_user
+            from flask import session
+            if session.get(IMPERSONATOR_KEY):
+                pu = acting_platform_user()
+                return 'platform', getattr(pu, 'id', None), f"Plataforma ({getattr(pu, 'email', '?')})"
             role = getattr(current_user, 'role', 'admin')
             return role, current_user.id, current_user.name
         return 'customer', current_user.id, getattr(current_user, 'full_name', current_user.email)

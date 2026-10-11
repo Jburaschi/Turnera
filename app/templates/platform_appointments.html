@@ -1,0 +1,67 @@
+{% extends '_platform_layout.html' %}
+{% import '_platform_macros.html' as pm with context %}
+{% set platform_active = 'appointments' %}
+{% block title %}Turnos · Plataforma Turnex{% endblock %}
+{% block mtitle %}Turnos{% endblock %}
+{% block page %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Turnos de todas las empresas</h1>
+    <p class="admin-page-sub">Del {{ d1.strftime('%d/%m/%Y') }} al {{ d2.strftime('%d/%m/%Y') }}. Incluye a los clientes que reservaron como invitados.</p>
+  </div>
+</div>
+
+<div class="plat-chips mb-2">
+  {% set base = request.args.to_dict() %}{% set _ = base.pop('page', None) %}{% set _ = base.pop('desde', None) %}{% set _ = base.pop('hasta', None) %}
+  {% for key, label in [('hoy','Hoy'), ('7','Próximos 7 días'), ('30','Próximos 30 días'), ('pasados','Últimos 30 días')] %}
+  {% set _ = base.update({'rango': key}) %}
+  <a class="plat-chip {% if rng == key %}is-active{% endif %}" href="{{ url_for('platform.appointments', **base) }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<form method="get" class="admin-card plat-filterbar plat-filterbar--appts">
+  <input type="hidden" name="rango" value="custom">
+  <label class="plat-date"><span>Desde</span><input class="form-control" type="date" name="desde" value="{{ d1.isoformat() }}"></label>
+  <label class="plat-date"><span>Hasta</span><input class="form-control" type="date" name="hasta" value="{{ d2.isoformat() }}"></label>
+  <select class="form-select" name="company" aria-label="Negocio">
+    <option value="">Todos los negocios</option>
+    {% for c in companies %}<option value="{{ c.id }}" {% if company_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <select class="form-select" name="estado" aria-label="Estado">
+    <option value="">Todos los estados</option>
+    {% for k, l in status_labels.items() %}<option value="{{ k }}" {% if status == k %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Cliente, email o teléfono" aria-label="Buscar">
+  <button class="btn btn-dark">Filtrar</button>
+</form>
+
+<div class="admin-card">
+  <div class="admin-card-header">
+    <h2 class="admin-card-title">{{ total }} turno{{ 's' if total != 1 }}</h2>
+    <span class="plat-status-sum">{% for k, l in status_labels.items() if by_status.get(k) %}<span>{{ l }}: <strong>{{ by_status[k] }}</strong></span>{% endfor %}</span>
+  </div>
+  <div class="admin-table-wrap">
+    <table class="admin-table m-cards">
+      <thead><tr><th>Fecha</th><th>Cliente</th><th>Negocio</th><th>Prestación · profesional</th><th>Estado</th><th style="text-align:right;">Acciones</th></tr></thead>
+      <tbody>
+        {% for ap in appts %}
+        <tr>
+          <td><div class="fw-semibold">{{ ap.start_dt.strftime('%d/%m/%Y') }} · {{ ap.start_dt.strftime('%H:%M') }}</div></td>
+          <td class="small">
+            <div class="fw-semibold" style="color:#18181b;">{% if ap.customer %}<a href="{{ url_for('platform.customer_detail', customer_id=ap.customer.id) }}">{{ ap.customer_display_name }}</a>{% else %}{{ ap.customer_display_name }} <span class="text-secondary fw-normal">(invitado)</span>{% endif %}</div>
+            <div class="text-secondary">{{ ap.customer.email if ap.customer else (ap.guest_email or '') }}{% set ph = ap.customer.phone if ap.customer else ap.guest_phone %}{% if ph %} · {{ ph }}{% endif %}</div>
+          </td>
+          <td class="small">{{ ap.company.name }}</td>
+          <td class="small">{{ ap.service.name if ap.service else '—' }}{% if ap.employee %} · {{ ap.employee.name }}{% endif %}</td>
+          <td>{{ pm.status_badge(ap.status, status_labels) }}</td>
+          <td style="text-align:right;">{{ pm.enter_form(ap.company, 'Ver en su agenda', section='agenda', day=ap.start_dt.date().isoformat()) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-secondary small py-4">No hay turnos con esos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pm.pager(page, pages, 'platform.appointments') }}
+{% endblock %}

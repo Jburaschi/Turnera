@@ -1,0 +1,208 @@
+{# Vista dedicada para crear o editar un profesional (dentro del panel).
+   Variables: company, pro_form ('new' | 'edit'), pro_edit (Employee o None), weekday_labels. #}
+{% import '_icons.html' as ic %}
+{% set editing = pro_form == 'edit' %}
+{% set emp = pro_edit %}
+{% set emp_service_ids = (emp.services|map(attribute='id')|list) if editing else [] %}
+{% set list_url = url_for('admin.dashboard', slug=company.slug, section='professionals') %}
+
+{% macro slot_row(i, weekday, start_t, end_t, limited_ids) %}
+<div class="pf-slot" data-slot>
+  <div class="pf-slot-field pf-slot-day">
+    <label class="pf-mini-label">Día</label>
+    <select class="form-select" name="block_{{ i }}_weekday" data-field="weekday">
+      {% for wd, label in weekday_labels.items() %}<option value="{{ wd }}" {% if wd == weekday %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="pf-slot-field pf-slot-time">
+    <label class="pf-mini-label">Desde</label>
+    <input class="form-control" type="time" name="block_{{ i }}_start" value="{{ start_t }}" data-field="start" required>
+  </div>
+  <div class="pf-slot-field pf-slot-time">
+    <label class="pf-mini-label">Hasta</label>
+    <input class="form-control" type="time" name="block_{{ i }}_end" value="{{ end_t }}" data-field="end" required>
+  </div>
+  <div class="pf-slot-field pf-slot-services">
+    <label class="pf-mini-label">Prestaciones en esta franja</label>
+    <div class="pf-slot-svc" data-slot-services>
+      <div class="pf-slot-summary" data-slot-summary></div>
+      <button type="button" class="pf-slot-svc-btn" data-slot-toggle aria-expanded="false">{{ ic.icon('edit', 13) }} Elegir</button>
+      <div class="pf-slot-pop" data-slot-pop hidden>
+        <div class="pf-slot-pop-head">
+          <strong>Prestaciones en esta franja</strong>
+          <button type="button" class="pf-link" data-slot-all>Todas</button>
+        </div>
+        <div class="pf-slot-pop-list">
+          {% for service in company.services %}
+          <label class="pf-slot-opt" data-service-opt="{{ service.id }}">
+            <input type="checkbox" name="block_{{ i }}_service_ids" value="{{ service.id }}" data-name="{{ service.name }}"
+                   {% if not limited_ids or service.id in limited_ids %}checked{% endif %}>
+            <span>{{ service.name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <p class="pf-slot-pop-hint">Si dejás todas tildadas, en esta franja hace cualquiera de sus prestaciones.</p>
+        <button type="button" class="btn btn-sm btn-dark w-100" data-slot-close>Listo</button>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="pf-slot-remove" data-slot-remove title="Quitar franja" aria-label="Quitar franja">{{ ic.icon('trash', 16) }}</button>
+</div>
+{% endmacro %}
+
+<div class="pf-wrap">
+  <nav class="pf-crumbs" aria-label="Ruta">
+    <a href="{{ list_url }}">Profesionales</a><span>/</span><span>{{ emp.name if editing else 'Nuevo profesional' }}</span>
+  </nav>
+  <div class="pf-head">
+    <div>
+      <h1 class="admin-page-title">{{ 'Editar profesional' if editing else 'Nuevo profesional' }}</h1>
+      <p class="admin-page-sub">Completá los datos del profesional y configurá su disponibilidad.</p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm pf-cancel-top" href="{{ list_url }}">{{ ic.icon('x', 14) }} Cancelar</a>
+  </div>
+
+  <form method="post" id="pro-form" enctype="multipart/form-data"
+        action="{{ url_for('admin.update_employee', slug=company.slug, employee_id=emp.id) if editing else url_for('admin.create_employee', slug=company.slug) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# ── Datos ─────────────────────────────────────────────── #}
+    <section class="admin-card pf-card">
+      <div class="pf-card-head">
+        <span class="pf-card-icon">{{ ic.icon('user', 18) }}</span>
+        <div><h2 class="pf-card-title">Datos del profesional</h2></div>
+      </div>
+      <div class="pf-grid pf-grid--name">
+        <div class="pf-field">
+          <label class="form-label" for="pf-name">Nombre completo</label>
+          <input class="form-control" id="pf-name" name="name" value="{{ emp.name if editing else '' }}" placeholder="Ej. Martín Pérez" maxlength="120" required>
+        </div>
+        <div class="pf-field">
+          <label class="form-label" for="pf-active">Estado</label>
+          <div class="pf-status">
+            <span class="pf-status-dot" data-status-dot></span>
+            <select class="form-select" id="pf-active" name="active" data-status-select>
+              <option value="1" {% if not editing or emp.active %}selected{% endif %}>Activo</option>
+              <option value="0" {% if editing and not emp.active %}selected{% endif %}>Inactivo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="pf-grid pf-grid--name pf-grid--cal">
+        <div class="pf-field">
+          <label class="form-label" for="pf-cal">Email para su calendario <span class="text-secondary fw-normal">(opcional)</span></label>
+          <input class="form-control" type="email" id="pf-cal" name="calendar_email" maxlength="160" value="{{ (emp.calendar_email or '') if editing else '' }}" placeholder="juan@gmail.com" autocomplete="off">
+          <small class="pf-help">
+            {% set gconn = company.google_calendar %}
+            {% if plan_has(company, PF.google) and gconn and gconn.enabled and gconn.refresh_token %}
+              Sus turnos le van a aparecer en su propio calendario (Gmail, Outlook o el del celular), como una invitación. No necesita usuario en Turnex.
+            {% elif plan_has(company, PF.google) %}
+              Se usa cuando conectes Google Calendar en <a href="{{ url_for('admin.dashboard', slug=company.slug, section='integrations') }}">Integraciones</a>: cada turno le va a aparecer en su calendario.
+            {% else %}
+              Con Google Calendar (desde el plan PRO) cada turno le aparece en su propio calendario.
+            {% endif %}
+          </small>
+        </div>
+        {% if editing %}
+        <div class="pf-field">
+          <label class="form-label">Color en el calendario</label>
+          {% set gc = google_color(emp) %}
+          <span class="pf-gcolor"><i style="background:{{ gc[1] }}"></i>{{ gc[0] }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="pf-grid pf-grid--media">
+        <div class="pf-field">
+          <label class="form-label">Foto del profesional <span class="text-secondary fw-normal">(opcional)</span></label>
+          <label class="pf-drop" data-photo-drop>
+            <input type="file" name="photo_file" accept="image/png,image/jpeg" hidden data-photo-input>
+            <img class="pf-drop-preview" data-photo-preview alt="" {% if editing and emp.photo_url %}src="{{ emp.photo_url }}"{% else %}hidden{% endif %}>
+            <span class="pf-drop-icon" {% if editing and emp.photo_url %}hidden{% endif %} data-photo-icon>{{ ic.icon('image', 26) }}</span>
+            <span class="pf-drop-text" data-photo-text>{{ 'Cambiar la foto' if editing and emp.photo_url else 'Subí una foto del profesional' }}</span>
+            <small>JPG o PNG · máx. 2 MB</small>
+            <span class="pf-btn-soft pf-drop-btn">Seleccionar archivo</span>
+          </label>
+          {% if editing and emp.photo_url %}
+          <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="remove_photo" value="1" id="pf-rmphoto"><label class="form-check-label small text-secondary" for="pf-rmphoto">Quitar la foto actual</label></div>
+          {% endif %}
+        </div>
+        <div class="pf-field">
+          <label class="form-label" for="pf-bio">Descripción breve</label>
+          <textarea class="form-control pf-bio" id="pf-bio" name="bio" maxlength="250" rows="5" data-counter
+                    placeholder="Aparece en la página pública.&#10;Ej. Especialista en cortes clásicos y modernos…">{{ (emp.bio or '') if editing else '' }}</textarea>
+          <div class="pf-counter"><span data-counter-value>0</span> / 250</div>
+        </div>
+      </div>
+    </section>
+
+    {# ── Prestaciones ──────────────────────────────────────── #}
+    <section class="admin-card pf-card">
+      <div class="pf-card-head">
+        <span class="pf-card-icon">{{ ic.icon('scissors', 18) }}</span>
+        <div>
+          <h2 class="pf-card-title">Prestaciones que realiza</h2>
+          <p class="pf-card-sub">Seleccioná los servicios que puede realizar este profesional.</p>
+        </div>
+      </div>
+      {% if company.services %}
+      <div class="pf-services">
+        {% for service in company.services %}
+        <label class="pf-service {% if service.id in emp_service_ids %}is-checked{% endif %}">
+          <input type="checkbox" name="service_ids" value="{{ service.id }}" data-pro-service="{{ service.id }}" {% if service.id in emp_service_ids %}checked{% endif %}>
+          <span class="pf-service-check" aria-hidden="true">{{ ic.icon('check', 13) }}</span>
+          <span class="pf-service-body">
+            <strong>{{ service.name }}</strong>
+            <span>{{ ic.icon('clock', 13) }} {{ service.duration_min }} min{% if not service.active %} · oculta{% endif %}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-secondary small mb-0">Todavía no cargaste prestaciones. <a href="{{ url_for('admin.dashboard', slug=company.slug, section='services') }}">Crear prestaciones →</a></p>
+      {% endif %}
+    </section>
+
+    {# ── Horarios ──────────────────────────────────────────── #}
+    <section class="admin-card pf-card">
+      <div class="pf-card-head pf-card-head--action">
+        <span class="pf-card-icon">{{ ic.icon('clock', 18) }}</span>
+        <div>
+          <h2 class="pf-card-title">Horarios de atención</h2>
+          <p class="pf-card-sub">Configurá los días y las franjas en las que trabaja. En cada franja podés limitar las prestaciones.</p>
+        </div>
+        <button type="button" class="pf-btn-soft pf-add-slot" data-slot-add>{{ ic.icon('plus', 14) }} Agregar franja</button>
+      </div>
+      <div class="pf-slots" data-slots>
+        {% if editing and emp.schedules %}
+          {% for sch in emp.schedules|sort(attribute='weekday') %}{% set lids = sch.limited_services|map(attribute='id')|list if sch.limited_services else [] %}{{ slot_row(loop.index0, sch.weekday, sch.start_time.strftime('%H:%M'), sch.end_time.strftime('%H:%M'), lids) }}{% endfor %}
+        {% else %}
+          {{ slot_row(0, 0, '09:00', '17:00', []) }}
+        {% endif %}
+      </div>
+      <div class="pf-replicate">
+        <span class="pf-replicate-icon">{{ ic.icon('copy', 18) }}</span>
+        <div class="pf-replicate-text">
+          <strong>Replicar horarios</strong>
+          <span>Copiá los horarios del lunes a martes, miércoles, jueves y viernes.</span>
+        </div>
+        <button type="button" class="pf-btn-soft" data-slot-replicate>{{ ic.icon('copy', 14) }} Replicar lu → mar–vie</button>
+      </div>
+    </section>
+  </form>
+
+  {# Acciones fijas abajo #}
+  <div class="pf-actions">
+    <div class="pf-actions-inner">
+      {% if editing %}
+      <form method="post" action="{{ url_for('admin.delete_employee', slug=company.slug, employee_id=emp.id) }}" class="pf-delete"
+            onsubmit="return confirm('¿Eliminar a {{ emp.name }}? Si tiene historial de turnos, se desactivará en vez de borrarse.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-link text-danger btn-sm">{{ ic.icon('trash', 14) }} Eliminar</button>
+      </form>
+      {% endif %}
+      <a class="btn btn-outline-secondary" href="{{ list_url }}">Cancelar</a>
+      <button type="submit" form="pro-form" class="btn btn-primary">{{ 'Guardar cambios' if editing else 'Crear profesional' }}</button>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='admin_professional_form.js') }}"></script>

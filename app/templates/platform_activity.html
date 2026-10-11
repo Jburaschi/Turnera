@@ -1,0 +1,42 @@
+{% extends '_platform_layout.html' %}
+{% import '_platform_macros.html' as pm with context %}
+{% set platform_active = 'activity' %}
+{% block title %}Actividad · Plataforma Turnex{% endblock %}
+{% block mtitle %}Actividad{% endblock %}
+{% block page %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Actividad de plataforma</h1>
+    <p class="admin-page-sub">Todo lo que hicieron los usuarios de plataforma: en este panel y dentro de los negocios con «Entrar».</p>
+  </div>
+</div>
+<form method="get" class="admin-card plat-filterbar">
+  <select class="form-select" name="company" aria-label="Negocio">
+    <option value="">Todos los negocios</option>
+    {% for c in companies %}<option value="{{ c.id }}" {% if company_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <select class="form-select" name="usuario" aria-label="Usuario">
+    <option value="">Todos los usuarios</option>
+    {% for u in users %}<option value="{{ u.id }}" {% if user_id == u.id %}selected{% endif %}>{{ u.name }} ({{ u.email }})</option>{% endfor %}
+  </select>
+  <button class="btn btn-dark">Filtrar</button>
+</form>
+<div class="admin-card">
+  <div class="admin-card-header"><h2 class="admin-card-title">{{ total }} acci{{ 'ones' if total != 1 else 'ón' }}</h2></div>
+  <ul class="plat-log">
+    {% for r in rows %}
+    <li>
+      <span class="plat-log-when"><strong>{{ (r.created_at|hora_ar).strftime('%d/%m/%Y') }}</strong><small>{{ (r.created_at|hora_ar).strftime('%H:%M') }}</small></span>
+      <span class="plat-log-body">
+        <span><strong>{{ r.action }}</strong>{% if r.company %} · <span class="text-secondary">{{ r.company.name }}</span>{% endif %}</span>
+        {% if r.detail %}<small>{{ r.detail }}</small>{% endif %}
+      </span>
+      <span class="plat-log-who">{{ r.platform_user_email or '—' }}</span>
+    </li>
+    {% else %}
+    <li class="text-secondary small py-3">Todavía no hay acciones registradas.</li>
+    {% endfor %}
+  </ul>
+</div>
+{{ pm.pager(page, pages, 'platform.activity') }}
+{% endblock %}

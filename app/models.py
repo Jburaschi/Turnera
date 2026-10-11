@@ -237,6 +237,7 @@ class Employee(db.Model):
     color      = db.Column(db.String(20), default='#0d6efd', nullable=False)
     photo_url  = db.Column(db.String(500), nullable=True)
     bio        = db.Column(db.String(300), nullable=True)
+    calendar_email = db.Column(db.String(160), nullable=True)   # invitación a su calendario (Google, Outlook…)
 
     company = db.relationship('Company', back_populates='employees')
     services = db.relationship('Service', secondary=employee_services, back_populates='employees')
@@ -409,6 +410,7 @@ class GoogleCalendarConnection(db.Model):
     access_token = db.Column(db.Text, nullable=True)
     token_expiry = db.Column(db.DateTime, nullable=True)
     scopes = db.Column(db.Text, nullable=True)
+    notify_staff = db.Column(db.Boolean, nullable=True)   # Google avisa por mail a los profesionales invitados
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -469,3 +471,29 @@ WEEKDAY_LABELS = {
     5: 'Sábado',
     6: 'Domingo',
 }
+
+class HolidayOptOut(db.Model):
+    """Feriado nacional que el negocio decidió abrir (atiende ese día)."""
+    __tablename__ = 'holiday_opt_out'
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False, index=True)
+    day = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    __table_args__ = (db.UniqueConstraint('company_id', 'day', name='uq_holiday_opt_out_company_day'),)
+
+
+class PlatformAuditLog(db.Model):
+    """Lo que hace un usuario de plataforma: en el panel de plataforma o
+    dentro del panel de un negocio con "Entrar"."""
+    __tablename__ = 'platform_audit_log'
+    id = db.Column(db.Integer, primary_key=True)
+    platform_user_id = db.Column(db.Integer, db.ForeignKey('platform_user.id'), nullable=True, index=True)
+    platform_user_email = db.Column(db.String(120), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True, index=True)
+    action = db.Column(db.String(80), nullable=False)
+    detail = db.Column(db.String(500), nullable=True)
+    path = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    platform_user = db.relationship('PlatformUser')
+    company = db.relationship('Company')

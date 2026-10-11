@@ -23,13 +23,6 @@
     </div>
 
     <div class="admin-content">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show mb-3 rounded-3" role="alert">
-          {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endwith %}
 
     <div class="admin-page-header">
       <div>

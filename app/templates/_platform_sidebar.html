@@ -9,6 +9,15 @@
     <a href="{{ url_for('platform.dashboard') }}" class="admin-nav-item {% if platform_active == 'companies' %}active{% endif %}">
       <span class="admin-nav-icon">🏢</span> Empresas
     </a>
+    <a href="{{ url_for('platform.customers') }}" class="admin-nav-item {% if platform_active == 'customers' %}active{% endif %}">
+      <span class="admin-nav-icon">👥</span> Clientes
+    </a>
+    <a href="{{ url_for('platform.appointments') }}" class="admin-nav-item {% if platform_active == 'appointments' %}active{% endif %}">
+      <span class="admin-nav-icon">📅</span> Turnos
+    </a>
+    <a href="{{ url_for('platform.activity') }}" class="admin-nav-item {% if platform_active == 'activity' %}active{% endif %}">
+      <span class="admin-nav-icon">🧾</span> Actividad
+    </a>
     <a href="{{ url_for('platform.account') }}" class="admin-nav-item {% if platform_active == 'account' %}active{% endif %}">
       <span class="admin-nav-icon">👤</span> Mi cuenta y usuarios
     </a>

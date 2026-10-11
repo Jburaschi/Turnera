@@ -33,7 +33,6 @@ if (root) {
   const calendarTitle   = document.getElementById('calendar-title');
   const calendarGrid    = document.getElementById('calendar-grid');
   const timeSlots       = document.getElementById('time-slots');
-  const timeContext     = document.getElementById('time-context');
 
   const summaryService  = document.getElementById('summary-service');
   const summaryDate     = document.getElementById('summary-date');
@@ -314,7 +313,6 @@ if (root) {
     resetSummary();
     hideConfirmScreen();
 
-    timeContext.textContent = 'Primero elegí una fecha.';
     employeeOptions.innerHTML = '';
     calendarGrid.innerHTML = '';
     timeSlots.innerHTML = '';
@@ -655,7 +653,6 @@ if (root) {
     dateStatus.textContent = formatHumanDate(iso);
     timeStatus.textContent = 'Elegí un horario';
     renderSummary('Ahora elegí una hora para continuar.');
-    timeContext.textContent = `${selectedService.name} · ${formatHumanDate(iso)}. Ahora elegí una hora.`;
 
     const qs = new URLSearchParams({ service_id: selectedService.id, date: iso });
     if (selectedMode === 'employee' && selectedEmployeeId) qs.set('employee_id', selectedEmployeeId);

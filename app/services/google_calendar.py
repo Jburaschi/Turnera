@@ -99,12 +99,43 @@ def _appointment_event_body(appointment: Appointment):
     if appointment.notes:
         description_lines.append(f"Notas: {appointment.notes}")
 
-    return {
-        "summary": f"{service_name} · {who}",
+    body = {
+        "summary": " · ".join(p for p in (service_name, who, employee_name) if p),
         "description": "\n".join(description_lines),
         "start": {"dateTime": start.isoformat(), "timeZone": tz.key},
         "end": {"dateTime": end.isoformat(), "timeZone": tz.key},
+        # El profesional invitado aparece en su propio calendario (Gmail, Outlook…).
+        # Lista vacía al actualizar = si cambió de profesional, se saca al anterior.
+        "attendees": [],
     }
+    employee = appointment.employee
+    if employee:
+        body["colorId"] = employee_color_id(employee)
+        if employee.calendar_email:
+            body["attendees"] = [{"email": employee.calendar_email, "displayName": employee.name}]
+    return body
+
+
+# Colores de evento de Google Calendar (1 a 11). Cada profesional tiene uno fijo.
+GOOGLE_EVENT_COLORS = {
+    '1': ('Lavanda', '#7986cb'), '2': ('Salvia', '#33b679'), '3': ('Uva', '#8e24aa'),
+    '4': ('Flamenco', '#e67c73'), '5': ('Banana', '#f6bf26'), '6': ('Mandarina', '#f4511e'),
+    '7': ('Pavo real', '#039be5'), '8': ('Grafito', '#616161'), '9': ('Arándano', '#3f51b5'),
+    '10': ('Albahaca', '#0b8043'), '11': ('Tomate', '#d50000'),
+}
+_COLOR_ORDER = ['7', '2', '6', '3', '5', '11', '9', '10', '4', '1', '8']
+
+
+def employee_color_id(employee) -> str:
+    """Color fijo por profesional, según su orden dentro del negocio."""
+    ids = sorted(e.id for e in employee.company.employees) if employee.company else [employee.id]
+    pos = ids.index(employee.id) if employee.id in ids else employee.id
+    return _COLOR_ORDER[pos % len(_COLOR_ORDER)]
+
+
+def _send_updates(conn) -> str:
+    """'all' manda el mail de Google a los invitados; 'none' solo lo agrega a su calendario."""
+    return 'all' if getattr(conn, 'notify_staff', False) else 'none'
 
 
 def ensure_google_event_for_appointment(appointment: Appointment) -> None:
@@ -145,14 +176,16 @@ def _ensure_google_event(appointment: Appointment) -> None:
     if appointment.google_event_id:
         updated = (
             service.events()
-            .patch(calendarId=conn.calendar_id, eventId=appointment.google_event_id, body=body)
+            .patch(calendarId=conn.calendar_id, eventId=appointment.google_event_id, body=body,
+                   sendUpdates=_send_updates(conn))
             .execute()
         )
         appointment.google_event_id = updated.get("id") or appointment.google_event_id
         db.session.commit()
         return
 
-    created = service.events().insert(calendarId=conn.calendar_id, body=body).execute()
+    created = service.events().insert(calendarId=conn.calendar_id, body=body,
+                                      sendUpdates=_send_updates(conn)).execute()
     appointment.google_event_id = created.get("id")
     db.session.commit()
 
@@ -169,7 +202,8 @@ def _delete_google_event(appointment: Appointment) -> None:
 
     service = get_calendar_service(conn)
     try:
-        service.events().delete(calendarId=conn.calendar_id, eventId=appointment.google_event_id).execute()
+        service.events().delete(calendarId=conn.calendar_id, eventId=appointment.google_event_id,
+                                sendUpdates=_send_updates(conn)).execute()
     except Exception:
         # Si ya no existe el evento, consideramos ok.
         pass

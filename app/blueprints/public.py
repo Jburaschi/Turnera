@@ -11,7 +11,7 @@ from ..services.appointment_service import cancel_appointment_logic, customer_ch
 from ..services.google_calendar import ensure_google_event_for_appointment, delete_google_event_for_appointment
 from ..services.email_service import send_booking_confirmed, send_booking_canceled, send_booking_rescheduled
 from ..services import audit as audit_log
-from ..timeutils import TZ_LABEL, parse_iso_date, today_ar
+from ..timeutils import parse_iso_date, today_ar
 from ..utils import format_ars
 
 
@@ -125,7 +125,7 @@ def booking_page(slug):
     company = get_company_or_404(slug)
     if not _company_accepts_bookings(company):
         return render_template('booking_unavailable.html', company=company)
-    return render_template('booking.html', company=company, timezone_label=TZ_LABEL)
+    return render_template('booking.html', company=company)
 
 
 @public_bp.route('/api/<slug>/services')

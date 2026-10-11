@@ -1,0 +1,26 @@
+{% macro pager(page, pages, endpoint) %}
+{% if pages > 1 %}
+<nav class="plat-pager" aria-label="Páginas">
+  {% set args = request.args.to_dict() %}
+  {% if page > 1 %}{% set _ = args.update({'page': page - 1}) %}<a class="pf-btn-soft" href="{{ url_for(endpoint, **args) }}">← Anterior</a>{% endif %}
+  <span>Página {{ page }} de {{ pages }}</span>
+  {% if page < pages %}{% set _ = args.update({'page': page + 1}) %}<a class="pf-btn-soft" href="{{ url_for(endpoint, **args) }}">Siguiente →</a>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}
+
+{% macro enter_form(company, label='Abrir en su negocio', section=None, day=None, q=None, cls='pf-btn-soft') %}
+<form method="post" action="{{ url_for('platform.enter_company', company_id=company.id) }}" class="d-inline m-0">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if section %}<input type="hidden" name="section" value="{{ section }}">{% endif %}
+  {% if day %}<input type="hidden" name="day" value="{{ day }}">{% endif %}
+  {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+  <button class="{{ cls }}" type="submit">{{ label }}</button>
+</form>
+{% endmacro %}
+
+{% macro status_badge(status, labels) %}
+{% set colors = {'BOOKED': ('#eef1ff','#3654f0'), 'DONE': ('#eafaf0','#15803d'), 'CANCELED': ('#fef2f2','#b91c1c'), 'NO_SHOW': ('#fff6e4','#b45309')} %}
+{% set c = colors.get(status, ('#f4f4f5','#52525b')) %}
+<span class="entity-badge" style="background:{{ c[0] }};color:{{ c[1] }};">{{ labels.get(status, status) }}</span>
+{% endmacro %}

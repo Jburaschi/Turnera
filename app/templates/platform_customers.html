@@ -1,0 +1,48 @@
+{% extends '_platform_layout.html' %}
+{% import '_platform_macros.html' as pm with context %}
+{% set platform_active = 'customers' %}
+{% block title %}Clientes · Plataforma Turnex{% endblock %}
+{% block mtitle %}Clientes{% endblock %}
+{% block page %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Clientes de todas las empresas</h1>
+    <p class="admin-page-sub">{{ total_all }} cliente{{ 's' if total_all != 1 }} registrado{{ 's' if total_all != 1 }}. Los que reservaron como invitados (sin cuenta) se buscan en <a href="{{ url_for('platform.appointments') }}">Turnos</a>.</p>
+  </div>
+</div>
+
+<form method="get" class="admin-card plat-filterbar">
+  <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Nombre, email, teléfono, DNI o negocio" aria-label="Buscar cliente">
+  <select class="form-select" name="company" aria-label="Negocio">
+    <option value="">Todos los negocios</option>
+    {% for c in companies %}<option value="{{ c.id }}" {% if company_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-dark">Buscar</button>
+  {% if q or company_id %}<a class="plat-clear" href="{{ url_for('platform.customers') }}">Limpiar</a>{% endif %}
+</form>
+
+<div class="admin-card">
+  <div class="admin-card-header"><h2 class="admin-card-title">{{ total }} resultado{{ 's' if total != 1 }}</h2></div>
+  <div class="admin-table-wrap">
+    <table class="admin-table m-cards">
+      <thead><tr><th>Cliente</th><th>Contacto</th><th>Negocio</th><th>Turnos</th><th>Último turno</th><th style="text-align:right;">Acciones</th></tr></thead>
+      <tbody>
+        {% for c in customers %}
+        {% set st = stats.get(c.id, (0, None)) %}
+        <tr>
+          <td><div class="fw-semibold">{{ c.full_name }}</div>{% if c.dni %}<div class="text-secondary small">DNI {{ c.dni }}</div>{% endif %}</td>
+          <td class="small"><div>{{ c.email }}</div>{% if c.phone %}<div class="text-secondary">{{ c.phone }}</div>{% endif %}</td>
+          <td class="small">{{ c.company.name }}</td>
+          <td class="small">{{ st[0] }} turno{{ 's' if st[0] != 1 }}</td>
+          <td class="small">{{ st[1].strftime('%d/%m/%Y') if st[1] else '—' }}</td>
+          <td style="text-align:right;"><a class="pf-btn-soft" href="{{ url_for('platform.customer_detail', customer_id=c.id) }}">Ver y editar</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-secondary small py-4">{{ 'No hay clientes que coincidan con la búsqueda.' if q or company_id else 'Todavía no hay clientes registrados.' }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pm.pager(page, pages, 'platform.customers') }}
+{% endblock %}

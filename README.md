@@ -44,10 +44,18 @@ En `/platform/login`. Desde ahí:
   (turnos del mes, profesionales, clientes, usuarios).
 - **Entrar**: abre el panel del negocio como su dueño, para dar soporte sin
   pedirle la contraseña. Abajo aparece "Volver a plataforma". Lo que se cambie
-  ahí se guarda de verdad y queda registrado a nombre del dueño.
+  ahí se guarda de verdad y queda registrado en **Actividad** (y en el historial
+  del turno figura como "Plataforma (tu email)").
 - **Editar**: plan (BASE/PRO/PREMIUM), estado (Prueba/Activo/Suspendido), días
   de prueba, datos del dueño, usuarios del panel y pagos recibidos.
 - **Pedidos de plan y bajas** que hacen los negocios desde "Mi plan".
+- **Clientes**: los clientes registrados de todas las empresas, con búsqueda por
+  nombre, email, teléfono, DNI o negocio. Se editan directo (datos, notas,
+  contraseña) o se abren en su negocio.
+- **Turnos**: los turnos de todas las empresas (incluye invitados), con filtros
+  por fecha, negocio, estado y cliente, y acceso a la agenda de ese día.
+- **Actividad**: registro de todo lo que hacen los usuarios de plataforma, en
+  este panel y dentro de los negocios. No guarda contraseñas.
 - **Mi cuenta y usuarios**: cambiar tu contraseña y agregar o desactivar otros
   usuarios de plataforma.
 
@@ -77,6 +85,8 @@ este cambio, ya tiene `pepito`: desactivala desde Plataforma.
 | `GOOGLE_REDIRECT_URI` | Opcional | Fija la URL de retorno de Google. Por defecto `https://<tu-dominio>/admin/integrations/google/callback`. |
 | `SEED_DEMO` | Opcional | `1` crea la empresa demo `pepito` aunque sea producción (solo para staging). |
 | `TRUSTED_PROXIES` | Opcional | Cantidad de proxies delante de la app. Por defecto `1` en producción (Railway/Render) y `0` en local. |
+| `REDIS_URL` | Opcional | Redis para el límite de intentos (login, reservas). Sin Redis el límite vive en la memoria del proceso. |
+| `WEB_CONCURRENCY` / `GUNICORN_THREADS` | Opcional | Procesos e hilos de gunicorn (por defecto `1` y `8`). Con más de un proceso, configurá `REDIS_URL` para que el límite de intentos sea compartido. |
 
 ---
 
@@ -177,5 +187,24 @@ les manda el mail si hay email y los marca para no repetir. Devuelve un JSON con
   profesional a la misma hora. Si ya existen turnos duplicados, el log lo avisa
   (`No se pudo crear el índice uq_appointment_employee_start_booked`): resolvé
   esos turnos y reiniciá.
-- Los cambios de esquema en SQLite se aplican solos al arrancar. En Postgres,
-  cualquier cambio futuro de modelos necesita una migración (Alembic).
+- Al arrancar se crean las tablas nuevas y se agregan solas las columnas
+  opcionales nuevas (en SQLite y en Postgres), sin tocar los datos. Para
+  cambios más grandes de modelos va a hacer falta una migración (Alembic).
+- La conexión a Postgres revisa cada conexión antes de usarla
+  (`pool_pre_ping`): así Neon puede "dormir" la base sin que la primera visita
+  dé error.
+- **Feriados nacionales**: salen de la librería `holidays` (sin internet).
+  Cuando el gobierno anuncia los feriados trasladables o turísticos de un año,
+  actualizá su versión en `requirements.txt`. Cada negocio puede abrir un
+  feriado desde Bloqueos.
+
+## Pruebas automáticas
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+python tests/run_all.py            # todas (≈1 minuto)
+python tests/run_all.py feriados   # solo las que contienen "feriados"
+```
+
+Cada prueba usa una base SQLite temporal con el negocio demo, así que no toca
+ninguna base real. Correlas antes de cada despliegue.

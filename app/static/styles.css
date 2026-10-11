@@ -612,7 +612,6 @@ body {
 .option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .85rem; align-items: stretch; }
 .option-grid .employee-card { height: 100%; }
 
-.timezone-note { display: flex; align-items: center; gap: .5rem; background: color-mix(in srgb, var(--brand, #3654f0) 6%, #fff); color: var(--brand, #3654f0); font-size: .82rem; padding: .7rem .9rem; border-radius: 8px; margin-bottom: 1.2rem; }
 .time-group { margin-bottom: 1.6rem; padding-bottom: 1.6rem; border-bottom: 1px solid #f1f1f3; }
 .time-group:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
 .time-group-label { display: flex; align-items: center; gap: .5rem; font-size: 1rem; color: #18181b; margin-bottom: 1rem; }

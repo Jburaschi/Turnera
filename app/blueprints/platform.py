@@ -3,12 +3,13 @@ from datetime import datetime, timedelta
 from functools import wraps
 from flask import Blueprint, current_app, render_template, request, redirect, session, url_for, flash, abort
 from flask_login import current_user, login_user, logout_user
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from ..extensions import db
 from ..models import (Company, CompanyConfig, AdminUser, Appointment, Customer, Employee,
-                      PlanRequest, PlatformUser, SubscriptionPayment)
+                      PlanRequest, PlatformAuditLog, PlatformUser, Service, SubscriptionPayment)
+from ..services.platform_audit import changed_fields, log_platform
 from ..plans import PLAN_CODES, PLAN_STATUSES, TRIAL_DAYS
-from ..timeutils import today_ar
+from ..timeutils import parse_iso_date, today_ar
 from ..utils import apply_address, clean_public_url, is_reserved_slug, read_address_form, slugify
 
 platform_bp = Blueprint('platform', __name__, url_prefix='/platform')
@@ -217,6 +218,7 @@ def create_company():
     admin.set_password(admin_password)
     db.session.add_all([company, config, admin])
     db.session.commit()
+    log_platform('Creó una empresa', f'{company.name} (/{company.slug}) · plan {plan_name} {PLAN_STATUSES[plan_status]} · dueño {admin_email}', company=company)
     flash(f'Empresa {company.name} creada. URL pública: /{company.slug}', 'success')
     return redirect(url_for('platform.dashboard'))
 
@@ -255,6 +257,7 @@ def update_company(company_id):
         flash(f'No se pudo guardar: la contraseña debe tener al menos {MIN_PASSWORD} caracteres.', 'danger')
         return back
 
+    before = {'plan': (company.plan_name, company.plan_status), 'active': company.active, 'slug': company.slug}
     company.name = request.form.get('name', company.name).strip() or company.name
     company.slug = proposed_slug
     company.email = request.form.get('email', '').strip() or None
@@ -290,7 +293,17 @@ def update_company(company_id):
         owner.active = 'admin_active' in request.form
         if new_password:
             owner.set_password(new_password)
+    changes = []
+    if before['plan'] != (company.plan_name, company.plan_status):
+        changes.append(f"plan {before['plan'][0]} {before['plan'][1]} → {company.plan_name} {company.plan_status}")
+    if before['active'] != company.active:
+        changes.append('visible' if company.active else 'oculta')
+    if before['slug'] != company.slug:
+        changes.append(f"link /{before['slug']} → /{company.slug}")
+    if new_password:
+        changes.append('cambió la contraseña del dueño')
     db.session.commit()
+    log_platform('Editó una empresa', '; '.join(changes) or f'Campos: {changed_fields(request.form)}', company=company)
     flash('Empresa actualizada.', 'success')
     return back
 
@@ -309,14 +322,27 @@ def enter_company(company_id):
     logout_user()
     login_user(owner)
     session[IMPERSONATOR_KEY] = platform_user_id
+    log_platform('Entró al panel del negocio', f'Como {owner.email}', company=company)
     flash(f'Estás viendo el panel de {company.name} como su dueño. Todo lo que cambies se guarda de verdad.', 'info')
+    section = request.form.get('section')
+    if section in ('agenda', 'customers'):
+        day = parse_iso_date(request.form.get('day'))
+        args = {'section': section}
+        if day:
+            args['day'] = day.isoformat()
+        if section == 'customers' and request.form.get('q'):
+            args['q'] = request.form.get('q')[:120]
+        return redirect(url_for('admin.dashboard', slug=company.slug, **args))
     return redirect(url_for('admin.dashboard', slug=company.slug))
 
 
 @platform_bp.route('/volver', methods=['POST'])
 def leave_company():
     """Sale del panel del negocio y vuelve a la sesión de plataforma."""
-    platform_user_id = session.pop(IMPERSONATOR_KEY, None)
+    platform_user_id = session.get(IMPERSONATOR_KEY)
+    if platform_user_id:
+        log_platform('Salió del panel del negocio', '', company=getattr(current_user, 'company', None))
+    session.pop(IMPERSONATOR_KEY, None)
     slug = current_user.company.slug if (current_user.is_authenticated and getattr(current_user, 'is_admin', False)) else None
     logout_user()
     user = db.session.get(PlatformUser, platform_user_id) if platform_user_id else None
@@ -337,6 +363,7 @@ def resolve_plan_request(request_id):
     req.status = 'DONE'
     req.resolved_at = datetime.utcnow()
     db.session.commit()
+    log_platform('Resolvió un pedido de plan', f"{'Cambio a ' + (req.requested_plan or '') if req.kind == 'CHANGE' else 'Baja'}", company_id=req.company_id)
     flash(f'Pedido de {req.company.name} marcado como resuelto.', 'success')
     return redirect(url_for('platform.dashboard'))
 
@@ -360,6 +387,7 @@ def add_payment(company_id):
     )
     db.session.add(payment)
     db.session.commit()
+    log_platform('Registró un pago', f'$ {amount:,.0f} · {payment.method} · {payment.status}'.replace(',', '.'), company=company)
     flash(f'Pago registrado para {company.name}.', 'success')
     return redirect(request.referrer or url_for('platform.dashboard'))
 
@@ -388,6 +416,7 @@ def change_password():
         user = db.session.get(PlatformUser, current_user.id)
         user.set_password(new)
         db.session.commit()
+        log_platform('Cambió su contraseña')
         # La sesión depende de la contraseña: volvemos a iniciarla para no cerrarla.
         login_user(user)
         flash('Contraseña actualizada.', 'success')
@@ -411,6 +440,7 @@ def create_platform_user():
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
+        log_platform('Creó un usuario de plataforma', email)
         flash(f'Usuario {email} creado. Ya puede entrar en /platform/login.', 'success')
     return redirect(url_for('platform.account'))
 
@@ -424,5 +454,161 @@ def toggle_platform_user(user_id):
     else:
         user.active = not user.active
         db.session.commit()
+        log_platform('Activó un usuario de plataforma' if user.active else 'Desactivó un usuario de plataforma', user.email)
         flash(f'Usuario {user.email} {"activado" if user.active else "desactivado"}.', 'success')
     return redirect(url_for('platform.account'))
+
+
+# ── Clientes de todas las empresas ─────────────────────────────────────────
+PAGE = 50
+
+
+def _digits_col(col):
+    """El campo sin espacios, guiones, puntos, paréntesis ni '+', para buscar teléfonos y DNI."""
+    for ch in (' ', '-', '.', '(', ')', '+'):
+        col = func.replace(col, ch, '')
+    return col
+
+
+def _pages(total):
+    return max(1, (total + PAGE - 1) // PAGE)
+
+
+@platform_bp.route('/clientes')
+@platform_required
+def customers():
+    q = (request.args.get('q') or '').strip()
+    company_id = request.args.get('company', type=int)
+    page = max(1, request.args.get('page', 1, type=int))
+    query = Customer.query.join(Company, Customer.company_id == Company.id)
+    if company_id:
+        query = query.filter(Customer.company_id == company_id)
+    if q:
+        like = f'%{q.lower()}%'
+        digits = ''.join(ch for ch in q if ch.isdigit())
+        conds = [func.lower(Customer.full_name).like(like), func.lower(Customer.email).like(like),
+                 func.lower(Company.name).like(like)]
+        if digits:
+            conds += [_digits_col(Customer.phone).like(f'%{digits}%'), _digits_col(Customer.dni).like(f'%{digits}%')]
+        query = query.filter(or_(*conds))
+    total = query.count()
+    rows = query.order_by(Customer.created_at.desc()).offset((page - 1) * PAGE).limit(PAGE).all()
+    ids = [c.id for c in rows]
+    stats = {}
+    if ids:
+        for cid, n, last in (db.session.query(Appointment.customer_id, func.count(Appointment.id), func.max(Appointment.start_dt))
+                             .filter(Appointment.customer_id.in_(ids)).group_by(Appointment.customer_id).all()):
+            stats[cid] = (n, last)
+    companies = Company.query.order_by(Company.name).all()
+    return render_template('platform_customers.html', customers=rows, stats=stats, total=total, q=q,
+                           company_id=company_id, companies=companies, page=page, pages=_pages(total),
+                           total_all=Customer.query.count())
+
+
+@platform_bp.route('/clientes/<int:customer_id>', methods=['GET', 'POST'])
+@platform_required
+def customer_detail(customer_id):
+    customer = db.session.get(Customer, customer_id) or abort(404)
+    if request.method == 'POST':
+        email = (request.form.get('email') or '').strip().lower()
+        name = (request.form.get('full_name') or '').strip()
+        new_pw = (request.form.get('password') or '').strip()
+        if not name or not email or '@' not in email:
+            flash('Completá nombre y un email válido.', 'danger')
+        elif Customer.query.filter(Customer.company_id == customer.company_id, Customer.email == email, Customer.id != customer.id).first():
+            flash('Ese negocio ya tiene otro cliente con ese email.', 'danger')
+        elif new_pw and len(new_pw) < 6:
+            flash('La contraseña del cliente debe tener al menos 6 caracteres.', 'danger')
+        else:
+            before = (customer.full_name, customer.email, customer.phone, customer.dni)
+            customer.full_name = name
+            customer.email = email
+            customer.phone = (request.form.get('phone') or '').strip() or None
+            customer.dni = (request.form.get('dni') or '').strip() or None
+            customer.tags = (request.form.get('tags') or '').strip() or None
+            customer.notes = (request.form.get('notes') or '').strip() or None
+            if new_pw:
+                customer.set_password(new_pw)
+                customer.needs_password_setup = False
+            db.session.commit()
+            after = (customer.full_name, customer.email, customer.phone, customer.dni)
+            labels = ('nombre', 'email', 'teléfono', 'DNI')
+            diff = [f'{l}: {b or "—"} → {a or "—"}' for l, b, a in zip(labels, before, after) if b != a]
+            if new_pw:
+                diff.append('cambió la contraseña')
+            log_platform('Editó un cliente', f'{customer.full_name} · ' + ('; '.join(diff) or 'sin cambios en los datos principales'), company_id=customer.company_id)
+            flash('Cliente actualizado.', 'success')
+            return redirect(url_for('platform.customer_detail', customer_id=customer.id))
+    appts = (Appointment.query.filter_by(customer_id=customer.id)
+             .order_by(Appointment.start_dt.desc()).limit(30).all())
+    return render_template('platform_customer_detail.html', customer=customer, appts=appts,
+                           status_labels=STATUS_LABELS)
+
+
+# ── Turnos de todas las empresas ───────────────────────────────────────────
+STATUS_LABELS = {'BOOKED': 'Reservado', 'DONE': 'Atendido', 'CANCELED': 'Cancelado', 'NO_SHOW': 'No vino'}
+RANGES = {'hoy': (0, 0), '7': (0, 6), '30': (0, 29), 'pasados': (-30, -1)}
+
+
+@platform_bp.route('/turnos')
+@platform_required
+def appointments():
+    today = today_ar()
+    rng = request.args.get('rango', '7')
+    if rng in RANGES:
+        d1, d2 = today + timedelta(days=RANGES[rng][0]), today + timedelta(days=RANGES[rng][1])
+    else:
+        rng = 'custom'
+        d1 = parse_iso_date(request.args.get('desde'), today)
+        d2 = parse_iso_date(request.args.get('hasta'), d1 + timedelta(days=6))
+        if d2 < d1:
+            d1, d2 = d2, d1
+        d2 = min(d2, d1 + timedelta(days=366))
+    company_id = request.args.get('company', type=int)
+    status = (request.args.get('estado') or '').upper()
+    q = (request.args.get('q') or '').strip()
+    page = max(1, request.args.get('page', 1, type=int))
+    query = (Appointment.query.join(Company, Appointment.company_id == Company.id)
+             .outerjoin(Customer, Appointment.customer_id == Customer.id)
+             .filter(Appointment.start_dt >= datetime.combine(d1, datetime.min.time()),
+                     Appointment.start_dt < datetime.combine(d2 + timedelta(days=1), datetime.min.time())))
+    if company_id:
+        query = query.filter(Appointment.company_id == company_id)
+    if status in STATUS_LABELS:
+        query = query.filter(Appointment.status == status)
+    if q:
+        like = f'%{q.lower()}%'
+        digits = ''.join(ch for ch in q if ch.isdigit())
+        conds = [func.lower(Appointment.guest_name).like(like), func.lower(Appointment.guest_email).like(like),
+                 func.lower(Customer.full_name).like(like), func.lower(Customer.email).like(like)]
+        if digits:
+            conds += [_digits_col(Appointment.guest_phone).like(f'%{digits}%'), _digits_col(Customer.phone).like(f'%{digits}%')]
+        query = query.filter(or_(*conds))
+    total = query.count()
+    by_status = dict(query.with_entities(Appointment.status, func.count(Appointment.id)).group_by(Appointment.status).all())
+    order = Appointment.start_dt.desc() if rng == 'pasados' else Appointment.start_dt.asc()
+    rows = query.order_by(order).offset((page - 1) * PAGE).limit(PAGE).all()
+    return render_template('platform_appointments.html', appts=rows, total=total, by_status=by_status,
+                           rng=rng, d1=d1, d2=d2, company_id=company_id, status=status, q=q,
+                           companies=Company.query.order_by(Company.name).all(), page=page,
+                           pages=_pages(total), status_labels=STATUS_LABELS)
+
+
+# ── Actividad (registro de acciones de plataforma) ─────────────────────────
+@platform_bp.route('/actividad')
+@platform_required
+def activity():
+    company_id = request.args.get('company', type=int)
+    user_id = request.args.get('usuario', type=int)
+    page = max(1, request.args.get('page', 1, type=int))
+    query = PlatformAuditLog.query
+    if company_id:
+        query = query.filter(PlatformAuditLog.company_id == company_id)
+    if user_id:
+        query = query.filter(PlatformAuditLog.platform_user_id == user_id)
+    total = query.count()
+    rows = query.order_by(PlatformAuditLog.created_at.desc()).offset((page - 1) * PAGE).limit(PAGE).all()
+    return render_template('platform_activity.html', rows=rows, total=total, page=page, pages=_pages(total),
+                           company_id=company_id, user_id=user_id,
+                           companies=Company.query.order_by(Company.name).all(),
+                           users=PlatformUser.query.order_by(PlatformUser.name).all())

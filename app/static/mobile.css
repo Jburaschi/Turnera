@@ -184,8 +184,6 @@
   .mode-card-arrow { width: 32px; height: 32px; flex-basis: 32px; font-size: 14px; }
 
   /* Nota de zona horaria: una línea chica */
-  .timezone-note { display: block; font-size: 12.5px; padding: 8px 10px; line-height: 1.45; }
-  .timezone-note svg { display: inline-block; vertical-align: -2px; margin-right: 4px; }
 
   /* Calendario */
   .calendar-grid { gap: 4px; }
@@ -470,4 +468,90 @@
 /* Dirección en una sola columna en el celular */
 @media (max-width: 767.98px) {
   .addr-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Vista "Nuevo / Editar profesional" en el celular */
+@media (max-width: 767.98px) {
+  .pf-wrap { padding: 0 14px calc(150px + env(safe-area-inset-bottom)); }
+  .pf-crumbs { font-size: 12px; margin-top: 12px; }
+  .pf-head { margin-bottom: 12px; }
+  .pf-head .admin-page-title { font-size: 22px; }
+  .pf-head .admin-page-sub { font-size: 13px; }
+  .pf-cancel-top { display: none; }
+  .pf-card { padding: 14px; margin-bottom: 12px; border-radius: 14px; }
+  .pf-card-head { margin-bottom: 12px; gap: 10px; }
+  .pf-card-head--action { flex-wrap: wrap; }
+  .pf-add-slot { width: 100%; justify-content: center; }
+  .pf-grid--name, .pf-grid--media { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .pf-drop, .pf-bio { min-height: 130px; }
+  .pf-services { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .pf-service { padding: 11px 12px; }
+  /* Cada franja como tarjeta: día a lo ancho, horas lado a lado, prestaciones abajo */
+  .pf-slot { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 38px; gap: 10px; padding: 12px; align-items: end; }
+  .pf-slot-day { grid-column: 1 / 3; grid-row: 1; }
+  .pf-slot-remove { grid-column: 3; grid-row: 1; }
+  .pf-slot-time { grid-row: 2; }
+  .pf-slot-time + .pf-slot-time { grid-column: 2 / 4; }
+  .pf-slot-services { grid-column: 1 / -1; grid-row: 3; }
+  .pf-slot-pop { width: 100%; max-width: none; }
+  .pf-replicate { flex-wrap: wrap; }
+  .pf-replicate .btn { width: 100%; justify-content: center; }
+  .pf-actions { bottom: calc(62px + env(safe-area-inset-bottom)); }
+  .pf-actions-inner { padding: 10px 14px; gap: 8px; }
+  .pf-actions-inner .btn { flex: 1 1 0; min-height: 42px; }
+  .pf-delete { flex: 0 0 auto; margin-right: 0; }
+  .pf-delete .btn { min-height: 42px; padding: 0 6px; }
+}
+@media (max-width: 767.98px) {
+  .pf-card-head--action > div { flex: 1 1 calc(100% - 50px); }
+  .pf-add-slot { flex: 1 1 100%; }
+}
+
+/* Perfil del negocio en el celular */
+@media (max-width: 767.98px) {
+  .cpf { padding: 0 14px calc(140px + env(safe-area-inset-bottom)); }
+  .cpf .pf-card { padding: 14px; }
+  .cpf-row--2, .cpf-media, .cpf-addr .addr-grid { grid-template-columns: minmax(0, 1fr); }
+  .cpf-media-box { padding: 12px; }
+  .cpf-cover { height: 110px; }
+  .cpf-view-public { flex: 1 1 100%; }
+  .cpf-preview { padding: 12px; gap: 12px; }
+  .cpf-preview-logo { flex-basis: 48px; width: 48px; height: 48px; }
+  .cpf ~ .pf-actions .pf-actions-inner .btn { flex: 1 1 100%; }
+}
+@media (max-width: 767.98px) {
+  .ntc-pop { width: 100%; min-width: 0; scroll-margin-bottom: 84px; }
+  .ntc-day { font-size: 15px; }
+}
+@media (max-width: 767.98px) {
+  .hol-card { padding: 14px; }
+  .hol-row { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 8px 10px; }
+  .hol-row > .entity-badge { grid-column: 2; grid-row: 2; justify-self: start; }
+  .hol-row > form { grid-column: 3; grid-row: 1 / 3; }
+  .hol-del span { display: none; }
+  .hol-del { width: 38px; height: 38px; padding: 0; justify-content: center; }
+}
+
+/* Menú del celular en páginas con barra oscura transparente (landing y página
+   del negocio): con el menú abierto la barra toma fondo para que se lea */
+@media (max-width: 767.98px) {
+  .pub-nav--dark.is-menu-open { background: rgba(11, 18, 32, .97); border-bottom-color: rgba(255,255,255,.08); backdrop-filter: blur(10px); box-shadow: 0 16px 30px -18px rgba(0,0,0,.6); }
+  .pub-nav--dark.is-menu-open .pub-nav-mobile-menu { padding-bottom: 14px; }
+}
+@media (max-width: 767.98px) {
+  .gstaff-list li { grid-template-columns: 14px minmax(0, 1fr) auto; row-gap: 2px; }
+  .gstaff-mail { grid-column: 2; grid-row: 2; font-size: 12.5px; }
+  .gstaff-edit { grid-column: 3; grid-row: 1 / 3; }
+}
+@media (max-width: 767.98px) { .gstaff-mail { white-space: normal; overflow: visible; } }
+@media (max-width: 767.98px) {
+  .plat-filterbar { padding: 10px; }
+  .plat-filterbar > * { flex: 1 1 100% !important; max-width: none !important; }
+  .plat-date { justify-content: space-between; }
+  .plat-date .form-control { flex: 1 1 auto; }
+  .plat-log li { grid-template-columns: 70px minmax(0, 1fr); padding: 10px 12px; }
+  .plat-log-who { grid-column: 2; white-space: normal; }
+  .plat-appt-list li { grid-template-columns: 78px minmax(0, 1fr); }
+  .plat-appt-list li > .entity-badge { grid-column: 2; justify-self: start; }
+  .admin-content > .pf-crumbs { margin-top: 0; }
 }

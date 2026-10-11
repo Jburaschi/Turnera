@@ -293,6 +293,12 @@ NEW_NULLABLE_COLUMNS = {
         ('province', 'VARCHAR(60)'),
         ('postal_code', 'VARCHAR(12)'),
     ],
+    'employee': [
+        ('calendar_email', 'VARCHAR(160)'),
+    ],
+    'google_calendar_connection': [
+        ('notify_staff', 'BOOLEAN'),
+    ],
 }
 
 

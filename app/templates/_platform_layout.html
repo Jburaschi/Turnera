@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% import '_icons.html' as ic %}
+{% block topnav %}{% endblock %}
+{% block head_extra %}
+<style>
+  .public-navbar { display: none !important; }
+  body { background: #f1f5f9; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="admin-shell">
+  {% with platform_active = platform_active %}{% include '_platform_sidebar.html' %}{% endwith %}
+  <main class="admin-main">
+    <div class="admin-topbar m-only">
+      <div class="admin-topbar-brand">
+        <button type="button" class="admin-m-menu" data-admin-nav-toggle aria-label="Abrir menú" aria-expanded="false">{{ ic.icon('menu', 20) }}</button>
+        <div style="min-width:0;"><div class="admin-topbar-name">{% block mtitle %}Plataforma{% endblock %}</div></div>
+      </div>
+    </div>
+    <div class="admin-content">
+      {% block page %}{% endblock %}
+    </div>
+  </main>
+  {% with no_tabbar = true %}{% include '_admin_mobile_nav.html' %}{% endwith %}
+</div>
+{% endblock %}

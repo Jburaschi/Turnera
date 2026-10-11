@@ -1,6 +1,6 @@
 from __future__ import annotations
-import csv, io, os, re, secrets, uuid
-from datetime import datetime, time, timedelta
+import calendar, csv, io, os, re, secrets, uuid
+from datetime import date, datetime, time, timedelta
 from functools import wraps
 from flask import Blueprint, Response, abort, current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_user
@@ -9,14 +9,14 @@ from werkzeug.utils import secure_filename
 from ..extensions import db
 from ..models import (
     WEEKDAY_LABELS, AdminUser, Appointment, AppointmentLog, BlockedPeriod, Company, CompanyHours, Customer,
-    Employee, EmployeeSchedule, GoogleCalendarConnection, PlanRequest, Service, SubscriptionPayment, UploadedImage,
-)
+    Employee, EmployeeSchedule, GoogleCalendarConnection, PlanRequest, Service, SubscriptionPayment, UploadedImage, HolidayOptOut)
 from ..plans import (
     APPOINTMENT_PAYMENTS, AUDIT_LOG, BRANDING, CANCEL_PENALTY, EXPORT_CSV, FEATURE_LABELS,
     PLANS, PLAN_CODES, REQUEST_CANCEL, REQUEST_CHANGE, minimum_plan_for, plan_code, plan_has, plan_limit,
 )
 from sqlalchemy.exc import IntegrityError
 from ..services.availability import get_availability_for_day, has_booking_conflict, lock_employee_for_booking
+from ..services.holidays_ar import holiday_name, upcoming_holidays
 from ..services.email_service import send_booking_canceled, send_booking_confirmed, send_booking_rescheduled, send_plan_request, send_trial_warning
 from ..services import audit as audit_log
 from ..timeutils import now_ar, parse_iso_date, today_ar
@@ -27,6 +27,8 @@ from ..services.google_calendar import (
 )
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+from ..services.platform_audit import register_impersonation_logging
+register_impersonation_logging(admin_bp)
 ADMIN_SECTIONS = {
     'overview': 'Resumen', 'agenda': 'Agenda', 'customers': 'Clientes',
     'professionals': 'Profesionales', 'services': 'Prestaciones', 'blocked': 'Bloqueos',
@@ -164,6 +166,23 @@ def get_owned_company_or_404(slug):
         abort(404)
     return company
 
+def _company_categories():
+    from .onboarding import CATEGORIES
+    return CATEGORIES
+
+def _calendar_email(raw):
+    """Valida el mail de calendario del profesional. Devuelve (email|None, error|None)."""
+    v = (raw or '').strip().lower()
+    if not v:
+        return None, None
+    if len(v) > 160 or not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', v):
+        return None, 'El email del calendario del profesional no es válido.'
+    return v, None
+
+def _form_flag(key):
+    """Checkbox ('on') o selector ('1'/'0') → bool."""
+    return (request.form.get(key) or '').strip().lower() in ('on', '1', 'true', 'yes')
+
 def parse_time_or_none(raw):
     raw = (raw or '').strip()
     try:
@@ -206,10 +225,15 @@ def replace_employee_schedules(employee, company, blocks):
         sch.limited_services.clear()
         db.session.delete(sch)
     db.session.flush()
+    own = {s.id for s in employee.services}
     for wd, st, et, sids in blocks:
         sch = EmployeeSchedule(employee_id=employee.id, weekday=wd, start_time=st, end_time=et)
         db.session.add(sch)
         db.session.flush()
+        # Si la franja incluye todas sus prestaciones, no se limita (así una
+        # prestación que se le agregue después también vale en esta franja).
+        if own and own <= set(sids):
+            continue
         for sid in sids:
             svc = Service.query.filter_by(company_id=company.id, id=sid).first()
             if svc and svc in employee.services:
@@ -333,6 +357,18 @@ def dashboard(slug):
     section = request.args.get('section', 'overview')
     if section not in ADMIN_SECTIONS:
         section = 'overview'
+    # Profesionales: vista dedicada para crear (?pro=new) o editar (?pro=<id>)
+    pro_form, pro_edit = None, None
+    if section == 'professionals' and request.args.get('pro'):
+        pro_arg = request.args.get('pro')
+        if pro_arg == 'new':
+            if _limit_reached(company, 'professionals', _active_professionals(company)):
+                flash(_limit_message(company, 'professionals'), 'warning')
+                return redirect(url_for('admin.dashboard', slug=slug, section='professionals'))
+            pro_form = 'new'
+        elif pro_arg.isdigit():
+            pro_edit = Employee.query.filter_by(company_id=company.id, id=int(pro_arg)).first_or_404()
+            pro_form = 'edit'
     day                      = request.args.get('day')
     selected_day             = parse_iso_date(day, today_ar())
     selected_professional_id = request.args.get('professional_id', type=int)
@@ -622,6 +658,7 @@ def dashboard(slug):
         customers_new_month_delta=customers_new_month_delta,
         customers_with_appts_30d=customers_with_appts_30d, customers_without_appts_30d=customers_without_appts_30d,
         with_appts_pct=with_appts_pct, without_appts_pct=without_appts_pct,
+        pro_form=pro_form, pro_edit=pro_edit, company_categories=_company_categories(),
         selected_day=selected_day, selected_day_label=selected_day_label, weekday_labels=WEEKDAY_LABELS, active_section=section,
         stats=dict(today_appointments=today_count, month_appointments=month_count,
                    professionals=active_professionals, services=active_services,
@@ -655,6 +692,7 @@ def dashboard(slug):
         search_customer=search_customer, status_options=STATUS_OPTIONS,
         selected_time_range=selected_time_range, month_labels=MONTH_LABELS,
         blocked_periods=blocked_periods, manual_slots=manual_slots,
+        upcoming_holidays=(upcoming_holidays(company, today_ar()) if section == 'blocked' else []),
         manual_service_id=manual_service_id, manual_employee_id=manual_employee_id,
         employees_by_service=employees_by_service,
         timedelta=timedelta,
@@ -830,22 +868,28 @@ def delete_service(slug, service_id):
 @owner_required
 def create_employee(slug):
     company=get_owned_company_or_404(slug); name=request.form.get('name','').strip()
+    back_to_form = redirect(url_for('admin.dashboard', slug=slug, section='professionals', pro='new'))
+    wants_active = _form_flag('active')
     if not name:
-        flash('El nombre del profesional es obligatorio.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
-    if 'active' in request.form and _limit_reached(company, 'professionals', _active_professionals(company)):
+        flash('El nombre del profesional es obligatorio.','danger'); return back_to_form
+    cal_email, cal_err = _calendar_email(request.form.get('calendar_email'))
+    if cal_err:
+        flash(cal_err, 'danger'); return back_to_form
+    if wants_active and _limit_reached(company, 'professionals', _active_professionals(company)):
         flash(_limit_message(company, 'professionals'), 'warning'); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
     employee=Employee(company=company, name=name,
                       color=request.form.get('color','#0d6efd'),
-                      active='active' in request.form,
+                      active=wants_active,
                       photo_url=_save_uploaded_image(request.files.get('photo_file'), company.id),
-                      bio=request.form.get('bio','').strip() or None)
+                      bio=request.form.get('bio','').strip() or None,
+                      calendar_email=cal_email)
     sids={int(s) for s in request.form.getlist('service_ids') if s.isdigit()}
     for svc in company.services:
         if svc.id in sids: employee.services.append(svc)
     db.session.add(employee); db.session.flush()
     blocks=parse_employee_schedule_blocks(company)
     if not blocks:
-        flash('Agregá al menos una franja horaria.','danger'); db.session.rollback(); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
+        flash('Agregá al menos una franja horaria válida (la hora de fin tiene que ser posterior a la de inicio).','danger'); db.session.rollback(); return back_to_form
     replace_employee_schedules(employee,company,blocks); db.session.commit(); flash('Profesional creado.','success')
     return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
 
@@ -853,11 +897,17 @@ def create_employee(slug):
 @owner_required
 def update_employee(slug, employee_id):
     company=get_owned_company_or_404(slug); employee=Employee.query.filter_by(company_id=company.id,id=employee_id).first_or_404()
+    back_to_form = redirect(url_for('admin.dashboard', slug=slug, section='professionals', pro=employee.id))
     name=request.form.get('name','').strip()
     if not name:
-        flash('El profesional debe tener nombre.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
+        flash('El profesional debe tener nombre.','danger'); return back_to_form
+    # Estado: solo si el formulario lo trae (la vista de edición tiene el selector)
+    if 'active' in request.form:
+        wants_active = _form_flag('active')
+        if wants_active and not employee.active and _limit_reached(company, 'professionals', _active_professionals(company)):
+            flash(_limit_message(company, 'professionals'), 'warning'); return back_to_form
+        employee.active = wants_active
     employee.name=name; employee.color=request.form.get('color',employee.color)
-    # El estado activo/inactivo ya no se toca acá: se maneja con el botón del badge.
     # Foto: si suben un archivo nuevo, lo guardamos; si no, mantenemos lo que había
     uploaded = _save_uploaded_image(request.files.get('photo_file'), company.id)
     if uploaded:
@@ -865,15 +915,29 @@ def update_employee(slug, employee_id):
     elif request.form.get('remove_photo') == '1':
         employee.photo_url = None
     employee.bio=request.form.get('bio','').strip() or None
+    email_changed = False
+    if 'calendar_email' in request.form:
+        cal_email, cal_err = _calendar_email(request.form.get('calendar_email'))
+        if cal_err:
+            db.session.rollback(); flash(cal_err, 'danger'); return back_to_form
+        email_changed = cal_email != employee.calendar_email
+        employee.calendar_email = cal_email
     employee.services.clear()
     sids={int(s) for s in request.form.getlist('service_ids') if s.isdigit()}
     for svc in company.services:
         if svc.id in sids: employee.services.append(svc)
     blocks=parse_employee_schedule_blocks(company)
     if not blocks:
-        flash('Agregá al menos una franja horaria.','danger'); return redirect(url_for('admin.dashboard',slug=slug,section='professionals'))
+        db.session.rollback()
+        flash('Agregá al menos una franja horaria válida (la hora de fin tiene que ser posterior a la de inicio).','danger'); return back_to_form
     orphaned = find_appointments_outside_schedule(employee, blocks)
     replace_employee_schedules(employee,company,blocks); db.session.commit()
+    if email_changed and company_has_google_plan(company) and company.google_calendar:
+        # Sumar (o sacar) al profesional en los eventos de sus próximos turnos
+        upcoming = Appointment.query.filter(Appointment.employee_id == employee.id, Appointment.status == 'BOOKED',
+                                            Appointment.start_dt >= now_ar()).order_by(Appointment.start_dt).limit(100).all()
+        for ap in upcoming:
+            ensure_google_event_for_appointment(ap)
     if orphaned:
         detalle = '; '.join(f'{ap.customer_display_name} el {ap.start_dt.strftime("%d/%m")} a las {ap.start_dt.strftime("%H:%M")}' for ap in orphaned[:5])
         extra = f' y {len(orphaned) - 5} más' if len(orphaned) > 5 else ''
@@ -933,6 +997,38 @@ def admin_slots_api(slug):
             seen.add(key)
             slots.append({'value': key, 'label': s['start'].strftime('%H:%M')})
     return jsonify(slots)
+
+
+@admin_bp.route('/<slug>/api/slots/month')
+@admin_required
+def admin_month_slots_api(slug):
+    """JSON: cantidad de horarios libres por día del mes, para pintar el
+    calendario del alta manual de turno. {"2026-10-13": 12, ...}"""
+    company = get_owned_company_or_404(slug)
+    service_id  = request.args.get('service_id', type=int)
+    employee_id = request.args.get('employee_id', type=int)
+    year  = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    if not service_id or not employee_id or not year or not month or not (1 <= month <= 12 and 2000 <= year <= 2100):
+        return jsonify({})
+    service  = Service.query.filter_by(company_id=company.id, id=service_id,  active=True).first()
+    employee = Employee.query.filter_by(company_id=company.id, id=employee_id, active=True).first()
+    if not service or not employee or service not in employee.services:
+        return jsonify({})
+    ignore_blocks = request.args.get('ignore_blocks') == '1'
+    today = today_ar()
+    _, days_in_month = calendar.monthrange(year, month)
+    worked = {sch.weekday for sch in employee.schedules}
+    result = {}
+    for n in range(1, days_in_month + 1):
+        d = date(year, month, n)
+        if d < today or d.weekday() not in worked:
+            result[d.isoformat()] = 0     # pasado o día que no trabaja: no hace falta calcular
+            continue
+        starts = {s['start'] for s in get_availability_for_day(company, service, d, employee.id,
+                                                                ignore_past=True, ignore_blocks=ignore_blocks)}
+        result[d.isoformat()] = len(starts)
+    return jsonify(result)
 
 
 @admin_bp.route('/<slug>/appointments/manual', methods=['POST'])
@@ -1117,6 +1213,28 @@ def create_blocked_period(slug):
     db.session.add(BlockedPeriod(company=company,employee=employee,title=request.form.get('title','').strip() or 'Bloqueo',block_type=block_type,start_dt=start_dt,end_dt=end_dt,notes=request.form.get('notes','').strip() or None))
     db.session.commit(); flash('Bloqueo creado.','success'); return redirect(url_for('admin.dashboard',slug=slug,section='blocked'))
 
+@admin_bp.route('/<slug>/holidays/<day>/<action>', methods=['POST'])
+@owner_required
+def toggle_holiday(slug, day, action):
+    """Abre (atiende) o vuelve a cerrar un feriado nacional para este negocio."""
+    company = get_owned_company_or_404(slug)
+    d = parse_iso_date(day)
+    name = holiday_name(d) if d else None
+    back = redirect(url_for('admin.dashboard', slug=slug, section='blocked'))
+    if not name or action not in ('open', 'close'):
+        flash('Ese día no es un feriado nacional.', 'warning'); return back
+    existing = HolidayOptOut.query.filter_by(company_id=company.id, day=d).first()
+    if action == 'open' and not existing:
+        db.session.add(HolidayOptOut(company_id=company.id, day=d))
+        db.session.commit()
+        flash(f'Listo: el {d.strftime("%d/%m")} ({name}) vas a atender y ya se pueden reservar turnos ese día.', 'success')
+    elif action == 'close' and existing:
+        db.session.delete(existing)
+        db.session.commit()
+        flash(f'El {d.strftime("%d/%m")} ({name}) vuelve a estar cerrado por feriado.', 'success')
+    return back
+
+
 @admin_bp.route('/<slug>/blocked/<int:block_id>/delete', methods=['POST'])
 @owner_required
 def delete_blocked_period(slug, block_id):
@@ -1194,6 +1312,18 @@ def _finish_google_oauth(company):
     conn.refresh_token=creds.refresh_token or conn.refresh_token; conn.access_token=creds.token; conn.token_expiry=creds.expiry; conn.scopes=' '.join(creds.scopes or GOOGLE_SCOPES)
     db.session.commit(); session.pop('google_oauth_state',None); session.pop('google_oauth_company_id',None)
     flash('Google Calendar conectado.','success'); return redirect(url_for('admin.dashboard',slug=slug,section='integrations'))
+
+@admin_bp.route('/<slug>/integrations/google/settings', methods=['POST'])
+@owner_required
+def google_settings(slug):
+    company = get_owned_company_or_404(slug)
+    conn = company.google_calendar
+    if conn:
+        conn.notify_staff = _form_flag('notify_staff')
+        db.session.commit()
+        flash('Preferencia de Google Calendar guardada.', 'success')
+    return redirect(url_for('admin.dashboard', slug=slug, section='integrations'))
+
 
 @admin_bp.route('/<slug>/integrations/google/disconnect', methods=['POST'])
 @owner_required

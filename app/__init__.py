@@ -78,6 +78,11 @@ def create_app():
     elif db_url.startswith('postgresql://'):
         db_url = db_url.replace('postgresql://', 'postgresql+psycopg://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    if not db_url.startswith('sqlite'):
+        # Neon/Render cortan las conexiones quietas (la base "se duerme"): revisar
+        # cada conexión antes de usarla y renovarlas cada 5 minutos evita el
+        # error 500 de la primera visita después de un rato sin uso.
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 280}
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # ── Email (Flask-Mail) ──────────────────────────────────────────────────
@@ -93,6 +98,15 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = 'auth.customer_login'
     csrf.init_app(app)
+    # Límite de intentos (login, reservas): con REDIS_URL se comparte entre todos
+    # los procesos; sin Redis vive en la memoria de cada proceso, por eso el
+    # Procfile arranca un solo proceso (con varios hilos) por defecto.
+    storage = os.getenv('RATELIMIT_STORAGE_URI') or os.getenv('REDIS_URL') or 'memory://'
+    app.config['RATELIMIT_STORAGE_URI'] = storage
+    app.config['RATELIMIT_SWALLOW_ERRORS'] = True   # si Redis se cae, no se bloquea el login
+    if storage == 'memory://' and int(os.getenv('WEB_CONCURRENCY', '1') or 1) > 1:
+        print('⚠ Límite de intentos en memoria con WEB_CONCURRENCY > 1: cada proceso cuenta por separado. '
+              'Configurá REDIS_URL o dejá WEB_CONCURRENCY=1.')
     limiter.init_app(app)
     mail.init_app(app)
     if is_production and not app.config['MAIL_USERNAME']:
@@ -146,6 +160,8 @@ def create_app():
     # ── Planes: funciones y límites disponibles en todas las plantillas ──────
     from . import plans as plans_mod
     from .utils import PROVINCIAS_AR, phone_digits, tel_href, whatsapp_number
+    from .services.google_calendar import GOOGLE_EVENT_COLORS, employee_color_id
+    app.jinja_env.globals['google_color'] = lambda emp: GOOGLE_EVENT_COLORS[employee_color_id(emp)]
     app.jinja_env.filters['digits'] = phone_digits
     app.jinja_env.filters['whatsapp'] = whatsapp_number
     app.jinja_env.filters['tel_href'] = tel_href
