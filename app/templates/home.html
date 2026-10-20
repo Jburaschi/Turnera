@@ -372,6 +372,13 @@
 
         </div>
 
+        {# Solo celular: los planes se deslizan de costado; estos puntos indican cuál se ve #}
+        <div class="hl-plans-dots m-only" aria-hidden="true">
+          <button type="button" data-plan-dot="0" tabindex="-1"></button>
+          <button type="button" data-plan-dot="1" tabindex="-1" class="is-active"></button>
+          <button type="button" data-plan-dot="2" tabindex="-1"></button>
+        </div>
+
       </div>
 
       <p class="hl-plans-note">
@@ -483,6 +490,29 @@ document.querySelectorAll('.hl-billing-opt').forEach(function (opt) {
     document.querySelectorAll('.hl-price-annual').forEach(function (el) { el.classList.toggle('d-none', !annual); });
   });
 });
+// Celular: los planes son un carrusel. Arranca mostrando el PRO y los puntos
+// marcan cuál se está viendo. En escritorio no hace nada (es una grilla).
+(function () {
+  var grid = document.querySelector('.hl-plans-grid');
+  var dots = document.querySelectorAll('[data-plan-dot]');
+  if (!grid || !dots.length || !window.matchMedia('(max-width: 767.98px)').matches) return;
+  var cards = grid.querySelectorAll('.hl-plan');
+  function go(i, smooth) {
+    var c = cards[i]; if (!c) return;
+    var left = c.offsetLeft - (grid.clientWidth - c.offsetWidth) / 2;
+    if (smooth) grid.scrollTo({ left: left, behavior: 'smooth' }); else grid.scrollLeft = left;
+  }
+  function mark() {
+    var mid = grid.scrollLeft + grid.clientWidth / 2, best = 0, dist = Infinity;
+    cards.forEach(function (c, i) { var d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < dist) { dist = d; best = i; } });
+    dots.forEach(function (d, i) { d.classList.toggle('is-active', i === best); });
+  }
+  dots.forEach(function (d) { d.addEventListener('click', function () { go(+d.dataset.planDot, true); }); });
+  grid.addEventListener('scroll', function () { window.requestAnimationFrame(mark); }, { passive: true });
+  var start = function () { go(1, false); mark(); };
+  start();
+  if (document.readyState !== 'complete') window.addEventListener('load', start, { once: true });
+})();
 </script>
 
 {% endblock %}

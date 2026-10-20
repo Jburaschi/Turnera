@@ -555,3 +555,89 @@
   .plat-appt-list li > .entity-badge { grid-column: 2; justify-self: start; }
   .admin-content > .pf-crumbs { margin-top: 0; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   LANDING (/) EN CELULAR — más corta y con un recorrido claro:
+   hero → beneficios (2×2) → demo → planes (carrusel) → por qué → cierre.
+   Todo dentro de esta media query: el escritorio no cambia.
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 767.98px) {
+  /* Hero compacto */
+  .hl-hero { padding: 80px 0 28px; }
+  .hl-hero-left { gap: 16px; }
+  .hl-pill-row .hl-pill { font-size: 12.5px; padding: 5px 11px; }
+  .hl-title { font-size: 32px; line-height: 1.1; letter-spacing: -.02em; font-weight: 800; }
+  .hl-sub { font-size: 15px; line-height: 1.55; }
+  .hl-actions { gap: 10px; }
+  .hl-actions > a { width: 100%; }
+  /* Garantías: una sola fila de chips en vez de tres renglones */
+  .hl-trust { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hl-trust-item { font-size: 12px; gap: 5px; padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.7); }
+  .hl-trust-item svg { width: 13px; height: 13px; }
+
+  /* Beneficios: grilla 2×2 de tarjetas chicas */
+  .hl-benefits-strip { padding: 22px 0; border-top: 0; }
+  .hl-benefits-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hl-benefit { flex-direction: column; gap: 8px; padding: 14px 12px; border: 1px solid #eceef2; border-radius: 14px; background: #fafbff; }
+  .hl-benefit-icon { width: 34px; height: 34px; flex-basis: 34px; background: #eef1ff; }
+  .hl-benefit-icon svg { width: 17px; height: 17px; }
+  .hl-benefit strong { font-size: 14px; line-height: 1.25; }
+  .hl-benefit p { font-size: 12.5px; line-height: 1.45; margin-top: 3px; }
+
+  /* Encabezados de sección parejos */
+  .hl-showcase-head, .hl-section-head { margin-bottom: 18px; gap: 8px; }
+  .hl-section-title { font-size: 25px; line-height: 1.2; letter-spacing: -.02em; }
+  .hl-section-sub { font-size: 14.5px; line-height: 1.5; }
+
+  /* Demo: pestañas en una fila (ícono arriba, texto abajo) y sin el resumen */
+  .hl-showcase { padding: 36px 0 32px; }
+  .hl-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; margin-bottom: 16px; background: #f3f4f7; border-radius: 14px; }
+  .hl-tab { flex-direction: column; justify-content: center; gap: 4px; min-height: 56px; padding: 6px 4px; border: 0; border-radius: 10px; background: transparent; font-size: 12px; line-height: 1.2; text-align: center; color: #52525b; }
+  .hl-tab.is-active { background: #fff; color: var(--c-blue); box-shadow: 0 1px 3px rgba(16,24,40,.12); }
+  .hl-summary-card { display: none; }
+  .hl-device { border-radius: 14px; }
+  .hl-device-body { padding: 16px; }
+  .hl-device-body .mb-4 { margin-bottom: 14px !important; }
+  .hl-device-body .btn-sm { padding: 5px 9px; font-size: 12.5px; }
+  .hl-device-body .table { font-size: 12.5px; }
+  .hl-device-body .fs-3 { font-size: 20px !important; }
+  .hl-device-body .p-3 { padding: 10px !important; }
+
+  /* Planes: carrusel de costado, arranca en el PRO */
+  #planes.hl-section { padding: 36px 0 28px; }
+  .hl-plans-layout { gap: 16px; }
+  .hl-plans-intro { gap: 8px; }
+  .hl-billing-toggle { margin-top: 6px; }
+  .hl-plans-grid {
+    position: relative; display: flex; gap: 12px; max-width: none;
+    margin: 0 -16px; padding: 18px 16px 6px;
+    overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 16px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .hl-plans-grid::-webkit-scrollbar { display: none; }
+  .hl-plan { flex: 0 0 84%; scroll-snap-align: center; padding: 22px 18px 18px; border-radius: 16px; }
+  .hl-plan:hover, .hl-plan--featured, .hl-plan--featured:hover { transform: none; box-shadow: none; }
+  .hl-plan-top { margin-bottom: 14px; }
+  .hl-plan-tier { margin-bottom: 6px; }
+  .hl-plan-price { font-size: 32px; }
+  .hl-plan-features { gap: 8px; margin-bottom: 18px; }
+  .hl-plan-features li { font-size: 14px; line-height: 1.35; }
+  .hl-plan-btn { min-height: 46px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .hl-plans-dots { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
+  .hl-plans-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; background: #d4d4d8; transition: width .2s, background .2s; }
+  .hl-plans-dots button.is-active { width: 22px; background: var(--c-blue); }
+  .hl-plans-note { font-size: 12px; margin-top: 12px; }
+
+  /* Por qué elegir Turnex: 2×2 compacto y el cierre como final claro */
+  .hl-why.hl-section { padding: 36px 0 28px; }
+  .hl-why-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+  .hl-why-item { align-items: flex-start; text-align: left; gap: 6px; padding: 14px 12px; background: #fff; border: 1px solid #eceef2; border-radius: 14px; }
+  .hl-why-icon { width: 36px; height: 36px; }
+  .hl-why-icon svg { width: 18px; height: 18px; }
+  .hl-why-item strong { font-size: 14px; line-height: 1.25; }
+  .hl-why-item p { font-size: 12.5px; line-height: 1.45; max-width: none; }
+  .hl-final-cta { padding: 24px 18px; border-radius: 18px; gap: 16px; }
+  .hl-final-cta p { font-size: 19px; line-height: 1.3; }
+  .hl-final-cta-actions { flex-direction: column; gap: 10px; }
+  .hl-final-cta-actions > a { width: 100%; }
+}
