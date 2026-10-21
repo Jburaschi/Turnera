@@ -692,6 +692,8 @@
   /* Barra fija inferior con el CTA */
   .cp-mbar {
     display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+    transform: translateY(110%); opacity: 0; pointer-events: none;
+    transition: transform .3s ease, opacity .25s ease;
     padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
     background: linear-gradient(to top, #fff 72%, rgba(255,255,255,0));
   }
@@ -702,5 +704,6 @@
     box-shadow: 0 8px 20px -8px rgba(54, 84, 240, .55);
   }
   .cp-mbar-btn:hover, .cp-mbar-btn:focus { color: #fff; }
+  .cp-mbar--show { transform: none; opacity: 1; pointer-events: auto; }
   .cp-mbar-btn svg { width: clamp(18px, 5vw, 20px); height: clamp(18px, 5vw, 20px); }
 }

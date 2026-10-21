@@ -24,7 +24,7 @@
           {% endif %}
 
           <div class="cp-hero-actions">
-            <a href="{{ url_for('public.booking_page', slug=company.slug) }}" class="cp-btn-primary">
+            <a href="{{ url_for('public.booking_page', slug=company.slug) }}" class="cp-btn-primary" data-hero-cta>
               <span class="m-only cp-btn-ico">{{ ic.icon('calendar', 20) }}</span>Reservar turno →
             </a>
             <a href="#servicios" class="cp-btn-ghost"><span class="m-only cp-btn-ico">{{ ic.icon('scissors', 20) }}</span>Ver servicios</a>
@@ -343,6 +343,17 @@
   track.addEventListener('scroll', updateNav);
   window.addEventListener('resize', updateNav);
   updateNav();
+})();
+</script>
+<script>
+// Solo celular: la barra fija aparece cuando el botón "Reservar turno" del inicio sale de la pantalla
+(function () {
+  var bar = document.querySelector('.cp-mbar');
+  var cta = document.querySelector('[data-hero-cta]');
+  if (!bar || !cta || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(function (entries) {
+    bar.classList.toggle('cp-mbar--show', !entries[0].isIntersecting);
+  }).observe(cta);
 })();
 </script>
 {% endblock %}
